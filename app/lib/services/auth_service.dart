@@ -120,10 +120,8 @@ class AuthService {
     // A fresh session is now active: re-arm the session-expired redirect so a
     // later expiry fires it again.
     ApiClient.markSessionActive();
-    // Start background location reporting now that credentials are synced to
-    // shared_preferences. Fire-and-forget so it never blocks the login flow.
-    // (Covers both login and sign-up, which funnel through this method.)
-    BackgroundLocationService.start();
+    // Background location reporting is started by MapScreen once it is shown
+    // (and the app is in the foreground), not here.
   }
 
   /// Whether a 401 message indicates TOTP is required (rather than bad

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../models/place.dart';
 import '../services/api_client.dart';
-import '../services/background_location_service.dart';
 import '../services/family_service.dart';
 import '../services/geofence_service.dart';
 import '../services/place_service.dart';
@@ -283,10 +282,8 @@ class _AddLocationsScreenState extends State<AddLocationsScreen> {
       );
       return;
     }
-    // Onboarding is complete and location permission is now granted: start
-    // background location reporting (fire-and-forget). Earlier start() calls
-    // during sign-up returned early because the permission was still denied.
-    BackgroundLocationService.start();
+    // Onboarding is complete; MapScreen starts background location reporting
+    // once it is shown (and the app is in the foreground).
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => const MapScreen()),
       (route) => false,
