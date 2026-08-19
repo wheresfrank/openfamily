@@ -68,8 +68,8 @@ const GROUP_PALETTE = [
 
 /**
  * Per-member identity palette — the ring color that makes each member
- * distinguishable at a glance (Life360's core device). Distinct hues, stable
- * by member id, so a member keeps the same color across renders and updates.
+ * distinguishable at a glance. Distinct hues, stable by member id, so a member
+ * keeps the same color across renders and updates.
  *
  * Deliberately deeper/more saturated than GROUP_PALETTE so a member's identity
  * ring never reads as another family's accent color.

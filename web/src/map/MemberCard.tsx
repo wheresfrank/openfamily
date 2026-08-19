@@ -1,6 +1,5 @@
 // Member detail card — the tap-to-open surface that answers "who, where, how's
-// their battery, how fresh is this" without hunting the list. Mirrors Life360's
-// rich member card.
+// their battery, how fresh is this" without hunting the list.
 
 import { BatteryGlyph, MovementBadge, StatusAvatar, statusColor, statusLabel } from './memberBubble'
 import { lastSeenLabel } from './status'

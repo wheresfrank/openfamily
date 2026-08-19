@@ -3,8 +3,8 @@
 // Mirrors the app's circle switcher intent, adapted for the multi-family admin
 // panel (the app is single-circle; the admin sees every family).
 //
-// With a handful of groups it renders a one-tap horizontal chip row (Life360's
-// one-tap circle switcher); with many groups it falls back to a dropdown.
+// With a handful of groups it renders a one-tap horizontal chip row; with many
+// groups it falls back to a dropdown.
 
 import { useEffect, useRef, useState } from "react";
 import type { Group } from "./types";

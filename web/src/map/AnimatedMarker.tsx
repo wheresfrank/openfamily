@@ -2,7 +2,7 @@
 // location updates, but does NOT animate during pan/zoom (Leaflet repositions
 // markers on zoom; a CSS transform transition would make them "swim"). We track
 // the previous lat/lng per marker and only tween when the position actually
-// changed, giving the "alive" glide Life360 has without the zoom jank.
+// changed, giving the "alive" glide without the zoom jank.
 
 import L from "leaflet";
 import { useEffect, useRef } from "react";

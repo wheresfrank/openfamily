@@ -2,7 +2,7 @@
 
 This file is the concrete "bar" (reference) for a gauntlet-loop build of a polished web
 admin panel for **Whereabouts**, a self-hosted family location tracker. The two references
-are Life360's live web map (map view) and Vercel's dashboard (admin panel).
+are a reference live web map (map view) and Vercel's dashboard (admin panel).
 
 > **Method & limits.** Both reference apps are behind login walls, so no authenticated
 > screenshots could be captured directly. Material below was gathered from *public* sources
@@ -14,18 +14,18 @@ are Life360's live web map (map view) and Vercel's dashboard (admin panel).
 
 ---
 
-## 1. Life360 — web map
+## 1. Reference map
 
 ### Source reality check
-- life360.com is **Cloudflare-blocked** to automated fetch (HTTP 403). The live web map at
-  life360.com is login-gated on top of that, so **no public screenshot of the actual web map
+- The reference site is **Cloudflare-blocked** to automated fetch (HTTP 403). The live web map at
+  the reference site is login-gated on top of that, so **no public screenshot of the actual web map
   was obtainable.**
 - The closest public, verified-hotlinkable reference is the **App Store listing screenshots**
-  (Apple iTunes Search API, app id `384830320`, "Life360: Family Safety & GPS"). These are the
-  *mobile* app screens; the Life360 web map mirrors the same map styling, member bubbles, and
+  (Apple iTunes Search API, app id `384830320`). These are the
+  *mobile* app screens; the reference app's web map mirrors the same map styling, member bubbles, and
   status indicators as the mobile map. Treat these as the map-view reference, with the caveat
   that the web layout (side panel etc.) is not shown.
-- No Life360 brand design-system page / public hex tokens were reachable. Brand hex values
+- No reference-app brand design-system page / public hex tokens were reachable. Brand hex values
   below are **NOT VERIFIED** and intentionally omitted rather than invented.
 
 ### Design inventory (inferred from App Store screens + app description)
@@ -45,7 +45,7 @@ are Life360's live web map (map view) and Vercel's dashboard (admin panel).
   `artworkUrl512`, a solid teal rounded-square). Exact hex **NOT VERIFIED**. UI chrome is
   light/white cards on the map. Member accent colors appear to be a small fixed palette
   (one distinct hue per member).
-- **Typography:** System sans (mobile); no Life360-specific typeface found. **NOT VERIFIED.**
+- **Typography:** System sans (mobile); no reference-app-specific typeface found. **NOT VERIFIED.**
 - **Motion:** Live position updates (bubbles move on the map); no public motion spec found.
   **NOT VERIFIED.**
 - **Features visible across the screenshot set:** Location sharing map, Place Alerts, Family
@@ -68,7 +68,7 @@ are Life360's live web map (map view) and Vercel's dashboard (admin panel).
 - `https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/1d/c4/e2/1dc4e25d-571f-4fe1-11cc-446c716f8179/10_ROADSIDE_ASSISTANCE.jpg/392x696bb.jpg` — Roadside Assistance screen.
 - App icon (teal brand mark): `https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/e1/c1/63/e1c1638d-8697-c1f4-7e0b-c5cd424b3871/AppIcon-0-0-1x_U007ephone-0-1-0-0-85-220.png/512x512bb.png`
 
-### What makes Life360 feel polished (critic checklist)
+### What makes the reference map feel polished (critic checklist)
 1. **Map-first layout** — the map dominates; chrome is translucent overlay cards, not a separate
    pane stealing map real estate.
 2. **Member bubbles with distinct per-member color rings** — multiple members are instantly
@@ -84,13 +84,13 @@ are Life360's live web map (map view) and Vercel's dashboard (admin panel).
    snapshot.
 
 ### Gaps (explicit)
-- **No verified Life360 brand hex values.** (life360.com blocked; no public brand/press kit
+- **No verified reference-app brand hex values.** (the reference site blocked; no public brand/press kit
   reached.) Do not invent the teal hex — confirm against the app icon or a fetched brand
   asset before using.
 - **No public web-map screenshot.** The reference images are mobile app screens. The web map's
   side-panel layout is unknown from public sources; infer the member list as a side panel for
   the desktop build but flag it as inferred.
-- **No Life360 typeface / spacing scale** found publicly.
+- **No reference-app typeface / spacing scale** found publicly.
 
 ---
 

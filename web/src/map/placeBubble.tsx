@@ -1,7 +1,7 @@
 // Place pins — saved locations (Home/School/Work/…) drawn on the map as
-// first-class pins with a type glyph and a name label, mirroring Life360's
-// "Places as first-class pins" (bar checklist #4). Each place is tagged with
-// its owning family so the platform-admin map can show places across families.
+// first-class pins with a type glyph and a name label. Each place is tagged
+// with its owning family so the platform-admin map can show places across
+// families.
 
 import L from "leaflet";
 import type { Place } from "./types";

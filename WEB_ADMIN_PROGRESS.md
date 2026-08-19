@@ -2,8 +2,8 @@
 
 **Branch:** `web-admin-panel`
 
-**Bar:** Life360's live web map (life360.com) for the map + Vercel's dashboard for
-the admin panel, screenshotted at desktop viewport.
+**Bar:** a polished live web map for the map + Vercel's dashboard for the admin
+panel, screenshotted at desktop viewport.
 
 **Goal:** a polished web admin panel where an admin can download/generate the
 Android APK and view a live map of all groups (families) and their members'
@@ -13,7 +13,7 @@ locations, mirroring the app's map in the browser.
 
 | Piece | Status | Rounds | Winner |
 |---|---|---|---|
-| Bar inventory (Life360 web map + Vercel dashboard) | ✅ complete | — | — |
+| Bar inventory (reference web map + Vercel dashboard) | ✅ complete | — | — |
 | Backend: platform-admin API + live WS stream + places | ✅ built (build+vet+test clean) | — | — |
 | Web admin panel shell | ✅ ours wins (r7, narrowly) | 7 | ours |
 | Web live map | ✅ ours wins (r7) | 7 | ours |
@@ -24,8 +24,8 @@ locations, mirroring the app's map in the browser.
 ## Log
 
 - **Round 1** — gathered the bar (`docs/bar-inventory.md`): Vercel's public Geist design
-  system (color roles, type scale, elevation, empty/loading states) + Life360's App Store
-  map screenshots (member bubbles with per-member color rings, map-first layout, status
+  system (color roles, type scale, elevation, empty/loading states) + the reference app's
+  App Store map screenshots (member bubbles with per-member color rings, map-first layout, status
   indicators, circle switcher). Scaffolded the `web/` Vite+React+TS+Leaflet app with the
   Whereabouts brand tokens. Fanned out 3 builders in parallel: backend platform-admin API,
   admin shell, and live map.
@@ -73,7 +73,7 @@ locations, mirroring the app's map in the browser.
   no place layer, empty-state flash, bubble clutter, last-seen inconsistency. Shell: map.css
   hover still `--surface-tint`.
 - **Round 10 (fix r4)** — lead agent applied: ring=STATUS / face=member-identity swap
-  (matches Life360), stable hashed member colors, removed redundant group dot, empty-state
+  (matches the reference map), stable hashed member colors, removed redundant group dot, empty-state
   flash fix, last-seen "5m ago" consistency, map.css hover → `--surface-hover`. Web build
   clean (108 modules). Re-critics dispatched.
 - **Round 11 (critic r5)** — shell: duplicate `<h1>` (TopBar + page), map.css off-scale
