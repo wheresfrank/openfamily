@@ -205,14 +205,15 @@ func (s *Server) familyMembersSnapshot(ctx context.Context, familyID, callerID s
 	return members, nil
 }
 
-// broadcastLocation fans out a live location update to the owner's family. It
-// resolves the family ID and broadcasts under a background context so a client
-// disconnect cannot cancel the broadcast. Callers should invoke it in a
-// goroutine so the ingest ack is not delayed.
+// broadcastLocation fans out a live location update to the owner's family AND
+// to any connected platform admin clients (who see updates across ALL
+// families). It resolves the family ID and broadcasts under a background
+// context so a client disconnect cannot cancel the broadcast. Callers should
+// invoke it in a goroutine so the ingest ack is not delayed.
 func (s *Server) broadcastLocation(ownerID string, loc wsLocation) {
-	// Skip the family lookup entirely when no client is connected, so idle
-	// ingests don't hit the database.
-	if !s.hub.hasAny() {
+	// Skip the family lookup entirely when nobody is listening — neither family
+	// nor admin clients — so idle ingests don't hit the database.
+	if !s.hub.hasAny() && !s.hub.hasAdminClients() {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -222,15 +223,17 @@ func (s *Server) broadcastLocation(ownerID string, loc wsLocation) {
 		slog.Warn("location broadcast: resolve family failed", "err", err, "user_id", ownerID)
 		return
 	}
-	if familyID == "" {
-		return
-	}
 	msg, err := json.Marshal(loc)
 	if err != nil {
 		slog.Warn("location broadcast: marshal failed", "err", err)
 		return
 	}
-	s.hub.broadcast(familyID, msg)
+	// Family-scoped clients (unchanged behavior).
+	if familyID != "" {
+		s.hub.broadcast(familyID, msg)
+	}
+	// Platform admin clients see every live update regardless of family.
+	s.hub.broadcastAdmin(msg)
 }
 
 // wsOriginPatterns returns the WebSocket origin allow-list. When no origin is

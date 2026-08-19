@@ -27,6 +27,16 @@ type Server struct {
 	// stream (empty = same-origin only). It mirrors config.AllowedOrigin.
 	AllowedOrigin string
 
+	// APKDir is the directory served by GET /api/admin/apk and where successful
+	// builds are published (config: APK_DIR). Empty disables APK features.
+	APKDir string
+	// FlutterAppDir is the Flutter project root used by POST /api/admin/apk/build
+	// (config: FLUTTER_APP_DIR, default "./app").
+	FlutterAppDir string
+
+	// apk tracks the platform APK build job state (at most one concurrent build).
+	apk apkManager
+
 	// hub fans out live location updates to connected WebSocket clients.
 	hub *hub
 }

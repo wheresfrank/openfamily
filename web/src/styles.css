@@ -1,0 +1,140 @@
+/* Whereabouts admin design tokens — mirrors the Flutter app's brand
+   (app/lib/theme/app_theme.dart) so the web panel feels like the same product. */
+
+/* Component + page stylesheets (must precede other rules). */
+@import './components/primitives.css';
+@import './components/nav.css';
+@import './components/MapArea.css';
+@import './shell.css';
+@import './pages/pages.css';
+@import './pages/LoginPage.css';
+@import './pages/DashboardPage.css';
+@import './pages/GroupsPage.css';
+@import './pages/BuildsPage.css';
+@import './pages/SettingsPage.css';
+
+:root {
+  /* Brand */
+  --purple: #6c2bd9;
+  --purple-dark: #4c1d95;
+  --pink: #e91e8c;
+
+  /* Member status — vivid accents (dots, charts) */
+  --status-green: #2ecc71;
+  --status-orange: #ff9500;
+  --status-purple: #af52de;
+  --status-grey: #8e8e93;
+  --status-red: #ff3b30;
+
+  /* Soft badge roles — one semantic system derived from the status family.
+     Each status color has a readable foreground + soft background pair used by
+     badges, pills, and status chips. The vivid --status-* stays for accents. */
+  --status-green-fg: #15824a;
+  --status-green-bg: #e6f8ee;
+  --status-green-border: #c7ecd6;
+  --status-orange-fg: #9a5800;
+  --status-orange-bg: #fff2dd;
+  --status-orange-border: #f6e0b8;
+  --status-red-fg: #c01810;
+  --status-red-bg: #fde7e6;
+  --status-red-border: #f7c9c6;
+  --status-purple-fg: #5b1da8;
+  --status-purple-bg: #ede3fb;
+  --status-purple-border: #ddc9f7;
+  --status-grey-fg: #6e6e73;
+  --status-grey-bg: #f1f1f4;
+  --status-grey-border: #e4e4e8;
+  --status-pink-fg: #b01670;
+  --status-pink-bg: #fde8f3;
+  --status-pink-border: #f8cee0;
+
+  /* SOS */
+  --sos-red: #e53935;
+  --sos-intense-red: #d50000;
+
+  /* Surfaces */
+  --surface: #ffffff;
+  --surface-soft: #f7f2fd;
+  --surface-soft-2: #ede3fb;
+  /* Active/hover surface roles — distinct from each other and from the neutral
+     soft surface so the active nav item never reads the same as a hovered one. */
+  --surface-hover: #f1eafc;
+  --surface-active: #e7d9f9;
+  --surface-active-fg: var(--purple);
+
+  /* Text */
+  --text: #1a1a1a;
+  --text-muted: #6e6e73;
+  --text-faint: #9a9aa0;
+
+  /* Lines */
+  --border: #e8e8ec;
+  --border-strong: #d8d8de;
+
+  /* Radii — keyed to elevation: 6px for small/inline, 12px for surfaces,
+     16px for floating overlays. No other stops. */
+  --radius-xs: 6px;  /* base: stat cards, pills, table rows, inputs, buttons, nav */
+  --radius-md: 12px; /* cards, list rows, surfaces */
+  --radius-lg: 16px; /* modals, menus, overlays */
+
+  /* Type scale — named sizes only, no fractional values. */
+  --font-xs: 12px;   /* labels, hints, meta */
+  --font-sm: 13px;   /* body secondary, table cells */
+  --font-md: 14px;   /* body, inputs, buttons */
+  --font-lg: 16px;   /* section titles, wordmark */
+  --font-xl: 20px;   /* page titles */
+  --font-2xl: 24px;  /* large headings, login H1 */
+  --font-3xl: 28px;  /* hero / login aside title */
+
+  /* Focus ring */
+  --ring: rgba(108, 43, 217, 0.35);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+
+  /* Type */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    monospace;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--purple);
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}

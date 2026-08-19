@@ -65,14 +65,19 @@ func (c *wsClient) writeLoop(ctx context.Context) {
 	}
 }
 
-// hub tracks connected WebSocket clients per family.
+// hub tracks connected WebSocket clients per family, plus the set of platform
+// admin clients that receive live updates across ALL families.
 type hub struct {
 	mu       sync.Mutex
 	families map[string]map[*wsClient]struct{}
+	admins   map[*wsClient]struct{}
 }
 
 func newHub() *hub {
-	return &hub{families: make(map[string]map[*wsClient]struct{})}
+	return &hub{
+		families: make(map[string]map[*wsClient]struct{}),
+		admins:   make(map[*wsClient]struct{}),
+	}
 }
 
 // register adds a client to a family.
@@ -107,6 +112,51 @@ func (h *hub) hasAny() bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return len(h.families) > 0
+}
+
+// hasAdminClients reports whether any platform admin client is connected. It
+// lets broadcastLocation skip the family lookup + broadcast when no admin is
+// watching, mirroring the hasAny fast path.
+func (h *hub) hasAdminClients() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return len(h.admins) > 0
+}
+
+// registerAdmin adds a client to the platform admin set (receives every live
+// update across all families).
+func (h *hub) registerAdmin(c *wsClient) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.admins[c] = struct{}{}
+}
+
+// unregisterAdmin removes a client from the platform admin set.
+func (h *hub) unregisterAdmin(c *wsClient) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.admins, c)
+}
+
+// broadcastAdmin enqueues msg to every connected platform admin client without
+// blocking. A client whose send buffer is full is dropped and unregistered so a
+// slow consumer cannot stall location ingest.
+func (h *hub) broadcastAdmin(msg []byte) {
+	h.mu.Lock()
+	clients := make([]*wsClient, 0, len(h.admins))
+	for c := range h.admins {
+		clients = append(clients, c)
+	}
+	h.mu.Unlock()
+
+	for _, c := range clients {
+		select {
+		case c.send <- msg:
+		default:
+			h.unregisterAdmin(c)
+			c.close()
+		}
+	}
 }
 
 // broadcast enqueues msg to every client in the family without blocking. A

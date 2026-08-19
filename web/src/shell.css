@@ -1,0 +1,25 @@
+/* App shell grid — wires Sidebar/TopBar/content together */
+
+.wb-shell {
+  display: grid;
+  grid-template-columns: 232px 1fr;
+  grid-template-rows: 56px 1fr;
+  grid-template-areas:
+    "sidebar topbar"
+    "sidebar content";
+  height: 100%;
+  min-height: 100vh;
+}
+.wb-shell-sidebar { grid-area: sidebar; min-width: 0; }
+.wb-shell-topbar { grid-area: topbar; min-width: 0; }
+.wb-shell-content {
+  grid-area: content;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--surface-soft);
+}
+
+@media (max-width: 860px) {
+  .wb-shell { grid-template-columns: 64px 1fr; }
+}

@@ -144,6 +144,51 @@ func (s *Server) ListPlaces(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, places)
 }
 
+// adminPlaceOut reuses the placeOut shape and adds the owning family's name for
+// the platform-admin map, which renders places across ALL families.
+type adminPlaceOut struct {
+	placeOut
+	FamilyName string `json:"family_name"`
+}
+
+// AdminListPlaces returns every place across every family, each tagged with
+// family_id + family_name, for the platform-admin map's Home/School/Work pins.
+// It reuses the placeOut shape and the same places query as the family-scoped
+// ListPlaces, but drops the family scoping and joins families for the name.
+// Requires RequireAuth + RequirePlatformAdmin (enforced by the route group).
+func (s *Server) AdminListPlaces(w http.ResponseWriter, r *http.Request) {
+	if middleware.ClaimsFromContext(r.Context()) == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	rows, err := s.Pool.Query(r.Context(), `
+		SELECT p.id, p.family_id, f.name, p.name, p.type,
+		       ST_Y(p.geom), ST_X(p.geom), p.radius_meters, p.address, p.created_at
+		FROM places p
+		JOIN families f ON f.id = p.family_id
+		ORDER BY f.name, p.created_at`)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to list places")
+		return
+	}
+	defer rows.Close()
+
+	places := []adminPlaceOut{}
+	for rows.Next() {
+		var p adminPlaceOut
+		if err := rows.Scan(&p.ID, &p.FamilyID, &p.FamilyName, &p.Name, &p.Type, &p.Lat, &p.Lon, &p.RadiusMeters, &p.Address, &p.CreatedAt); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to scan place")
+			return
+		}
+		places = append(places, p)
+	}
+	if rows.Err() != nil {
+		writeError(w, http.StatusInternalServerError, "failed to read places")
+		return
+	}
+	writeJSON(w, http.StatusOK, places)
+}
+
 // CreatePlace creates a named point of interest for the caller's family.
 func (s *Server) CreatePlace(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.ClaimsFromContext(r.Context())

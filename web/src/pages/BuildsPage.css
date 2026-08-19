@@ -1,0 +1,103 @@
+/* Builds page */
+
+.wb-builds-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: var(--space-4);
+}
+@media (max-width: 900px) {
+  .wb-builds-grid { grid-template-columns: 1fr; }
+}
+
+.wb-build-status-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.wb-build-status-title {
+  margin: 0;
+  font-size: var(--font-lg);
+  font-weight: 600;
+}
+
+.wb-build-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3) var(--space-5);
+  margin: 0 0 var(--space-5);
+}
+.wb-build-meta div { display: flex; flex-direction: column; gap: 2px; }
+.wb-build-meta dt {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.wb-build-meta dd {
+  margin: 0;
+  font-size: var(--font-md);
+  color: var(--text);
+}
+.wb-build-error-row dd { color: var(--sos-red); }
+
+.wb-build-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-xs);
+  background: var(--surface-soft);
+  color: var(--purple);
+  font-size: var(--font-sm);
+  margin-bottom: var(--space-4);
+}
+
+.wb-build-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.wb-build-info-title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-lg);
+  font-weight: 600;
+}
+.wb-build-info-text {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-sm);
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.wb-build-info-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.wb-build-info-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-xs);
+}
+.wb-build-info-k { color: var(--text-muted); }
+.wb-build-info-code {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--purple-dark);
+  background: var(--surface-soft);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+.wb-build-info-foot {
+  margin: var(--space-4) 0 0;
+  font-size: var(--font-xs);
+  color: var(--text-faint);
+}
