@@ -34,7 +34,10 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
       return;
     }
     final parsed = Uri.tryParse(url);
-    if (parsed == null || !parsed.hasAbsolutePath) {
+    if (parsed == null ||
+        parsed.scheme.isEmpty ||
+        parsed.host.isEmpty ||
+        !(parsed.scheme == 'http' || parsed.scheme == 'https')) {
       setState(() => _error = "That doesn't look like a valid URL.");
       return;
     }
