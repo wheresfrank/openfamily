@@ -1,0 +1,49 @@
+name: whereabouts
+description: A self-hosted, privacy-first family location tracker.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Secure token storage backed by iOS Keychain / Android Keystore.
+  flutter_secure_storage: ^9.2.2
+  # HTTP client for the API (used by the login stub later).
+  http: ^1.2.2
+  # Background location tracking: runs a background isolate so the device keeps
+  # reporting its position when the app is backgrounded or killed.
+  background_locator_2: ^2.0.6
+  # Plain key-value storage readable from the background isolate (credentials).
+  shared_preferences: ^2.3.0
+  # Interactive map (OpenStreetMap tiles) for the map-first home screen.
+  flutter_map: ^7.0.2
+  # Geographic coordinate type used by flutter_map.
+  latlong2: ^0.9.1
+  # Native share sheet for the "Send Code" invite flow.
+  share_plus: ^10.0.0
+  # Permissions (location / notifications / motion) for onboarding.
+  permission_handler: ^11.3.1
+  # Profile photo picker for sign-up.
+  image_picker: ^1.1.2
+  # Current device location (place picker + welcome hero), with graceful
+  # fallback when permission is denied or services are off.
+  geolocator: ^13.0.2
+  # Reads the device battery level so location reports can carry battery_pct.
+  battery_plus: ^6.0.0
+  # Detects Google Play Services availability on Android so motion & fitness
+  # is only requested on devices that actually support activity recognition.
+  google_api_availability: ^5.0.1
+  # WebSocket client for the live location stream (/ws/stream). Web-safe
+  # (no dart:io) and carries the access token as the subprotocol.
+  web_socket_channel: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,149 @@
+// Package config loads server configuration from environment variables.
+package config
+
+import (
+	"errors"
+	"log/slog"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+)
+
+// Insecure defaults that must never be used in production.
+const (
+	defaultDatabaseURL = "postgres://whereabouts:whereabouts@localhost:5432/whereabouts?sslmode=disable"
+	insecureJWTSecret  = "change-me-in-production"
+)
+
+// Config holds all runtime configuration, sourced from environment variables.
+type Config struct {
+	// HTTPAddr is the listen address for the HTTP server, e.g. ":8080".
+	HTTPAddr string
+
+	// DatabaseURL is the PostgreSQL connection string (postgres://...).
+	DatabaseURL string
+
+	// JWTSecret signs access and refresh tokens. Must be a long random string.
+	JWTSecret string
+
+	// AccessTokenTTL is the lifetime of a short-lived access token.
+	AccessTokenTTL time.Duration
+
+	// RefreshTokenTTL is the lifetime of a refresh token.
+	RefreshTokenTTL time.Duration
+
+	// AllowedOrigin is the CORS origin allowed for the API (empty = same-origin only).
+	AllowedOrigin string
+
+	// AppEnv is the deployment environment: "development" (default) or
+	// "production". Production enables fail-fast checks for insecure defaults.
+	AppEnv string
+
+	// TLSCertFile and TLSKeyFile enable direct HTTPS when both are set. A
+	// reverse proxy (Caddy/nginx) remains the recommended production path, but
+	// direct TLS is supported for self-hosted deployments.
+	TLSCertFile string
+	TLSKeyFile  string
+
+	// TLSBehindProxy acknowledges that a reverse proxy terminates TLS, so the
+	// app may serve plain HTTP on a private network even in production.
+	TLSBehindProxy bool
+
+	// InsecureHTTP explicitly opts out of the TLS requirement (e.g. for a
+	// self-hosted deployment on a trusted private network). It logs a loud
+	// warning; do not use it to serve cleartext location data on the public
+	// internet.
+	InsecureHTTP bool
+
+	// VerbosePush controls push content. When false (default), pushes name the
+	// PLACE but omit the tracked USER's name ("A family member arrived at
+	// School"), so the push provider never sees who. When true, pushes also
+	// include the user's name ("Mom arrived at School"). The place name is a
+	// user-defined label, not a coordinate, so it is safe to include in both
+	// modes.
+	VerbosePush bool
+
+	// APNs push notification credentials (optional; empty KeyFile disables APNs).
+	APNsKeyFile    string
+	APNsKeyID      string
+	APNsTeamID     string
+	APNsTopic      string
+	APNsProduction bool
+}
+
+// Load reads configuration from the environment, applying sensible defaults.
+func Load() Config {
+	return Config{
+		HTTPAddr:        getenv("HTTP_ADDR", ":8080"),
+		DatabaseURL:     getenv("DATABASE_URL", defaultDatabaseURL),
+		JWTSecret:       getenv("JWT_SECRET", ""),
+		AccessTokenTTL:  getenvDuration("ACCESS_TOKEN_TTL", 15*time.Minute),
+		RefreshTokenTTL: getenvDuration("REFRESH_TOKEN_TTL", 30*24*time.Hour),
+		AllowedOrigin:   getenv("ALLOWED_ORIGIN", ""),
+		AppEnv:          getenv("APP_ENV", "development"),
+		TLSCertFile:     getenv("TLS_CERT_FILE", ""),
+		TLSKeyFile:      getenv("TLS_KEY_FILE", ""),
+		TLSBehindProxy:  getenvBool("TLS_BEHIND_PROXY", false),
+		InsecureHTTP:    getenvBool("INSECURE_HTTP", false),
+		VerbosePush:     getenvBool("VERBOSE_PUSH", false),
+		APNsKeyFile:     getenv("APNS_KEY_FILE", ""),
+		APNsKeyID:       getenv("APNS_KEY_ID", ""),
+		APNsTeamID:      getenv("APNS_TEAM_ID", ""),
+		APNsTopic:       getenv("APNS_TOPIC", ""),
+		APNsProduction:  getenvBool("APNS_PRODUCTION", false),
+	}
+}
+
+// Validate returns an error describing any insecure configuration. It fails
+// fast on a missing/insecure JWT secret and on missing TLS in every environment,
+// and on insecure database defaults in production.
+func (c Config) Validate() error {
+	var errs []error
+	if c.JWTSecret == "" || c.JWTSecret == insecureJWTSecret || len(c.JWTSecret) < 32 {
+		errs = append(errs, errors.New("JWT_SECRET must be set to a long random value (at least 32 bytes)"))
+	}
+	if c.AppEnv == "production" {
+		if c.DatabaseURL == "" || c.DatabaseURL == defaultDatabaseURL {
+			errs = append(errs, errors.New("DATABASE_URL must be explicitly configured in production"))
+		} else if strings.Contains(c.DatabaseURL, "sslmode=disable") {
+			errs = append(errs, errors.New("DATABASE_URL must not use sslmode=disable in production"))
+		}
+	}
+	// TLS is required in every environment: cleartext lat/lon must never be
+	// served silently. An explicit INSECURE_HTTP=true opt-out is allowed (with
+	// a loud warning) for trusted private networks.
+	if (c.TLSCertFile == "" || c.TLSKeyFile == "") && !c.TLSBehindProxy {
+		if c.InsecureHTTP {
+			slog.Warn("config: INSECURE_HTTP=true — serving cleartext HTTP; location data is not encrypted in transit")
+		} else {
+			errs = append(errs, errors.New("TLS must be configured (TLS_CERT_FILE/TLS_KEY_FILE) or TLS_BEHIND_PROXY=true; set INSECURE_HTTP=true to explicitly opt out"))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+func getenvBool(key string, fallback bool) bool {
+	if v := os.Getenv(key); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			return b
+		}
+	}
+	return fallback
+}
+
+func getenv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func getenvDuration(key string, fallback time.Duration) time.Duration {
+	if v := os.Getenv(key); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
+		}
+	}
+	return fallback
+}

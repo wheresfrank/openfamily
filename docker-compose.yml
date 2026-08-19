@@ -1,0 +1,87 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Local dev: ":80" (HTTP only). Production: your domain, e.g.
+      # "whereabouts.example.com" (Caddy provisions Let's Encrypt automatically).
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      # Optional: public address for ntfy (UnifiedPush). Leave empty to skip.
+      PUSH_ADDRESS: ${PUSH_ADDRESS:-}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      HTTP_ADDR: ":8080"
+      # Dev default uses sslmode=disable. In production (APP_ENV=production),
+      # set DATABASE_URL in .env with sslmode=require or sslmode=verify-full.
+      DATABASE_URL: "${DATABASE_URL:-postgres://whereabouts:${POSTGRES_PASSWORD:-whereabouts}@postgres:5432/whereabouts?sslmode=disable}"
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      ACCESS_TOKEN_TTL: "15m"
+      REFRESH_TOKEN_TTL: "720h"
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-}
+      APP_ENV: ${APP_ENV:-development}
+      # Caddy terminates TLS in front of the API.
+      TLS_BEHIND_PROXY: ${TLS_BEHIND_PROXY:-true}
+      VERBOSE_PUSH: ${VERBOSE_PUSH:-false}
+      # APNs (iOS push). Empty disables APNs; Android still works via ntfy.
+      # To enable iOS push, add a volume mount to this service:
+      #   volumes:
+      #     - ./apns/AuthKey.p8:/apns/AuthKey.p8:ro
+      # and set APNS_KEY_FILE=/apns/AuthKey.p8 in .env.
+      APNS_KEY_FILE: ${APNS_KEY_FILE:-}
+      APNS_KEY_ID: ${APNS_KEY_ID:-}
+      APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+      APNS_TOPIC: ${APNS_TOPIC:-}
+      APNS_PRODUCTION: ${APNS_PRODUCTION:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8080"
+
+  postgres:
+    image: timescale/timescaledb-ha:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: whereabouts
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-whereabouts}
+      POSTGRES_DB: whereabouts
+    volumes:
+      - pgdata:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U whereabouts -d whereabouts"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    restart: unless-stopped
+    command: serve
+    environment:
+      # Public base URL the app uses to reach ntfy. Set to your PUSH_ADDRESS
+      # (https://...) in production so UnifiedPush works over TLS.
+      NTFY_BASE_URL: ${NTFY_BASE_URL:-http://localhost:2586}
+    volumes:
+      - ntfy_cache:/var/cache/ntfy
+      - ntfy_etc:/etc/ntfy
+    ports:
+      - "2586:80"
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pgdata:
+  ntfy_cache:
+  ntfy_etc:

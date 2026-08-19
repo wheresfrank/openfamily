@@ -1,0 +1,295 @@
+package handlers
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/whereabouts/whereabouts/backend/internal/middleware"
+	"github.com/whereabouts/whereabouts/backend/internal/models"
+)
+
+// CreateFamily creates a family and assigns the caller as its admin.
+func (s *Server) CreateFamily(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+
+	tx, err := s.Pool.Begin(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to begin transaction")
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	// Reject if the user already belongs to a family, so creating a new family
+	// cannot silently abandon (and orphan) an existing one. The FOR UPDATE lock
+	// serializes concurrent CreateFamily calls for the same user.
+	var existingFamily *string
+	if err := tx.QueryRow(r.Context(), `
+		SELECT family_id FROM users WHERE id = $1 FOR UPDATE`, claims.UserID).Scan(&existingFamily); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
+	if existingFamily != nil {
+		writeError(w, http.StatusConflict, "user already belongs to a family")
+		return
+	}
+
+	var family models.Family
+	err = tx.QueryRow(r.Context(), `
+		INSERT INTO families (name) VALUES ($1)
+		RETURNING id, name, settings, created_at`, req.Name,
+	).Scan(&family.ID, &family.Name, &family.Settings, &family.CreatedAt)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to create family")
+		return
+	}
+
+	_, err = tx.Exec(r.Context(), `
+		UPDATE users SET family_id = $1, role = 'admin' WHERE id = $2`,
+		family.ID, claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to assign family")
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to commit")
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, family)
+}
+
+// familyOut is the API representation of a family, including the caller's
+// role and user id so the Flutter app can gate UI (e.g. hide place management
+// for children) without a separate member-list fetch.
+type familyOut struct {
+	models.Family
+	Role   models.Role `json:"role"`
+	UserID string      `json:"user_id"`
+}
+
+// GetFamily returns the caller's family.
+func (s *Server) GetFamily(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	familyID, err := s.familyIDForUser(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load family")
+		return
+	}
+	if familyID == "" {
+		writeError(w, http.StatusNotFound, "no family")
+		return
+	}
+
+	var family models.Family
+	err = s.Pool.QueryRow(r.Context(), `
+		SELECT id, name, settings, created_at FROM families WHERE id = $1`,
+		familyID,
+	).Scan(&family.ID, &family.Name, &family.Settings, &family.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "family not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load family")
+		return
+	}
+
+	var role models.Role
+	if err := s.Pool.QueryRow(r.Context(), `SELECT role FROM users WHERE id = $1`, claims.UserID).Scan(&role); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load role")
+		return
+	}
+	writeJSON(w, http.StatusOK, familyOut{Family: family, Role: role, UserID: claims.UserID})
+}
+
+// ListMembers returns all users in the caller's family with their last-known
+// position (if any).
+func (s *Server) ListMembers(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	familyID, err := s.familyIDForUser(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load family")
+		return
+	}
+	if familyID == "" {
+		writeError(w, http.StatusNotFound, "no family")
+		return
+	}
+
+	// Children may see member names/locations but not email addresses.
+	canManage, err := s.userCanManage(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load role")
+		return
+	}
+
+	rows, err := s.Pool.Query(r.Context(), `
+		SELECT u.id, u.email, u.name, u.role, u.totp_enabled, u.created_at, u.updated_at,
+		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters
+		FROM users u
+		LEFT JOIN member_positions mp ON mp.user_id = u.id
+		WHERE u.family_id = $1
+		ORDER BY u.name`, familyID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to list members")
+		return
+	}
+	defer rows.Close()
+
+	members := []models.MemberWithLocation{}
+	for rows.Next() {
+		var m models.MemberWithLocation
+		if err := rows.Scan(&m.ID, &m.Email, &m.Name, &m.Role, &m.TOTPEnabled, &m.CreatedAt, &m.UpdatedAt,
+			&m.Lat, &m.Lon, &m.TS, &m.BatteryPct, &m.SpeedMPS, &m.MotionState, &m.AccuracyMeters); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to scan member")
+			return
+		}
+		if !canManage {
+			m.Email = "" // redact email for non-manager (child) viewers
+		}
+		members = append(members, m)
+	}
+	if rows.Err() != nil {
+		writeError(w, http.StatusInternalServerError, "failed to read members")
+		return
+	}
+	writeJSON(w, http.StatusOK, members)
+}
+
+// UpdateMemberRole changes a member's role (admin only).
+func (s *Server) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	familyID, err := s.familyIDForUser(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load family")
+		return
+	}
+	if familyID == "" {
+		writeError(w, http.StatusNotFound, "no family")
+		return
+	}
+
+	userID := chi.URLParam(r, "id")
+	var req struct {
+		Role models.Role `json:"role"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if !req.Role.Valid() {
+		writeError(w, http.StatusBadRequest, "invalid role")
+		return
+	}
+
+	tx, err := s.Pool.Begin(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to begin transaction")
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	// Lock the family row to serialize all role changes within the family, so
+	// two concurrent demotions of different admins cannot both pass the
+	// last-admin check (which would otherwise read a stale admin count).
+	var lockedFamily string
+	if err := tx.QueryRow(r.Context(), `
+		SELECT id FROM families WHERE id = $1 FOR UPDATE`, familyID).Scan(&lockedFamily); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to lock family")
+		return
+	}
+
+	// Only admins may change roles (prevents a child from self-promoting to
+	// admin and bypassing the geofence/place role checks). Re-checked inside
+	// the transaction, after the family-row lock, so a concurrent demotion of
+	// the caller cannot race this check (TOCTOU).
+	var callerRole models.Role
+	if err := tx.QueryRow(r.Context(), `SELECT role FROM users WHERE id = $1`, claims.UserID).Scan(&callerRole); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load role")
+		return
+	}
+	if callerRole != models.RoleAdmin {
+		writeError(w, http.StatusForbidden, "admin only")
+		return
+	}
+
+	// Lock the target user and guard against demoting the last admin.
+	var targetRole models.Role
+	err = tx.QueryRow(r.Context(), `
+		SELECT role FROM users WHERE id = $1 AND family_id = $2 FOR UPDATE`,
+		userID, familyID).Scan(&targetRole)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "member not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load member")
+		return
+	}
+	if targetRole == models.RoleAdmin && req.Role != models.RoleAdmin {
+		var adminCount int
+		if err := tx.QueryRow(r.Context(), `
+			SELECT COUNT(*) FROM users WHERE family_id = $1 AND role = 'admin'`,
+			familyID).Scan(&adminCount); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to count admins")
+			return
+		}
+		if adminCount <= 1 {
+			writeError(w, http.StatusBadRequest, "cannot demote the last admin")
+			return
+		}
+	}
+
+	tag, err := tx.Exec(r.Context(), `
+		UPDATE users SET role = $1, updated_at = now()
+		WHERE id = $2 AND family_id = $3`,
+		req.Role, userID, familyID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update role")
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		writeError(w, http.StatusNotFound, "member not found")
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to commit")
+		return
+	}
+	s.logAudit(r.Context(), claims.UserID, familyID, "family.role_change",
+		"changed role of user "+userID+" to "+string(req.Role), clientIP(r))
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}

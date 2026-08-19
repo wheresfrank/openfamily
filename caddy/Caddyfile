@@ -1,0 +1,16 @@
+# Caddy reverse proxy for Whereabouts.
+#
+# SITE_ADDRESS: the public address for the API (e.g. "whereabouts.example.com"
+# for production with automatic HTTPS, or ":80" for local HTTP-only dev).
+#
+# ntfy (UnifiedPush) is exposed directly on its own port for now. To put it
+# behind Caddy with TLS in production, add a second site block, e.g.:
+#
+#   push.example.com {
+#       reverse_proxy ntfy:80
+#   }
+
+{$SITE_ADDRESS:localhost} {
+	encode gzip
+	reverse_proxy api:8080
+}

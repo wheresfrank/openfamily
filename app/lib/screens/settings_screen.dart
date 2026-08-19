@@ -1,0 +1,91 @@
+import 'package:flutter/material.dart';
+
+import '../theme/app_theme.dart';
+
+/// The Settings screen. A simple list of account, notification, location, and
+/// privacy settings. Values are local toggles for now (no backend).
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _locationSharing = true;
+  bool _notifications = true;
+  bool _driveDetection = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      body: ListView(
+        children: [
+          const _SectionHeader('Account'),
+          const ListTile(
+            leading: Icon(Icons.person_outline, color: AppColors.purple),
+            title: Text('Profile'),
+            trailing: Icon(Icons.chevron_right, color: AppColors.textMuted),
+          ),
+          const ListTile(
+            leading: Icon(Icons.group_outlined, color: AppColors.purple),
+            title: Text('Circles'),
+            trailing: Icon(Icons.chevron_right, color: AppColors.textMuted),
+          ),
+          const Divider(height: 1),
+          const _SectionHeader('Location'),
+          SwitchListTile(
+            secondary: const Icon(Icons.location_on_outlined, color: AppColors.purple),
+            title: const Text('Location sharing'),
+            value: _locationSharing,
+            onChanged: (v) => setState(() => _locationSharing = v),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.directions_car_outlined, color: AppColors.purple),
+            title: const Text('Drive detection'),
+            value: _driveDetection,
+            onChanged: (v) => setState(() => _driveDetection = v),
+          ),
+          const Divider(height: 1),
+          const _SectionHeader('Notifications'),
+          SwitchListTile(
+            secondary: const Icon(Icons.notifications_outlined, color: AppColors.purple),
+            title: const Text('Push notifications'),
+            value: _notifications,
+            onChanged: (v) => setState(() => _notifications = v),
+          ),
+          const Divider(height: 1),
+          const _SectionHeader('About'),
+          const ListTile(
+            leading: Icon(Icons.info_outline, color: AppColors.purple),
+            title: Text('Whereabouts'),
+            subtitle: Text('Version 0.1.0'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1,
+          color: AppColors.textMuted,
+        ),
+      ),
+    );
+  }
+}

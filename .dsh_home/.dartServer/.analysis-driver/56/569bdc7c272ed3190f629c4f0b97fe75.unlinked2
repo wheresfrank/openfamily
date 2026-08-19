@@ -1,0 +1,314 @@
+€¢index==hashCodeoffset_offsetspandetachtoStringsetupParentData_layoutChildlayoutInlineChildrenpositionInlineChildrendefaultApplyPaintTransformpaintInlineChildrenhitTestInlineChildrentextScaleFactorscale_placeholderCharacter_textPainter_textIntrinsicsCache_textIntrinsics_cachedAttributedLabels_cachedCombinedSemanticsInfostext
+selections_lastSelectableFragments	registrar
+_registrar%_updateSelectionRegistrarSubscription%_removeSelectionRegistrarSubscription_getSelectableFragmentsselectableBelongsToParagraph_disposeSelectableFragmentsalwaysNeedsCompositingmarkNeedsLayoutdispose	textAligntextDirectionsoftWrap	_softWrapoverflow	_overflow
+textScalerdevicePixelRatio_devicePixelRatiomaxLineslocale
+strutStyletextWidthBasistextHeightBehaviorselectionColor_selectionColor_getOffsetForPositioncomputeMinIntrinsicWidthcomputeMaxIntrinsicWidthpreferredLineHeight_computeIntrinsicHeightcomputeMinIntrinsicHeightcomputeMaxIntrinsicHeighthitTestSelfhitTestChildren_needsClipping_overflowShaderdebugHasOverflowShadersystemFontsDidChange_placeholderDimensions_adjustMaxWidth_layoutTextWithConstraintscomputeDryLayoutcomputeDistanceToActualBaselinecomputeDryBaselineperformLayoutapplyPaintTransformpaintgetOffsetForCaretgetFullHeightForCaretgetBoxesForSelectiongetPositionForOffsetgetWordBoundary_getLineAtOffset_getTextPositionAbove_getTextPositionBelow_getTextPositionVerticaltextSizedidExceedMaxLines_semanticsInfodescribeSemanticsConfiguration%_childSemanticsConfigurationsDelegate _childConfigBelongsToPlaceholder!_createSemanticsConfigForTextInfo_cachedChildNodesassembleSemanticsNode_createShowOnScreenForclearSemanticsdebugDescribeChildrendebugFillPropertiesrange	paragraphfullText_textSelectionStart_textSelectionEnd%_selectableContainsOriginTextBoundary_startHandleLayerLink_endHandleLayerLinkvalue_selectionGeometry_updateSelectionGeometry_getSelectionGeometrydispatchSelectionEventgetSelectedContentgetSelection_didChangeSelection'_updateSelectionStartEdgeByTextBoundary%_updateSelectionEndEdgeByTextBoundary"_updateSelectionEdgeByTextBoundary_updateSelectionEdge6_updateSelectionStartEdgeByMultiSelectableTextBoundary4_updateSelectionEndEdgeByMultiSelectableTextBoundary_placeholderLengthC_updateSelectionStartEdgeAtPlaceholderByMultiSelectableTextBoundaryA_updateSelectionEndEdgeAtPlaceholderByMultiSelectableTextBoundary1_updateSelectionEdgeByMultiSelectableTextBoundary_closestTextBoundary_isPlaceholder_getOriginParagraph_getParagraphContainingPosition_boundingBoxesContains_clampTextPosition_setSelectionPosition_handleClearSelection_handleSelectAll_handleSelectTextBoundary
+_intersect&_handleSelectMultiFragmentTextBoundary_adjustTextBoundaryAtPosition_handleSelectWord_getWordBoundaryAtPosition_handleSelectParagraph_getPositionInParagraph_getParagraphBoundaryAtPosition&_getClampedParagraphBoundaryAtPosition#_handleDirectionallyExtendSelection _handleGranularlyExtendSelection"_moveBeyondTextBoundaryAtDirection_moveToTextBoundaryAtDirection_handleVerticalMovement!_positionIsWithinCurrentSelection_compareTextPositionsgetTransformTopushHandleLayers_cachedBoundingBoxesboundingBoxes_cachedRect_rectdidChangeParagraphLayoutcontentLengthsizepaintSelectionpaintHandlesgetLineAtOffsetgetTextPositionAbovegetTextPositionBelow
+_TextBoundaryRecord_TextBoundaryAtPosition_TextBoundaryAtPositionInText
+_kEllipsis PlaceholderSpanIndexSemanticsTagTextParentData%RenderInlineChildrenContainerDefaults_UnspecifiedTextScalerRenderParagraph_SelectableFragmentÅBoxHeightStyleBoxWidthStyleGradientLineMetricsPlaceholderAlignmentShaderTextBoxTextHeightBehaviorTextPositionStringRichText	immutableSemanticsTagintoverrideboolObjectindexhashRenderEditable
+WidgetSpan
+ParentDataContainerParentDataMixin	RenderBoxOffsetPlaceholderSpanParentDataWidgetvoiddetachContainerRenderObjectMixinlayoutInlineChildrenTextPainterpositionInlineChildrenapplyPaintTransformdefaultApplyPaintTransformpaintInlineChildrenpainthitTestInlineChildrenhitTestChildrenextractFromInlineSpan
+InlineSpan
+parentDataPlaceholderDimensionsBoxConstraintsChildLayouterChildBaselineGetterspanemptysize	alignmentbaselinebaselineOffsetaboveBaselinebelowBaselinebottommiddletopsetPlaceholderDimensions	protectedListdoublemaxWidth
+firstChildchild
+childAfter_layoutChild
+childCountinlinePlaceholderBoxesFlutterError	fromPartsDiagnosticsNodeErrorSummaryErrorDescriptionlength	ErrorHintDiagnosticsPropertyRenderObjectstyleDiagnosticsTreeStyleerrorProperty_offsetboxleftoffsetMatrix4setZerotranslateByDoubledxdyPaintingContext
+paintChildBoxHitTestResultaddWithPaintOffsetpositionhitTesttransformed
+TextScalerNeverUnimplementedError"RelayoutWhenSystemFontsChangeMixin	TextAlignstartTextDirectionTextOverflowclip
+DeprecatedLocale
+StrutStyleTextWidthBasisparentColorSelectionRegistrardebugAssertIsValid	identicaltext	textAligntextDirection
+textScalerlinearmaxLinesellipsislocale
+strutStyletextWidthBasistextHeightBehavioraddAll	registrarfromCharCodeplaceholderCodeUnitAttributedStringInlineSpanSemanticsInformation	compareToRenderComparisonmetadatamarkNeedsSemanticsUpdatemarkNeedsPaintlayoutvisibleForTestingTextSelectionfragment_textSelectionStart_textSelectionEndadd
+baseOffsetextentOffsetforEach
+isNotEmptymarkNeedsCompositingBitsUpdateremovetoPlainTextincludeSemanticsLabelsindexOf	paragraphrange	TextRangeendfullText
+SelectablecontainsdisposeelementdidChangeParagraphLayoutmarkNeedsLayoutjustifyltrrtltextScaleFactorkIsWebanyvaluehasSelectionRectzeroinfinitySizegetMinIntrinsicWidthChildLayoutHelpergetDryBaselineminIntrinsicWidthgetMaxIntrinsicWidthmaxIntrinsicWidthpreferredLineHeightdryLayoutChildminWidthheight	GlyphInfogetClosestGlyphForOffsetgraphemeClusterLayoutBoundsgetSpanForPositiongraphemeClusterCodeUnitRangeHitTestTargetHitTestEntrysystemFontsDidChange	constrainTextBaselinedebugNeedsLayoutconstraintscomputeDistanceToActualBaseline
+alphabeticlayoutChildgetBaselinedidExceedMaxLineswidthvisiblefadeTextSpanfadeSizePainter	fadeStartfadeEnddebugRepaintTextRainbowEnabledPaintcolordebugCurrentRepaintColortoColorcanvasdrawRectsaveclipRectpaintSelectionrestore	saveLayerdebugPaintTextLayoutBoxes	translate	blendMode	BlendModemodulateshaderpaintHandlesgetOffsetForCaretgetFullHeightForCarettightgetBoxesForSelectionboxHeightStyleboxWidthStylegetPositionForOffsetgetWordBoundarygetLineBoundarySemanticsConfigurationdescribeSemanticsConfigurationgetSemanticsInformationinfo
+recognizersemanticsIdentifierisPlaceholderexplicitChildNodesisSemanticBoundarychildConfigurationsDelegateStringBufferStringAttributesemanticsLabelstringAttributesinfoAttributecopywritetoString
+attributesattributedLabel"ChildSemanticsConfigurationsResult)ChildSemanticsConfigurationsResultBuildercombineSemanticsInfomarkAsMergeUpbuildIterabletagsForChildrentagrequiresOwnNodeMapKeySemanticsNode	elementAtisTaggedisEmptyfirsttoRect	directionskipexpandToIncludetextBoxfromLTWHmaxmin	maxHeightfromLTRBfloorToDoublerightceilToDoublesortKeyOrdinalSortKey
+identifierTapGestureRecognizerVoidCallbackDoubleTapGestureRecognizerhandleronTapisLinkLongPressGestureRecognizerGestureLongPressCallbackonLongPressruntimeTypeparentPaintClipRect	intersectisHiddenkeys	UniqueKeykeyshowOnScreen
+updateWithconfigrectchildrenInInversePaintOrder
+descendantclearSemanticstoDiagnosticsNodename
+transitionDiagnosticPropertiesBuilderdebugFillPropertiesEnumPropertyFlagPropertyifTrueifFalseshowNamedefaultValue	noScalingIntPropertyifNullDoublePropertyDiagnosticableChangeNotifierTextLayoutMetricsisValidisCollapsedisNormalized kFlutterMemoryAllocationsEnabledmaybeDispatchObjectCreation	LayerLinkSelectionGeometrynotifyListenersstatusSelectionStatusnone
+hasContent_getOffsetForPositionTextSelectionHandleType	collapsedstartSelectionPointSelectionPointlocalPosition
+lineHeight_textPainter
+handleTypestartSelectionHandleTypeendSelectionPointendSelectionHandleTypeselectionRectsuncollapsedSelectionResultSelectionEventtypeSelectionEventTypestartEdgeUpdateendEdgeUpdateSelectionEdgeUpdateEventTextGranularitygranularity	character
+edgeUpdateglobalPositionisEndwordgetTextBoundarygetClampedTextBoundarydocumentlineclear	selectAll
+selectWordSelectWordSelectionEventselectParagraphSelectParagraphSelectionEventabsorbnextgranularlyExtendSelectionGranularlyExtendSelectionEventforwarddirectionallyExtendSelection!DirectionallyExtendSelectionEventSelectedContent	plainText	substringSelectedContentRangestartOffset	endOffsetboundaryStartboundaryEndgetTransformToinvertMatrixUtilstransformPointSelectionUtilsgetResultBasedOnRectaffinityTextAffinityupstreamadjustDragOffsetprevious
+textInsidepaintBoundsabs_lastSelectableFragments%_selectableContainsOriginTextBoundary
+downstreamglobalToLocal
+centerLeftParagraphBoundarygetLeadingTextBoundaryAtgetTrailingTextBoundaryAtSelectionExtendDirectionpreviousLinebackwardnextLineisNaNMapEntrytargetedEdge(horizontalBaselineInParagraphCoordinatesbelow
+moveResult edgeOffsetInParagraphCoordinates$baselineOffsetInParagraphCoordinatesCharacterBoundaryTextBoundarywordBoundariesmoveByWordBoundarytextBoundaryLineBoundaryDocumentBoundarycharacterBoundarycomputeLineMetricslineMetrics
+lineNumberattached
+fromPointsselectionColorPaintingStylefillshift	pushLayerLeaderLayerlink_getLineAtOffsetclamp_getTextPositionAbove_getTextPositionBelowSemanticsTag
+ParentDataContainerParentDataMixin	RenderBoxContainerRenderObjectMixin
+TextScaler%RenderInlineChildrenContainerDefaults"RelayoutWhenSystemFontsChangeMixin
+SelectableDiagnosticableChangeNotifierTextLayoutMetricsè£y÷¹Ù—šCŠû ÍÏ       math	dart:math=ñBoxHeightStyleBoxWidthStyleGradientLineMetricsPlaceholderAlignmentShaderTextBoxTextHeightBehavior    36ui6dart:ui  õ   package:flutter/foundation.dart  ‚   package:flutter/gestures.dart  ‚G   package:flutter/semantics.dart  ‚p   package:flutter/services.dart  ‚™   box.dart  ‚¬   
+debug.dart  ‚Á   
+layer.dart  ‚Ö   layout_helper.dart  ‚ó   object.dart  ƒ	   selection.dartÀ ~ ÀB[r <€†€¤€¥€Ô€Ø€ø/9BZqƒ˜¶Æ×óô‚‚F‚o‚—‚˜‚«‚À‚Õ‚òƒƒ!ƒ"ƒWƒ¯ƒ°„„„o„p„Ä„ğ…6…O…^…a…b…†…‡…Ğ…ó…÷†F†e†p†®†ä†ê‡8‡Q‡†‡¿‡À‡İ‡ğ‡ñ‡ıˆ ˆnˆrˆsˆˆËˆÍˆÎ‰‰K‰‰î‰ôŠEŠ“ŠªŠËŠŞŠß‹‹$‹r‹‹¶‹·‹Ã‹Õ‹æ‹úŒŒŒŒŒŒŒ‚ŒÌY]¬üLfj˜œí<Şg~‚Äéí‘A‘E‘˜‘¯‘³‘Á‘Å’’A’m’·’Ã’í““G“M“Q“R““”“¹“Ø“ı””?”r”Œ”¤”Ê”ë•#•J•o•¥•Ü––C–s–¦–å–ü——>—O—^—k—o—p—Â—È˜˜a˜g˜¶™ ™N™s™y™Äššš(š.š}š¸šÅšù››-›W›]›™›½œœZœaœeœfœµœÉœÏk¼ÿi‰–ÎñŸŸ+Ÿ?ŸyŸÒŸğ a Ì Û ò¡_¡Ì¢0¢?¢n¢§¢»¢ô££££/£7£y£³£Ô£Ú£ö¤8¤]¤~¤„¤ˆ¤‰¤Ù¤ô¤ú¥D¥¥¥å¦&¦Y¦s¦¦›¦Ú¦à¦ä¦å§§§Z§m§z§¿§â§ş¨A¨{¨œ¨¬¨´¨ë©©©©©G©M©œ©¯©¼ªª(ªDª‡ªÁªâªø« «4«Q«m«¯«ê«ó¬¬¬#¬D¬J¬\¬`¬b¬c¬•¬·¬¸¬Ä¬ÿ­ ­­J­L­M­„­¬­µ­ô®#®P®y®®Ï¯¯¯-¯X¯‚¯œ¯Ë¯Ü¯ı°l°¨°®°Ğ±±±3±O±Š±¹±Ø±ó²²9²c²”²£²ı³]³g³„³¡³Î³÷´´/´N´u´·´éµµ!µkµ„µ¥µÎµÿ¶
+¶ ¶@¶D¶E¶ˆ¶±¶¶¶·¶Ù¶Ú·&·x·»·À¸¸(¸M¸N¸r¸¦¸Ç¸ò¹%¹R¹{¹¤¹É¹öº+ºiºmºnº¡º¢ºéºê»»2»3»R»…»¬»¼»â¼¼3¼W¼z¼¼Å¼ó½½1½U½x½˜½À½î¾	¾:¾a¾’¾˜¾œ¾¾Í¾Ó¿!¿0¿E¿l¿˜¿¾¿Ä¿ëÀ @7À @À @¤À @½À @ûÀ A9À AFÀ AQÀ AYÀ A_À AsÀ AwÀ AxÀ AÅÀ BÀ B1À BhÀ BiÀ B¶À BéÀ CÀ CÀ C9À CXÀ CfÀ ClÀ C™À C¼À CÔÀ DÀ DÀ DÀ D7À DUÀ DcÀ DiÀ D¥À DİÀ EÀ E5À E;À E?À E@À EqÀ E³À EÁÀ EÇÀ FÀ FÀ FÀ F?À FÀ F¹À FÌÀ FóÀ G4À GNÀ GgÀ G‰À G“À G§À GÆÀ GãÀ HÀ H:À HGÀ HRÀ HgÀ HoÀ HÀ H‡À HšÀ HÀ HŸÀ HãÀ HüÀ IÀ IKÀ IƒÀ IÀÀ IìÀ J À JÀ JAÀ JEÀ JFÀ JmÀ J™À J§À J­À JùÀ KÀ KÀ K>À KBÀ KCÀ KOÀ K£À K¤À K°À KËÀ KòÀ L=À LDÀ LaÀ LeÀ LfÀ LrÀ L…À L²À LÕÀ LñÀ MÀ M+À M/À M0À McÀ M˜À M™À M¼À MçÀ MõÀ MûÀ NÀ N5À N9À N:À N`À NfÀ N©À NêÀ NğÀ O>À OÀ OÛÀ P$À PtÀ P„À PÆÀ PÇÀ PòÀ Q!À Q/À Q5À Q]À QtÀ QxÀ QyÀ Q²À Q¸À RÀ R$À R*À RwÀ R†À R¨À RºÀ R»À RØÀ RöÀ SÀ S
+À S!À S8À S<À S=À SjÀ S”À S®À S¯À SÔÀ SòÀ T À TÀ TÀ TmÀ T„À TˆÀ T‰À TÏÀ TëÀ TñÀ U)À U/À U€À UŸÀ U®À UÍÀ V:À VtÀ VxÀ V¶À V·À VÆÀ VåÀ WRÀ WŒÀ WÀ W¶À WáÀ WåÀ WæÀ XÀ XUÀ XVÀ X{À X§À XµÀ X»À XàÀ XüÀ YÀ YÀ YÀ YRÀ YXÀ YŸÀ YØÀ ZÀ Z(À Z)À ZPÀ ZvÀ Z„À ZŠÀ Z©À Z»À [À [pÀ [ˆÀ [À [’À [“À [ßÀ \*À \bÀ \À \‘À \ŞÀ \êÀ ]À ]/À ]YÀ ]gÀ ]mÀ ]À ]¬À ]ÃÀ ]ÇÀ ]ÈÀ ^
+À ^&À ^,À ^xÀ ^ÂÀ _À _JÀ _wÀ _xÀ _•À _³À _ÛÀ _éÀ _ïÀ `À `,À `CÀ `GÀ `HÀ `À `¸À `¹À `ÖÀ `üÀ a(À a6À a<À aaÀ a}À a”À a˜À a™À aÔÀ bÀ bÀ bFÀ bvÀ b„À bŠÀ b³À bÏÀ bæÀ bêÀ bëÀ cÀ ciÀ cjÀ c£À c×À cåÀ cëÀ dÀ d4À dKÀ dOÀ dPÀ d„À dŠÀ dÕÀ eÀ eÀ e À eEÀ eiÀ ewÀ e}À ešÀ eÁÀ f
+À fÀ f(À f@À fFÀ fJÀ fKÀ fƒÀ fãÀ fçÀ fèÀ fôÀ g'À g{À g’À gÉÀ hÀ h3À h:À hVÀ h’À h¨À hÄÀ hÈÀ hÉÀ hÕÀ iÀ i\À isÀ i·À jÀ j=À jÀ j§À j®À jÊÀ kÀ kÀ k8À k<À k=À k›À k¡À k×À kìÀ l2À l3À ldÀ l€À l¦À lÈÀ lİÀ mÀ m=À mLÀ mXÀ mŸÀ m°À m´À mµÀ mÁÀ môÀ nÀ n#À n$À n0À ncÀ nÀ n’À n“À nŸÀ nÌÀ nÍÀ nÙÀ næÀ o4À o‚À oÎÀ pÀ pnÀ p²À pÜÀ püÀ qJÀ q{À qÇÀ qÓÀ qãÀ qúÀ rÀ rGÀ r\À rjÀ r¢À r¨À r¬À r­À rÌÀ rêÀ rëÀ s:À sHÀ sNÀ s‰À sÀ sÜÀ sİÀ séÀ t	À t+À tOÀ tSÀ tTÀ t À t¥À tôÀ uDÀ u‹À uÂÀ uÃÀ uïÀ vFÀ vJÀ vKÀ v‹À vœÀ vÕÀ w6À w:À w;À wGÀ wTÀ w”À wªÀ wÃÀ wíÀ xÀ x;À xoÀ x£À x¶À xÆÀ xŞÀ yÀ yOÀ y`À ysÀ y›À yŸÀ y À y¬À yîÀ zÀ z;À zhÀ z³À zûÀ {HÀ {•À {ÛÀ |À |gÀ |kÀ |lÀ |xÀ |ÓÀ }À }À }7À }UÀ }uÀ }¡À }ÍÀ }ØÀ }àÀ ~AÀ ~–À ~šÀ ~›À ~§À ~ÀÀ ~çÀ 2À 9À rÀ ¥À ÁÀ æÀ €À €À €?À €À €‚À €¯À €ÛÀ €ÜÀ @À À ÎÀ ‚À ‚lÀ ‚¹À ‚üÀ ƒFÀ ƒcÀ ƒ~À ƒ¡À ƒÃÀ ƒåÀ „À „)À „JÀ „lÀ „ŒÀ „­À „ÜÀ …)À …SÀ …wÀ …“À …ªÀ …ÌÀ †À †]À †²À †ÁÀ †óÀ ‡À ‡=À ‡†À ‡•À ‡¨À ‡ØÀ ˆ%À ˆWÀ ˆ}À ˆ¡À ˆêÀ ˆùÀ ‰À ‰*À ‰2À ‰?À ‰]À ‰{À ‰À ‰…À ‰†À ‰’À ‰ÓÀ ŠÀ Š	À Š
+À ŠÀ ŠMÀ ŠÀ ŠïÀ ‹À ‹GÀ ‹WÀ ‹ƒÀ ‹ÎÀ ŒÀ ŒÀ Œ À Œ*À Œ+À ŒWÀ ŒsÀ Œ’À ŒÂÀ ŒÊÀ À JÀ RÀ nÀ À ˜À À ŸÀ ¹À âÀ À UÀ ’À ÅÀ ÔÀ óÀ ûÀ "À (À )À 9À ƒÀ –À  À ¡À ÑÀ ÒÀ üÀ ıÀ À <À tÀ ’À ½À ãÀ ‘À ‘'À ‘GÀ ‘MÀ ‘NÀ ‘zÀ ‘ÈÀ ‘øÀ ’ À ’À ’
+À ’À ’AÀ ’GÀ ’hÀ ’±À ’ĞÀ ’ıÀ “BÀ “FÀ “GÀ “‰À “À “°À “èÀ ”À ”4À ”xÀ ”|À ”}À ”»À ”ÁÀ •À •PÀ •›À •¡À •ğÀ –?À –wÀ –}À –À –¤À –´À –ºÀ —À —'À —PÀ —oÀ —¯À —ìÀ —óÀ ˜À ˜?À ˜mÀ ˜~À ˜¤À ˜ÈÀ ˜ÏÀ ˜ÓÀ ˜ÔÀ ™À ™!À ™BÀ ™wÀ ™–À ™ÃÀ ™ùÀ ™ıÀ ™şÀ šKÀ šœÀ šêÀ ›À ›À ›gÀ ›¥À ›«À ›ÌÀ œÀ œ À œMÀ œ€À œ„À œ…À œäÀ œåÀ #À nÀ ·À õÀ 4À 8À 9À wÀ ÁÀ Ÿ
+À ŸGÀ Ÿ†À ŸŠÀ Ÿ‹À ŸãÀ  7À  ŒÀ  ÑÀ  ÕÀ  ÖÀ ¡À ¡À ¡]À ¡­À ¡ÓÀ ¡ÙÀ ¢$À ¢*À ¢KÀ ¢aÀ ¢€À ¢À ¢¢À ¢£À ¢ãÀ ¢éÀ £AÀ £GÀ £hÀ £‡À £¦À £ÑÀ £ÕÀ £ÖÀ ¤À ¤6À ¤nÀ ¤oÀ ¤{À ¤ÂÀ ¤ôÀ ¥)À ¥UÀ ¥‡À ¥ĞÀ ¦À ¦DÀ ¦SÀ ¦[À ¦¼À ¦ÂÀ ¦ÃÀ ¦éÀ §À §9À §lÀ §¾À §ËÀ §øÀ ¨À ¨7À ¨gÀ ¨´À ¨õÀ ©DÀ ©…À ©¡À ©ÃÀ ©åÀ ªÀ ªOÀ ªbÀ ªsÀ ª‚À ªÀ ª­À ªÏÀ ªÙÀ «À «VÀ «aÀ «iÀ «¥À «ÑÀ «×À «ÛÀ «ÜÀ ¬(À ¬WÀ ¬]À ¬À ¬¼À ¬ÛÀ ­À ­OÀ ­§À ­ÇÀ ®À ®RÀ ®µÀ ®÷À ¯À ¯#À ¯BÀ ¯QÀ ¯´À ¯ÜÀ ¯äÀ ¯êÀ °À °
+À °À °MÀ °yÀ °À °ÌÀ ±À ±jÀ ±vÀ ±¦À ±ÎÀ ±èÀ ±îÀ ²4À ²LÀ ²`À ²fÀ ²‘À ²ÆÀ ²ôÀ ²üÀ ³À ³À ³À ³À ³UÀ ³‚À ³–À ³œÀ ³ÃÀ ´&À ´VÀ ´“À ´”À ´¿À ´ÓÀ µÀ µÀ µEÀ µoÀ µ¡À µĞÀ µÙÀ ¶À ¶	À ¶-À ¶SÀ ¶~À ¶‚À ¶ƒÀ ¶ÏÀ ·À ·]À ·‡À ·µÀ ·¶À ·ÂÀ ·àÀ ·øÀ ¸À ¸AÀ ¸GÀ ¸‰À ¸´À ¸èÀ ¸şÀ ¹À ¹(À ¹FÀ ¹^À ¹À ¹³À º À ºXÀ ººÀ ºÛÀ ºÜÀ ºüÀ »JÀ »‘À »ÀÀ »ÕÀ »üÀ ¼MÀ ¼—À ¼ÚÀ ½'À ½RÀ ½zÀ ½†À ½¡À ½«À ½ÏÀ ½îÀ ½ıÀ ¾0À ¾xÀ ¾•À ¾©À ¾³À ¾İÀ ¿À ¿IÀ ¿‚À ¿²À ¿¼À ¿ÿÀ ÀCÀ ÀaÀ À…À À¨À ÀŞÀ ÁÀ Á!À ÁoÀ ÁÀÀ ÁåÀ ÂÀ Â:À ÂeÀ Â‘À ÂœÀ ÂÓÀ ÃÀ Ã0À ÃhÀ Ã˜À ÃÆÀ ÃõÀ ÄÀ Ä%À ÄnÀ ÄÃÀ ÄæÀ ÅÀ Å>À ÅLÀ Å±À ÅØÀ ÆÀ ÆÀ Æ2À ÆEÀ ÆXÀ Æ§À Æ±À ÆáÀ Ç4À Ç‚À ÇŒÀ Ç²À ÇèÀ È8À ÈIÀ ÈlÀ ÈÅÀ ÈÏÀ ÈàÀ ÉÀ É.À É_À É‚À ÉŠÀ ÉÀ ÉÎÀ ÉùÀ ÊÀ ÊÀ Ê<À Ê‹À ÊÀ ÊÀ ÊÂÀ ÊÒÀ ËÀ ËDÀ ËKÀ ËOÀ ËPÀ Ë\À ËvÀ Ë’À Ë°À Ë´À ËµÀ ËÁÀ ËóÀ ÌÀ ÌeÀ ÌlÀ ÌpÀ ÌqÀ Ì}À ÌÂÀ ÌíÀ Í2À ÍƒÀ Í—À Í«À Í¿À ÍØÀ ÎÀ ÎAÀ ÎYÀ ÎbÀ ÎiÀ Î¯À ÎÃÀ Ï(À Ï/À Ï†À ÏÒÀ Ğ/À Ğ3À Ğ5À Ğ6À ĞgÀ ĞkÀ ĞºÀ Ñ À ÑPÀ Ñ›À Ñ«À ÑÅÀ ÑùÀ ÒÀ ÒzÀ ÒÄÀ ÒğÀ Ó(À Ó.À Ó`À ÓdÀ ÓeÀ Ó~À Ó¡À ÓºÀ Ó»À ÓàÀ ÔÀ ÔÀ Ô:À Ô;À Ô_À ÔÀ Ô‚À ÔÀ ÔÃÀ ÔğÀ ÔñÀ ÕÀ ÕUÀ ÕVÀ Õ€À ÕÀ Õ”À Õ·À ÕÎÀ ÕÒÀ ÕÓÀ ÖÀ ÖEÀ Ö›À Ö¡À Ö¢À ÖŞÀ ×À ×QÀ ×§À ×ÃÀ ×ÊÀ ØÀ ØHÀ Ø‡À ØİÀ Ù:À Ù_À Ù®À ÙÚÀ ÙàÀ ÚÀ Ú+À ÚcÀ Ú™À ÚÎÀ ÛÀ ÛnÀ ÛÄÀ ÜÀ Ü"À Ü@À ÜkÀ Ü¥À ÜåÀ İÀ İÀ İEÀ İ}À İ½À İéÀ İòÀ ŞÀ ŞtÀ ŞŒÀ Ş“À Ş—À Ş˜À Ş¤À ŞåÀ ßÀ ßRÀ ß”À ß®À ßİÀ à
+À àHÀ à‡À àˆÀ à§À àÑÀ àüÀ á%À áoÀ á~À á£À áÜÀ âÀ âOÀ âŠÀ â™À âÃÀ ãÀ ã4À ã~À ã¾À äÀ äÀ äDÀ äiÀ äÇÀ äÑÀ äöÀ å À åIÀ ånÀ å˜À åÖÀ æÀ æDÀ æŒÀ æ²À æĞÀ æùÀ ç1À çBÀ çÀ ç—À çĞÀ è#À èVÀ èƒÀ è®À èßÀ èêÀ é&À éÀ éµÀ éàÀ êÀ ê@À êKÀ êQÀ êRÀ ê‹À êÀÀ êİÀ êãÀ êöÀ êúÀ êûÀ ëÀ ë1À ëuÀ ëˆÀ ëÀ ëæÀ ì<À ìƒÀ ì‡À ìˆÀ ì”À ì½À íÀ íÀ íÀ í;À íkÀ í—À íÀ í¢À í£À íÂÀ íâÀ îÀ îÀ îÀ î?À îfÀ î“À î®À îØÀ ï À ïÀ ï(À ïHÀ ïVÀ ï’À ïÌÀ ïÕÀ ğÀ ğ4À ğ^À ğ­À ğÖÀ ñÀ ñDÀ ñcÀ ñ¹À ñØÀ òÀ òPÀ òcÀ òšÀ ò¦À òùÀ óKÀ óÀ óïÀ ôÀ ôFÀ ô‰À ô–À ô·À õ	À õ9À õlÀ õ…À õ’À õ£À õâÀ öÀ öaÀ ö˜À ö«À ÷À ÷<À ÷HÀ ÷RÀ ÷aÀ ÷À ÷İÀ ø9À øxÀ ø±À øÄÀ øûÀ ùÀ ùÀ ùWÀ ù À ùªÀ ù²À ù¿À úÀ ú}À úºÀ úíÀ ûÀ ûCÀ û”À ûäÀ ü'À üvÀ üŸÀ üèÀ ıÀ ı,À ı‚À ıƒÀ ı¢À şÀ şÀ şXÀ ş›À ş¨À şÉÀ ÿ,À ÿEÀ ÿRÀ ÿ\À ÿdÀ ÿjÀ ÿ‘À ÿ•À ÿ–À ÿÌÀ ÿóÀ  À ;À eÀ À “À µÀ ÕÀ ãÀÀYÀbÀ•ÀÁÀëÀ<ÀeÀ®ÀÓÀòÀJÀiÀªÀãÀöÀ-À9ÀŒÀŞÀ#À„À–ÀÛÀÀ+ÀLÀ ÀĞÀÀÀ*À;À|ÀµÀıÀ4ÀGÀ£ÀÖÀâÀìÀûÀ	)À	yÀ	ÓÀ
+À
+MÀ
+`À
+—À
+£À
+´À
+ñÀ:ÀDÀLÀYÀ¬ÀÀTÀ‡À³ÀİÀ.À~ÀÁÀÀ;À„À©ÀÀÀ<ÀÀ¯ÀôÀ7ÀDÀeÀÈÀâÀïÀùÀÀÀ.À2À3ÀiÀ†ÀŸÀÕÀÜÀ.À†ÀæÀ,ÀnÀoÀÀÜÀôÀLÀeÀÅÀâÀ	À7À‰ÀŸÀ¨À½ÀÃÀÀÀ(ÀRÀYÀZÀ¬ÀşÀOÀ¡ÀÅÀÀ/À?À_À›ÀİÀÀ[ÀºÀÀsÀ›À¶À¼ÀøÀÀ7ÀSÀrÀŠÀ°ÀÔÀâÀÀ3ÀRÀjÀÀ´ÀÃÀÊÀËÀÀ2ÀUÀ[À\ÀŒÀ³À¹À	ÀYÀ«ÀÅÀÀÀÀgÀ–ÀÔÀìÀ DÀ ]À ½À ÚÀ!À!/À!À!—À! À!µÀ!»À!şÀ"À" À"JÀ"QÀ"RÀ"ˆÀ"¾À"ÅÀ"øÀ# À#CÀ#IÀ#sÀ#šÀ# À#ğÀ$@À$’À$¬À$òÀ$öÀ$÷À%DÀ%ŠÀ%ÚÀ%îÀ%óÀ&CÀ&À&İÀ&âÀ'1À'ZÀ'¥À'ØÀ'üÀ(À(AÀ(iÀ(oÀ(ˆÀ(¹À(ãÀ)À)[À)oÀ)ÑÀ)øÀ*JÀ*{À*×À+%À+sÀ+ÂÀ,À,CÀ,‹À,¦À,ÄÀ,ÿÀ-:À-LÀ-rÀ-†À-‘À-¼À-íÀ.!À.XÀ.®À.ÛÀ/À/LÀ/‡À/˜À/òÀ0OÀ0YÀ0xÀ0™À0¹À1À1,À1EÀ1RÀ1\À1­À1ÚÀ2 À2cÀ2¤À2ËÀ2ÕÀ3À3]À3ˆÀ3’À3¹À4À4EÀ4QÀ4´À4áÀ4íÀ4şÀ5^À5†À5’À5ñÀ6À6&À60À6?À6À6ÍÀ7À7fÀ7´À8À8SÀ8„À8ÌÀ8çÀ9À9@À9{À9À9³À9ÇÀ9ÒÀ:À:[À:†À:À:ØÀ;À;?À;IÀ;À;ôÀ<4À<[À<eÀ<¯À=À=QÀ=|À=†À=À=›À=êÀ>4À>ˆÀ>¿À>ãÀ?@À?À?–À?À?ÈÀ@$À@KÀ@§À@åÀA#ÀAQÀAÀAãÀB&ÀBxÀB£ÀB­ÀBğÀC1ÀCÀC¨ÀC²ÀCÓÀDÀD|ÀD¤ÀD°ÀDóÀEEÀEnÀEzÀE‹ÀEğÀF7ÀFdÀFpÀF¸ÀFàÀFìÀFöÀFşÀGÀGÀGÀGÀGeÀG«ÀGûÀHÀHÀHbÀH¬ÀHüÀIÀIRÀI{ÀIÄÀI÷ÀJÀJ6ÀJ`ÀJˆÀJÀJ¦ÀJ×ÀKÀK)ÀKyÀKÀKïÀLÀLhÀL™ÀLõÀMCÀM•ÀMçÀN7ÀNhÀN°ÀNËÀNòÀOÀOMÀOŠÀOÀO±ÀO¼ÀOçÀPÀPNÀPƒÀPÙÀQÀQCÀQwÀQ²ÀQÃÀRÀRzÀR„ÀR£ÀRÄÀRäÀSHÀSWÀSqÀS~ÀSˆÀSÙÀTÀTLÀTÀTĞÀT÷ÀUÀUFÀU‰ÀU´ÀU¾ÀUåÀVEÀVmÀVyÀVØÀWÀWÀWÀW‚ÀWªÀW¶ÀXÀXFÀXRÀX\ÀXkÀX¹ÀXùÀYDÀY’ÀYäÀZ6ÀZ†ÀZ·ÀZÿÀ[À[AÀ[_À[œÀ[ÙÀ[ìÀ\ À\À\TÀ\·À\÷À]"À],À]tÀ]ÙÀ^À^@À^JÀ^‘À^ÑÀ^øÀ_À_LÀ_ŒÀ_·À_ÁÀ_ÉÀ_ÖÀ`%À`oÀ`ÃÀ`úÀaÀa{Àa¼ÀaÑÀaÙÀbÀbaÀbˆÀbâÀc Àc^ÀcŠÀc×ÀdÀd_Àd±ÀdÜÀdæÀe)ÀejÀeºÀeáÀeëÀfÀfqÀf¸ÀfåÀfñÀg9ÀgaÀgmÀg~ÀgÂÀh'ÀhOÀh[ÀhÀhğÀiÀi%Ài/Ài7Ài=ÀiNÀiRÀiSÀiÀiĞÀiùÀişÀjDÀjEÀj’ÀjØÀk(Àk<ÀkAÀk”ÀkáÀl3ÀlgÀllÀlÈÀlñÀmIÀm|Àm—Àm»ÀmÖÀn Àn(Àn.ÀnGÀnxÀn¢ÀnÊÀoÀo.ÀoÀoÕÀp"ÀpPÀp—Àp²Àp×ÀpëÀqÀq-Àq8Àq@ÀqŒÀq¬ÀqúÀrÀr+Àr4Àr‹Àr±ÀrºÀsÀsCÀsLÀswÀsÈÀtÀt[Àt¾ÀuÀu3ÀuIÀuTÀuœÀuĞÀuæÀuñÀvÀvMÀvÀv¸ÀvØÀw3ÀwyÀw¶ÀxÀx>ÀxOÀx©ÀxÜÀxæÀyÀyKÀyUÀy¦ÀyÓÀzÀzvÀz‘ÀzœÀz×À{À{jÀ{uÀ{ÒÀ|-À|TÀ|^À|½À}À}EÀ}OÀ}vÀ}ÖÀ}şÀ~
+À~iÀ~’À~À~¯ÀÀ;ÀGÀªÀ×ÀãÀíÀüÀ€LÀ€ŒÀ€—À€êÀ;ÀjÀ±ÀØÀ‚ À‚.À‚9À‚À‚ÃÀƒ Àƒ;ÀƒFÀƒÀƒÁÀ„À„À„?À„À„¸À…
+À…5À…?À…`À… À…×À†'À†NÀ†XÀ†xÀ†¸À†ïÀ‡5À‡…À‡¬À‡¶À‡×ÀˆÀˆPÀˆ–ÀˆèÀ‰À‰À‰%À‰2À‰‡À‰ÙÀ‰şÀŠ%ÀŠlÀŠ‡ÀŠ¬ÀŠÀÀŠâÀ‹À‹À‹À‹?À‹’À‹ÏÀ‹ôÀŒÀŒÀŒ^ÀŒÃÀŒêÀŒõÀXÀ~ÀšÀŞÀ	À,ÀQÀhÀrÀ™ÀõÀ3ÀqÀŸÀìÀMÀzÀÀ›ÀøÀ‘À‘À‘YÀ‘™À‘ìÀ‘÷À’FÀ’À’ÌÀ“À“WÀ“‚À“ŒÀ“ÛÀ”À”_À”–À”æÀ•À•À•8À•ˆÀ•½À–À–7À–CÀ–’À–ÇÀ—À—BÀ—NÀ—_À—±À—èÀ˜<À˜dÀ˜pÀ˜ÁÀ˜øÀ™LÀ™yÀ™…À™À™—À™À™®À™²À™³À™şÀšDÀš”Àš¨Àš­ÀšşÀ›PÀ›À›ÑÀ›ÖÀœ%Àœ_ÀœµÀœèÀÀ'ÀBÀlÀ”ÀšÀ²ÀãÀÀ5À…À™ÀûÀŸ@ÀŸÀŸ»À  À À @À TÀ vÀ –À ¡À ©À õÀ¡À¡cÀ¡|À¡”À¡À¡ôÀ¢À¢#À¢†À¢¬À¢µÀ¢àÀ£1À£À£ÄÀ¤'À¤oÀ¤œÀ¤²À¤½À¥À¥9À¥OÀ¥ZÀ¥…À¥¶À¥ìÀ¦!À¦AÀ¦œÀ¦âÀ§À§lÀ§§À§¸À¨À¨CÀ¨MÀ¨lÀ¨±À¨»À©À©9À©À©ÜÀ©÷ÀªÀª=Àª}ÀªĞÀªÛÀ«8À«“À«ºÀ«ÄÀ¬#À¬€À¬«À¬µÀ¬ÜÀ­<À­dÀ­pÀ­ÏÀ­øÀ®À®À®yÀ®¡À®­À¯À¯=À¯IÀ¯SÀ¯bÀ¯²À¯òÀ¯ıÀ°PÀ°¡À°ĞÀ±À±>À±fÀ±”À±ŸÀ±öÀ²)À²†À²¡À²¬À²çÀ³'À³zÀ³…À³¥À³åÀ´À´cÀ´µÀ´àÀ´êÀµÀµKÀµ‚ÀµÇÀ¶À¶>À¶HÀ¶hÀ¶¨À¶ßÀ·/À·VÀ·`À·À·ÁÀ·úÀ¸LÀ¸wÀ¸À¸‰À¸–À¸ëÀ¹=À¹bÀ¹‰À¹ÎÀ¹éÀºÀº"ÀºDÀºdÀºoÀºwÀº£ÀºöÀ»3À»XÀ»oÀ»yÀ»ÂÀ¼'À¼NÀ¼YÀ¼¼À¼âÀ¼şÀ½BÀ½mÀ½À½µÀ½ÌÀ½ÖÀ½ıÀ¾WÀ¾•À¾ÓÀ¾ÿÀ¿LÀ¿­À¿ÚÀ¿ğÀ¿ûÀÀXÀÀsÀÀ~ÀÀ¹ÀÀùÀÁLÀÁWÀÁ¦ÀÁßÀÂ,ÀÂeÀÂ·ÀÂâÀÂìÀÃ;ÀÃrÀÃ¿ÀÃöÀÄFÀÄmÀÄwÀÄ˜ÀÄêÀÅ!ÀÅuÀÅÀÅ©ÀÅúÀÆ1ÀÆ…ÀÆ²ÀÆ¾ÀÆÏÀÇÀÇTÀÇ¦ÀÇÎÀÇÚÀÈ)ÀÈ^ÀÈ°ÀÈÙÀÈåÀÈïÀÈ÷ÀÈıÀÉÀÉÀÉÀÉXÀÉuÀÉÀÉÊÀÊÀÊÀÊ`ÀÊ¸ÀËÀË^ÀË ÀË¡ÀËĞÀÌÀÌ&ÀÌ~ÀÌ—ÀÌ÷ÀÍÀÍ;ÀÍiÀÍ»ÀÍÑÀÍÚÀÍïÀÍõÀÎ8ÀÎEÀÎZÀÎ„ÀÎ‹ÀÎáÀÎşÀÏÀÏ=ÀÏDÀÏEÀÏ—ÀÏãÀĞÀĞÀĞÀĞ7ÀĞSÀĞhÀĞ·ÀĞÖÀĞôÀÑ1ÀÑSÀÑyÀÑÀÑ«ÀÑüÀÒÀÒ9ÀÒvÀÒ˜ÀÒ¾ÀÒâÀÒñÀÒşÀÓÀÓUÀÓtÀÓ±ÀÓÓÀÓùÀÔÀÔ+ÀÔoÀÔÀÔËÀÔíÀÕÀÕ7ÀÕFÀÕLÀÕfÀÕ{ÀÕÀÕ‚ÀÕÔÀÖ%ÀÖwÀÖ›ÀÖéÀ×À×$À×DÀ×€À×ÂÀØ ÀØ@ÀØŸÀØşÀÙXÀÙ€ÀÙ›ÀÙ¡ÀÙİÀÙéÀÚÀÚ8ÀÚ^ÀÚvÀÚœÀÚÀÀÚÎÀÛÀÛÀÛEÀÛ]ÀÛƒÀÛ§ÀÛ¶ÀÛ½ÀÛ¾ÀÛ÷ÀÜ%ÀÜHÀÜNÀÜOÀÜÀÜ¦ÀÜ¬ÀÜüÀİLÀİÀİ¸ÀİşÀŞÀŞÀŞbÀŞ»ÀßÀßpÀßtÀßuÀßÀßÓÀàÀàÀàGÀà\ÀàdÀà„ÀàŠÀàœÀà Àà¡ÀàËÀáÀá]Àá¤Àá×Àâ$ÀâbÀâÀâ¶ÀâÔÀâüÀã4ÀãoÀãÉÀäÀäEÀänÀäƒÀä‘ÀäÀäÓÀåÀåÀåÀå"ÀåBÀåHÀåqÀåuÀåvÀåÎÀåéÀåïÀæ7ÀæÀæÍÀçÀçBÀç`ÀçˆÀçÏÀçòÀèCÀè_ÀèyÀè„ÀèÖÀèÿÀé
+Àé8ÀéÀé—ÀéŸÀé¿ÀéÅÀéÖÀéÚÀéÛÀêÀê9Àê^ÀêsÀê{ÀêÀê“Àê—Àê˜ÀêÓÀêıÀë$Àë~ÀëÍÀëÓÀëüÀì,Àì2ÀìGÀìKÀìLÀìšÀì«ÀìÏÀìÜÀíÀíÀíÀíÀí9ÀíYÀíwÀíªÀíËÀíÏÀíĞÀí÷Àî4ÀîÀî¯Àî³Àî´ÀïÀïXÀï¦ÀïöÀğÀğVÀğÀğ·ÀğøÀñ/ÀñRÀñXÀñ¨ÀñÈÀñÔÀòÀòFÀòMÀòƒÀòµÀòçÀóÀóÀóÀó@Àó\ÀóxÀó­ÀóÜÀóúÀôÀôGÀôMÀô^ÀôbÀôcÀôÀÀõÀõbÀõ²Àõ×ÀöÀöLÀösÀö´ÀöëÀ÷À÷À÷;À÷kÀ÷—À÷À÷èÀø
+ÀøRÀø–ÀøÊÀùÀù(Àù0ÀùRÀùXÀùyÀù}Àù~ÀùãÀúÀú'ÀúUÀúÀúÀúÕÀû*Àû0ÀûeÀûiÀûjÀû§ÀûéÀüÀüÀü‚Àü¤ÀüªÀüıÀı1Àı5Àı6Àı€ÀıÀÀıßÀşÀşÀşÀş`ÀşªÀşûÀÿNÀÿ^ÀÿnÀÿuÀÿ»Àÿ¿ÀÿÀÀ 
+À SÀ ”À äÀ6ÀKÀOÀPÀ¬ÀãÀ>ÀlÀ‹À¿ÀÀ:À[ÀhÀsÀÀåÀ5À^À¢À¦À§ÀıÀ8À“ÀÁÀÚÀÀiÀÀ®À»ÀÆÀİÀ6ÀhÀ~À£À·ÀÑÀıÀÀ6ÀLÀdÀ´ÀİÀ	!À	%À	&À	]À	|À	À	¶À	¼À	úÀ
+À
+9À
+mÀ
+À
+ÈÀ
+øÀ'ÀNÀVÀ\ÀªÀ»ÀàÀêÀÀAÀcÀ{À­ÀÛÀ%À…ÀáÀùÀMÀÀ˜À¾ÀáÀÀ<À‡À·ÀÀ:ÀšÀóÀÀÀSÀ}ÀÆÀ&À1ÀÀ³À¹ÀÍÀôÀÀ*À0ÀCÀGÀHÀ|ÀÀ¡ÀÂÀÈÀêÀÀbÀ‘ÀíÀ&ÀIÀOÀ‹À²À¸ÀÚÀşÀÀ?ÀwÀ±ÀÉÀÜÀÿÀ
+À0ÀQÀµÀÀ:À`À˜ÀÒÀêÀıÀ À+ÀQÀrÀÓÀùÀÀVÀÀ¨À»ÀİÀèÀ"ÀKÀÀ¼ÀÍÀõÀÿÀÀÀÀAÀNÀwÀ}ÀÀ”À•ÀæÀ1À‚ÀœÀÏÀåÀ÷ÀÀÀ>ÀˆÀØÀÀÀ	ÀXÀ¨À×À À À .À MÀ SÀ pÀ ‹À §À ÉÀ óÀ!À!FÀ!PÀ!À!¥À!»À!ÌÀ"/À"?À"NÀ"rÀ"”À"šÀ"¹À#À#QÀ#zÀ#~À#À#ÂÀ#ßÀ$À$6À$=À$‘À$İÀ%À%,À%ZÀ%ˆÀ%—À%ŸÀ%¥À%ÉÀ%ıÀ&SÀ&€À&·À&ÄÀ'	À'1À'YÀ'®À'¹À'ÂÀ'ÈÀ'êÀ(À(@À(rÀ(—À(¤À(ÈÀ(ÎÀ)À)=À)†À)ŠÀ)‹À)ÓÀ)àÀ)æÀ*À*`À*¤À*¸À*¾À*âÀ+À+(À+wÀ+¢À+ÉÀ+ÖÀ+ÿÀ,(À,.À,oÀ,©À,­À,®À,ÑÀ,×À-,À-JÀ-¢À-ÔÀ-äÀ.À..À.lÀ.|À.‰À.ËÀ.ÑÀ.ÕÀ.ÖÀ.âÀ/À/DÀ/HÀ/IÀ/UÀ/À/¼À0À0"À0(À0XÀ0ƒÀ0¥À0«À0×À0şÀ1 À1&À1*À1+À1OÀ1PÀ1\À1}À1¥À1çÀ20À2NÀ2WÀ2uÀ2À2ÅÀ2üÀ3À3À3wÀ3À3¯À3ûÀ4À43À4;À4AÀ4cÀ4gÀ4hÀ4}À4~À4‘À4°À4òÀ5;À5YÀ5bÀ5€À5¬À5ìÀ6.À68À6VÀ6eÀ6ÇÀ6îÀ7 À7LÀ7WÀ7_À7eÀ7~À7‚À7ƒÀ7§À7¿À7àÀ7äÀ7åÀ7ñÀ8%À8&À82À8DÀ8[À8_À8`À8 À8äÀ8òÀ8øÀ9$À9KÀ9|À9­À9¶À9ÛÀ: À:-À:~À:ÏÀ:×À:İÀ:áÀ:âÀ; À;dÀ;rÀ;xÀ;ÆÀ;ßÀ;ôÀ<À<aÀ<lÀ<¡À<¶À<¿À<ÅÀ=À=(À==À=cÀ=¦À=±À=æÀ=ûÀ>À>
+À>À>À>À>TÀ>•À>ÕÀ?À?QÀ?UÀ?VÀ?bÀ?ŸÀ?éÀ?íÀ?îÀ?úÀ@7À@À@…À@†À@’À@íÀ@îÀ@úÀA?ÀAjÀAÊÀBÀBUÀBYÀB[   R/// @docImport 'package:flutter/widgets.dart';
+///
+/// @docImport 'editable.dart'; 6=ñô  ‚  ‚F  ‚o  ‚˜  ‚«  ‚À  ‚Õ  ‚ò  ƒ      ‡Y ‡y    ‡z‡z
+‡ ‡Œ‡‘‡¼‡’‡´‡µ‡º†°†° €š/// Creates a semantics tag with the input `index`.
+///
+/// Different [PlaceholderSpanIndexSemanticsTag]s with the same `index` are
+/// consider the same.  ‡é‡Â,‡é/// The index of this tag.  ˆuˆvˆuˆuUˆ‰     ˆˆˆ ‡ó‡ô‡ó‡ó~ˆ †e†f…‡…‡ƒE†v€İ/// Used by the [RenderParagraph] to map its rendering children to their
+/// corresponding semantics nodes.
+///
+/// The [RichText] uses this to tag the relation between its placeholder spans
+/// and their semantics nodes.   ŠÕŠÍŠÕ  ‹°Šá€Ó‹°€µ/// The [PlaceholderSpan] associated with this render child.
+///
+/// This field is usually set by a [ParentDataWidget], and is typically not
+/// null when `performLayout` is called.   ‰ ‰ *Š¸/// The offset at which to paint the child in the parent's coordinate system.
+///
+/// A `null` value indicates this inline widget is not laid out. For instance,
+/// when the inline widget has never been laid out, or the inline widget is
+/// ellipsized away.   ‹¹‹º‹¹‹¹X‹Ê   ŒŒŒŒiŒ(  ˆÎˆÎƒ²‰Q|/// Parent data used by [RenderParagraph] and [RenderEditable] to annotate
+/// inline contents (such as [WidgetSpan]s) with.  ¬ ¬³    ¬—¬—      ¬º¬»¬º¬ºD¬Ğ     ­­­! ­­­­G­  ¬c¬c€è¬i   ¯ ¯    ¯¯¯%   ¯1¯1%¯;   ¯\¯\$¯s   ¯†¯†¯‹   ¯ ¯ )¯­   ¯Ï¯Ï€ÿ°¹   °Ô°Ô6°ß   ±±±   ±#±#±+   ±7±7±C   ±S±S5±b   ±±)±¥   ±½±½±Î   ±Ü±Ü±ã   ±÷±÷²   ²²²! ¯G¯P¯Q¯–¯¸¯Ä¯Å¯Ï¯Ğ¯Ú°¬¯â°°r°Ë°ì°ò±±	±s±±‚²4²@²F²`²G²K²L²^²_²j²p²‘²‚²z²q²}²²…²²›²¡²û³d²â²¬²µ²à²¶²Â²È²Ş²ß²õ²å²ø³³x³n³z³•³‹³—³º³¨³¼³å³Õ³ç´³ş´´¶´#´'´)´8´A´C´W´d´f´~´ˆ´Ä´ö´•´Š´˜´´´´µ´Æ´Ğ´Ñ´×´ç´Ø´øµµµµ*µ2µVµcµ=µ4µ@µLµMµXµeµtµzµ|µµ—µ™µ®µ¼µ¾µ×µéµë®R®R‡ñ €ª/// Creates a paragraph render object.
+///
+/// The [maxLines] property may be null (and indeed defaults to null), but if
+/// it is not null, it must be greater than zero. ¶s¶y¶z¶†¶³¶Œ¶›¶œ¶[¶Gm¶[  ¶Ë¶¹¶Ë  ¸7¸*!¸7  ºˆºp/ºˆ  ºÊº¤CºÊ  À BNÀ B33À BN  À BÿÀ BëÀ Bÿ  À R¯À RªÀ R¯  À S£À S–À S£  À ZÀ ZÀ Z  À eÀ eÀ e À rÅÀ r´À r¯À r´  À rÙÀ rÎÀ rÙ  À uªÀ u3À uª  À ¤^À £Ø€”À ¤^[/// Collected during [describeSemanticsConfiguration], used by
+/// [assembleSemanticsNode]. À ·¢À ·‰*À ·¢    ¸P¸P‚¸`    ºìºìE»/// The text to display.  ¿2¿3¾Ÿ¾Ÿ‚×¿_€Š/// The ongoing selections in this paragraph.
+///
+/// The selection does not include selections in [PlaceholderSpan] if there
+/// are any.   À BkÀ Bk}À BĞJ/// The [SelectionRegistrar] this paragraph will be, or is, registered to.  À KEÀ KFÀ KEÀ KE]À KZ    À M2À M2eÀ Ms0/// How the text should be aligned horizontally.   À N<À N<‚‰À P˜‚3/// The directionality of the text.
+///
+/// This decides how the [TextAlign.start], [TextAlign.end], and
+/// [TextAlign.justify] values of [textAlign] are interpreted.
+///
+/// This is also used to disambiguate how to render bidirectional text. For
+/// example, if the [text] is an English phrase followed by a Hebrew phrase,
+/// in a [TextDirection.ltr] context the English phrase will be on the left
+/// and the Hebrew phrase to its right, while in a [TextDirection.rtl]
+/// context, the English phrase will be on the right and the Hebrew phrase on
+/// its left.   À Q{À Q{,À R‘€ş/// Whether the text should break at soft line breaks.
+///
+/// If false, the glyphs in the text will be positioned as if there was
+/// unlimited horizontal space.
+///
+/// If [softWrap] is false, [overflow] and [textAlign] may have unexpected
+/// effects.   À S?À S?TÀ S}*/// How visual overflow should be handled.  À U¡À U¢À U¬À VvÀ U²À UÑÀ V>À T‹À T‹‚*À V…/// Deprecated. Will be removed in a future version of Flutter. Use
+/// [textScaler] instead.
+///
+/// The number of font pixels for each logical pixel.
+///
+/// For example, if the text scale factor is 1.5, text will be 50% larger than
+/// the specified font size.   À WèÀ WèlÀ X.4/// {@macro flutter.painting.textPainter.textScaler}   À YÀ Y€ñÀ Yå€·/// The number of device pixels for each logical pixel.
+///
+/// This is used by some renderers (like WebParagraph on the web) to
+/// regenerate the text bitmap when the scale changes.   À [•À [•€úÀ \m€È/// An optional maximum number of lines for the text to span, wrapping if
+/// necessary. If the text exceeds the given number of lines, it will be
+/// truncated according to [overflow] and [softWrap].   À ]ÊÀ ]Ê¬À _Xu/// Used by this paragraph's internal [TextPainter] to select a
+/// locale-specific font.
+///
+/// In some cases, the same Unicode character may be rendered differently
+/// depending on the locale. For example, the 'éª¨' character is rendered
+/// differently in the Chinese and Japanese locales. In these cases, the
+/// [locale] may be used to select a locale-specific font.   À `JÀ `JmÀ `‘4/// {@macro flutter.painting.textPainter.strutStyle}   À a›À a›|À aé8/// {@macro flutter.painting.textPainter.textWidthBasis}   À bíÀ bí{À c2'/// {@macro dart.ui.textHeightBehavior}   À dRÀ dR€²À dâ~/// The color to use when painting the selection.
+///
+/// Ignored if the text is not selectable (e.g. if [registrar] is null).  À kÙÀ kÚÀ k?À k?€òÀ kù€“/// An estimate of the height of a line in the text. See [TextPainter.preferredLineHeight].
+///
+/// This does not require the layout to be updated.  À s‹À sŒÀ ríÀ rí€îÀ s©€•/// Whether this paragraph currently has a [dart:ui.Shader] for its overflow
+/// effect.
+///
+/// Used to test this object. Not for use in production.   À  ØÀ  ØÉÀ ¢Vb/// Returns the size of the text as laid out.
+///
+/// This can differ from [size] if the text overflowed or if the [constraints]
+/// provided by the parent [RenderObject] forced the layout to be bigger than
+/// necessary for the given [text].
+///
+/// This returns the [TextPainter.size] of the underlying [TextPainter].
+///
+/// Valid only after [layout].   À ¢¥À ¢¥/À £s€º/// Whether the text was truncated or ellipsized as laid out.
+///
+/// This returns the [TextPainter.didExceedMaxLines] of the underlying [TextPainter].
+///
+/// Valid only after [layout].   »>»>»I  »5»5ƒf»9    À CÀ CÀ C0  À CÀ C€öÀ C    À M©À M©À M³  À M›À M›€À MŸ    À PÛÀ PÛÀ Pé  À PÉÀ PÉ€®À PÍ    À RÊÀ RÊ
+À RÏ  À R½À R½~À RÁ    À S¾À S¾À SË  À S±À S±€ÖÀ Sµ    À W¦À W¦À W­ À V¹À VºÀ VÄÀ WÀ VÊÀ VéÀ WVÀ V¹À V¹+À W–    À XgÀ XgÀ Xr  À XXÀ XX€¾À X\    À Z@À Z@À ZG  À Z+À Z+fÀ Z/    À \ùÀ \ù
+À \ş  À \“À \“3À \ğT/// The value may be null. If it is not null, then it must be greater than
+/// zero.   À _¢À _¢À _ª  À _zÀ _z€ÌÀ _›/// The value may be null.   À `çÀ `çÀ `ó  À `»À `»€ÜÀ `Ü/// The value may be null.   À b.À b.À b=  À bÀ b€ÎÀ b    À cƒÀ cƒÀ cš  À clÀ cl€âÀ cp    À e5À e5À e<  À e"À e"'À e& *   À DÀ D6À D    À EBÀ EB€ÃÀ EG    À F	À F	‚”À F#    À I§À I§À I²  À H¡À H¡£À IŠ€Ù/// Determines whether the given [Selectable] was created by this
+/// [RenderParagraph].
+///
+/// The [RenderParagraph] splits its text into multiple [Selectable]s,
+/// delimited by [PlaceholderSpan]s or [WidgetSpan]s.   À JHÀ JH€ùÀ JM   À K¦À K§À K¦À K¦€¾À K·   À LhÀ LiÀ LhÀ Lh€ÆÀ Ly    À fjÀ fjÀ fw  À fMÀ fM€™À fT    À gÀ gÀ g À fêÀ fëÀ fêÀ fêİÀ fı    À h÷À h÷À hş À hËÀ hÌÀ hËÀ hË‚pÀ hŞ    À lTÀ lTÀ l[  À l5À l5~À l<    À mäÀ mäÀ më À m·À m¸À m·À m·kÀ mÊ    À nSÀ nSÀ nZ À n&À n'À n&À n&kÀ n9    À n²À n²À n¹ À n•À n–À n•À n•6À n¦    À nıÀ nıÀ o   À oÀ oÀ o' À nÏÀ nĞÀ nÛÀ nÜÀ nÏÀ nÏƒÜÀ ní   À sßÀ sàÀ sßÀ sßsÀ sğ    À uÜÀ uÜÀ uã  À uÅÀ uÅ€„À uÌ    À vmÀ vmÀ v|  À vMÀ vM€ìÀ vR    À wlÀ wl$À w… À w=À w>À wIÀ wJÀ w=À w=‚aÀ w[    À yÕÀ yÕÀ yâ À y¢À y£À y¢À y¢‚ÈÀ yµ    À |”À |”$À |­   À |ºÀ |ºÀ |Ç À |nÀ |oÀ |nÀ |n‚+À |   À ~À ~À ~À ~ŠçÀ ~®    À ‰­À ‰­À ‰·   À ‰¾À ‰¾À ‰Æ À ‰ˆÀ ‰‰À ‰ˆÀ ‰ˆ€€À ‰™    À Š#À Š#À Š3   À Š<À Š<À ŠC À ŠÀ ŠÀ ŠÀ Š‡ıÀ Š    À ’ƒÀ ’ƒÀ ’   À ’šÀ ’šÀ ’Ÿ  À ’À ’8À ’qV/// Returns the offset at which to paint the caret.
+///
+/// Valid only after [layout].   À “ÏÀ “ÏÀ “Ü  À “IÀ “I2À “¹b/// {@macro flutter.painting.textPainter.getFullHeightForCaret}
+///
+/// Valid only after [layout].   À —TÀ —TÀ —b   À —sÀ —s:À —…   À —³À —³7À —Ä 
+À —–À —˜À —™À —§À —¨À —ÔÀ —ÖÀ —×À —äÀ —åÀ ”À ”„SÀ —:‚‰/// Returns a list of rects that bound the given selection.
+///
+/// The [boxHeightStyle] and [boxWidthStyle] arguments may be used to select
+/// the shape of the [TextBox]es. These properties default to
+/// [ui.BoxHeightStyle.tight] and [ui.BoxWidthStyle.tight] respectively.
+///
+/// A given selection might have more than one rect if the [RenderParagraph]
+/// contains multiple [InlineSpan]s or bidirectional text, because logically
+/// contiguous text might not be visually contiguous.
+///
+/// Valid only after [layout].
+///
+/// See also:
+///
+///  * [TextPainter.getBoxesForSelection], the method in TextPainter to get
+///    the equivalent boxes.   À ™fÀ ™fÀ ™m  À ˜ÖÀ ˜Ö&À ™Qg/// Returns the position within the text for the given pixel offset.
+///
+/// Valid only after [layout].   À ›èÀ ›èÀ ›õ  À š À š ‚ƒÀ ›Ø»/// Returns the text range of the word at the given offset. Characters not
+/// part of a word, such as spaces, symbols, and punctuation, have word breaks
+/// on both sides. In such cases, this method will return a text range that
+/// contains the given text position.
+///
+/// Word boundaries are defined more precisely in Unicode Standard Annex #29
+/// <http://www.unicode.org/reports/tr29/#Word_Boundaries>.
+///
+/// Valid only after [layout].   À œ¢À œ¢À œ¯  À œ‡À œ‡\À œ‘    À 
+À 
+À   À œçÀ œçPÀ œô    À ^À ^À k  À ;À ;NÀ H    À Ÿ³À Ÿ³À ŸÀ   À ŸÊÀ ŸÊÀ ŸÑ  À ŸÀ ŸGÀ Ÿš    À ¤¡À ¤¡À ¤¸ À ¤qÀ ¤rÀ ¤qÀ ¤q‡iÀ ¤‚    À ¬,À ¬,)À ¬I  À «ŞÀ «Ş„+À ¬    À ±ªÀ ±ª"À ±Á   À ±ÒÀ ±ÒÀ ±Ö  À °À °ƒ
+À ±„\/// Returns whether [childConfig] belongs to the placeholder at
+/// [placeholderIndex] in this paragraph.
+///
+/// Nested paragraphs may inherit [PlaceholderSpanIndexSemanticsTag]s from
+/// ancestors with colliding indexes. The first placeholder tag is the one
+/// added by this paragraph, so later inherited tags must not decide ownership
+/// here.   À ³YÀ ³Y'À ³x   À ³†À ³†À ³Š  À ³À ³ƒfÀ ³2    À ·äÀ ·äÀ ·ò   À ·üÀ ·üÀ ¸   À ¸À ¸ À ¸7 À ·¸À ·¹À ·¸À ·¸’ÖÀ ·É    À Ê·À Ê·À Ê»  À Ê’À Ê’€¼À Ê    À ËRÀ ËSÀ ËRÀ ËRaÀ Ëc   À Ë·À Ë¸À Ë·À Ë·€¸À ËÙ    À Ì˜À Ì˜&À Ì´ À ÌsÀ ÌtÀ ÌsÀ Ìsƒ¿À Ì„  ­M­MÀ ¢ç­Š6/// A render object that displays a paragraph of text.  À Ò À Ò1    À Ò3À Ò3À ÒA   À ÒLÀ ÒLÀ ÒZ   À ÒdÀ ÒdÀ Òr À Ò€À Ò†À ÒÀÀ Ò«À Ò•À Ò‡À ÒŒÀ ÒÀ Ò˜À Ò™À ÒÀ ÒŸÀ Ò®À Ò³À Ò´À ÒÀ ÒE    À ÓwÀ ÓgÀ Ów  À Ó–À Ó€À Ó–  À Ó°À Ó£À Ó°  À ÓËÀ Ó½!À ÓË  À ÓğÀ ÓâÀ Óğ À Ô3À ÔÀ Ô2À Ô  À ÔHÀ Ô= À ÔH  À ÔlÀ ÔaÀ Ôl  À ÔÜÀ ÔÅ)À ÔÜ Ài»ÀiÁÀiÂÀiÎÀiûÀiÔÀiãÀiäÀi£ÀimÀi£ Àj&Àj;Àj<ÀjÀj BÀj  À19À1- À19  À4pÀ4jÀ4p   À Ô„À Ô…À Ô„À Ô„>À Ô¦   À1RÀ1SÀ1RÀ1RƒÀ1m    À4€À4€ƒÀ4‰   À7çÀ7èÀ7çÀ7ç=À7û   À8(À8)À8(À8(6À8=  3   À ÔóÀ Ôó€ŞÀ Ôø    À ÕÕÀ ÕÕˆÁÀ Õç    À ŞÍÀ ŞÍÀ ŞÜ À ŞšÀ Ş›À ŞšÀ ŞšŒ_À Ş¶   À êıÀ êşÀ êıÀ êı‰À ë   À ìŠÀ ì‹À ìŠÀ ìŠÀ ì¬    À í¥À í¥`À íª    À îCÀ îC!À îX   À îjÀ îj'À î‚   À î—À î—À î¤   À î²À î²$À îÀ   À îÜÀ îÜ"À îê  À î	À î	‘‹À î    À ÿĞÀ ÿĞ!À ÿå   À ÿ÷À ÿ÷'À    À $À $À 1   À ?À ?$À M   À iÀ i"À w  À ÿ˜À ÿ˜‘™À ÿ¥    ÀmÀmÀt   ÀŠÀŠÀ˜   À£À£0ÀÄ  À5À5ÙÀE    À7À7À>   ÀOÀOÀ]  ÀÀ…ãÀ"    À'©À'©-À'Ç   À'ÜÀ'ÜÀ'á   À( À( À(   À(À($À()   À(EÀ(E"À(S  À'\À'\Ÿ¼À'm    ÀIÈÀIÈ-ÀIæ   ÀIûÀIûÀJ    ÀJÀJÀJ,   ÀJ:ÀJ:$ÀJH   ÀJdÀJd"ÀJr  ÀI}ÀI}ŸÔÀI    ÀmMÀmM-Àmk   Àm€Àm€Àm‡   Àm›Àm›Àm    Àm¿Àm¿ÀmÌ   ÀmÚÀmÚ$Àmè   ÀnÀn"Àn  ÀlóÀló¬¾Àm    Àœ¹Àœ¹-Àœ×   ÀœìÀœìÀœó   ÀÀÀ   À+À+À8   ÀFÀF$ÀT   ÀpÀp"À~  ÀœaÀœa¬°Àœr    ÀÉ\ÀÉ\ÀÉc   ÀÉyÀÉyÀÉ‡   ÀÉ’ÀÉ’6ÀÉ¹   ÀÉÎÀÉÎ7ÀÉï  ÀÉÀÉ”ìÀÉ%    ÀŞ'ÀŞ' ÀŞ;   ÀŞIÀŞIÀŞV  ÀŞÀŞnÀŞ    ÀßwÀßw(Àß|    Àà£Àà£„ÑÀà³    ÀåÒÀåÒÀåÙ  ÀåxÀåx„aÀå­    ÀéùÀéùÀê   ÀéİÀéİ€¹Àéâ    ÀêºÀêºÀêÇ  ÀêšÀêš°Àê§    ÀìiÀìiÀìw   Àì‚Àì‚Àì  ÀìNÀìN€½ÀìS    ÀíÀí€¿Àí    ÀíÒÀíÒ€àÀíâ    ÀîàÀîà Àîô  Àî¶Àî¶„TÀîÆ    Àó$Àó$Àó.   Àó1Àó1Àó;  ÀóÀóSÀó    ÀôœÀôœ Àô°  ÀôeÀôe…Àôu    Àù²Àù²Àù¼   ÀùÊÀùÊÀù×  Àù€Àù€èÀù”    ÀûÀûÀû•  ÀûlÀûlÈÀû|    ÀıgÀıgÀıt  Àı8Àı8€äÀıL    ÀşGÀşGÀşN  Àş Àş Àş0    ÀÿçÀÿçÀÿ÷  ÀÿÂÀÿÂŒÀÿÏ    À†À†À“   ÀÀÀ¤  ÀRÀRƒSÀf    ÀäÀäÀñ  À©À©„{À½    À	aÀ	aÀ	h   À	€À	€À	…   À	“À	“!À	¬  À	(À	(ŠÀ	8    À€À€À…   À’À’À—   À¥À¥Àµ  ÀJÀJ‰IÀZ    ÀÓÀÓÀà   ÀéÀéÀî   ÀûÀûÀ  ÀÀiÀ«    À 
+À 
+À    À  À  À %   À 2À 2À ?  ÀÙÀÙƒ¤Àæ    À#ÆÀ#ÆÀ#Ó   À#ãÀ#ã8À#ó   À$!À$!À$/  À#À#†À#©    À*GÀ*GÀ*T  À)À)ƒÀ*%€Š/// Whether the given text position is contained in current selection
+/// range.
+///
+/// The parameter `start` must be smaller than `end`.   À-mÀ-mÀ-z   À-„À-„À-‘  À,°À,°‚$À-W€“/// Compares two text positions.
+///
+/// Returns 1 if `position` < `otherPosition`, -1 if `position` > `otherPosition`,
+/// or 0 if they are equal.   À.ûÀ.ûÀ/	 À.ØÀ.ÙÀ.ØÀ.ØoÀ.ì    À/mÀ/mÀ/x   À/…À/…À/ À/KÀ/LÀ/KÀ/KŞÀ/\    À7…À7…^À7Š    À8vÀ8vÀ8†   À8À8À8–  À8bÀ8b‚~À8g    À:öÀ:öÀ;   À;À;À;  À:äÀ:äƒ)À:é    À>;À>;À>H À>À>À>À>CÀ>+    À?†À?†À?“ À?XÀ?YÀ?XÀ?X€”À?q    À@À@À@+ À?ğÀ?ñÀ?ğÀ?ğ€”À@	    À@®À@®À@» À@ˆÀ@‰À@ˆÀ@ˆdÀ@    ÀAÀA&ÀA1 À@ğÀ@ñÀ@ğÀ@ğhÀA  À Ğ6À Ğ6Àr$À Ñ±t/// A continuous, selectable piece of paragraph.
+///
+/// Since the selections in [PlaceholderSpan] are handled independently in its
+/// subtree, a selection in [RenderParagraph] can't continue across a
+/// [PlaceholderSpan]. The [RenderParagraph] splits itself on [PlaceholderSpan]
+/// to create multiple `_SelectableFragment`s so that they can be selected
+/// separately.            ’Ú’Ú’ä ’¹’º’¹’¹€—’Ê    “ƒ“ƒ“   “˜“˜“§   “½“½“Ë   “Ü“Ü“ğ  “T“T„“q    šıšı›   ›››    ›1›1$›E šºš»—r—r„òšãƒ%/// Computes the layout for every inline child using the `maxWidth` constraint.
+///
+/// Returns a list of [PlaceholderDimensions], representing the layout results
+/// for each child managed by the [ContainerRenderObjectMixin] mixin.
+///
+/// The `getChildBaseline` parameter and the `layoutChild` parameter must be
+/// consistent: if `layoutChild` computes the size of the child without
+/// modifying the actual layout of that child, then `getChildBaseline` must
+/// also be "dry", and vice versa.
+///
+/// Since this method does not impose a maximum height constraint on the
+/// inline children, some children may become taller than this [RenderBox].
+///
+/// See also:
+///
+///  * [TextPainter.setPlaceholderDimensions], the method that usually takes
+///    the layout results from this method as the input.   ´´Å ‹Œœhœhˆ‚
+/// Positions each inline child according to the coordinates provided in the
+/// `boxes` list.
+///
+/// The `boxes` list must be in logical order, which is the order each child
+/// is encountered when the user reads the text. Usually the length of the
+/// list equals [childCount], but it can be less than that, when some children
+/// are omitted due to ellipsing. It never exceeds [childCount].
+///
+/// See also:
+///
+///  * [TextPainter.inlinePlaceholderBoxes], the method that can be used to
+///    get the input `boxes`.   ¥¿¥¿¥É   ¥Ğ¥Ğ¥Ø ¥’¥“¤‹¤‹‚X¥¤€ü/// Applies the transform that would be applied when painting the given child
+/// to the given matrix.
+///
+/// Render children whose [TextParentData.offset] is null zeros out the
+/// `transform` to indicate they're invisible thus should not be painted.   §•§•§¥   §®§®§µ §o§p¦ç¦ç‚.§/// Paints each inline child.
+///
+/// Render children whose [TextParentData.offset] is null will be skipped by
+/// this method.   ©Ù©Ù©ê   ©ò©ò©ù ©±©²©©ƒF©Ã€/// Performs a hit test on each inline child.
+///
+/// Render children whose [TextParentData.offset] is null will be skipped by
+/// this method. Œ‚Œ‚Ÿß’G…¾/// A mixin that provides useful default behaviors for text [RenderBox]es
+/// ([RenderParagraph] and [RenderEditable] for example) with inline content
+/// children managed by the [ContainerRenderObjectMixin] mixin.
+///
+/// This mixin assumes every child managed by the [ContainerRenderObjectMixin]
+/// mixin corresponds to a [PlaceholderSpan], and they are organized in logical
+/// order of the text (the order each [PlaceholderSpan] is encountered when the
+/// user reads the text).
+///
+/// To use this mixin in a [RenderBox] class:
+///
+///  * Call [layoutInlineChildren] in the `performLayout` and `computeDryLayout`
+///    implementation, and during intrinsic size calculations, to get the size
+///    information of the inline widgets as a `List` of `PlaceholderDimensions`.
+///    Determine the positioning of the inline widgets (which is usually done by
+///    a [TextPainter] using its line break algorithm).
+///
+///  * Call [positionInlineChildren] with the positioning information of the
+///    inline widgets.
+///
+///  * Implement [RenderBox.applyPaintTransform], optionally with
+///    [defaultApplyPaintTransform].
+///
+///  * Call [paintInlineChildren] in [RenderBox.paint] to paint the inline widgets.
+///
+///  * Call [hitTestInlineChildren] in [RenderBox.hitTestChildren] to hit test the
+///    inline widgets.
+///
+/// See also:
+///
+///  * [WidgetSpan.extractFromInlineSpan], a helper function for extracting
+///    [WidgetSpan]s from an [InlineSpan] tree.   …|…o…b"…o   ƒ"ƒ"€Œƒ_4/// The start and end positions for a text boundary.  ƒ°ƒ°€¾„ g/// Signature for a function that determines the [_TextBoundaryRecord] at the given
+/// [TextPosition].  „p„p€ğ„ø/// Signature for a function that determines the [_TextBoundaryRecord] at the given
+/// [TextPosition], for the given [String].   €®  package:flutter/widgets.dart  €á  editable.dart r <€†€¤€¥€Ô€Ø€ø/9BZqƒ˜¶Æ×óô‚‚F‚o‚—‚˜‚«‚À‚Õ‚òƒƒ!ƒ"ƒWƒ¯ƒ°„„„o„p„Ä„ğ…6…O…^…a…b…†…‡…Ğ…ó…÷†F†e†p†®†ä†ê‡8‡Q‡†‡¿‡À‡İ‡ğ‡ñ‡ıˆ ˆnˆrˆsˆˆËˆÍˆÎ‰‰K‰‰î‰ôŠEŠ“ŠªŠËŠŞŠß‹‹$‹r‹‹¶‹·‹Ã‹Õ‹æ‹úŒŒŒŒŒŒŒ‚ŒÌY]¬üLfj˜œí<Şg~‚Äéí‘A‘E‘˜‘¯‘³‘Á‘Å’’A’m’·’Ã’í““G“M“Q“R““”“¹“Ø“ı””?”r”Œ”¤”Ê”ë•#•J•o•¥•Ü––C–s–¦–å–ü——>—O—^—k—o—p—Â—È˜˜a˜g˜¶™ ™N™s™y™Äššš(š.š}š¸šÅšù››-›W›]›™›½œœZœaœeœfœµœÉœÏk¼ÿi‰–ÎñŸŸ+Ÿ?ŸyŸÒŸğ a Ì Û ò¡_¡Ì¢0¢?¢n¢§¢»¢ô££££/£7£y£³£Ô£Ú£ö¤8¤]¤~¤„¤ˆ¤‰¤Ù¤ô¤ú¥D¥¥¥å¦&¦Y¦s¦¦›¦Ú¦à¦ä¦å§§§Z§m§z§¿§â§ş¨A¨{¨œ¨¬¨´¨ë©©©©©G©M©œ©¯©¼ªª(ªDª‡ªÁªâªø« «4«Q«m«¯«ê«ó¬¬¬#¬D¬J¬\¬`¬b¬c¬•¬·¬¸¬Ä¬ÿ­ ­­J­L­M­„­¬­µ­ô®#®P®y®®Ï¯¯¯-¯X¯‚¯œ¯Ë¯Ü¯ı°l°¨°®°Ğ±±±3±O±Š±¹±Ø±ó²²9²c²”²£²ı³]³g³„³¡³Î³÷´´/´N´u´·´éµµ!µkµ„µ¥µÎµÿ¶
+¶ ¶@¶D¶E¶ˆ¶±¶¶¶·¶Ù¶Ú·&·x·»·À¸¸(¸M¸N¸r¸¦¸Ç¸ò¹%¹R¹{¹¤¹É¹öº+ºiºmºnº¡º¢ºéºê»»2»3»R»…»¬»¼»â¼¼3¼W¼z¼¼Å¼ó½½1½U½x½˜½À½î¾	¾:¾a¾’¾˜¾œ¾¾Í¾Ó¿!¿0¿E¿l¿˜¿¾¿Ä¿ëÀ @7À @À @¤À @½À @ûÀ A9À AFÀ AQÀ AYÀ A_À AsÀ AwÀ AxÀ AÅÀ BÀ B1À BhÀ BiÀ B¶À BéÀ CÀ CÀ C9À CXÀ CfÀ ClÀ C™À C¼À CÔÀ DÀ DÀ DÀ D7À DUÀ DcÀ DiÀ D¥À DİÀ EÀ E5À E;À E?À E@À EqÀ E³À EÁÀ EÇÀ FÀ FÀ FÀ F?À FÀ F¹À FÌÀ FóÀ G4À GNÀ GgÀ G‰À G“À G§À GÆÀ GãÀ HÀ H:À HGÀ HRÀ HgÀ HoÀ HÀ H‡À HšÀ HÀ HŸÀ HãÀ HüÀ IÀ IKÀ IƒÀ IÀÀ IìÀ J À JÀ JAÀ JEÀ JFÀ JmÀ J™À J§À J­À JùÀ KÀ KÀ K>À KBÀ KCÀ KOÀ K£À K¤À K°À KËÀ KòÀ L=À LDÀ LaÀ LeÀ LfÀ LrÀ L…À L²À LÕÀ LñÀ MÀ M+À M/À M0À McÀ M˜À M™À M¼À MçÀ MõÀ MûÀ NÀ N5À N9À N:À N`À NfÀ N©À NêÀ NğÀ O>À OÀ OÛÀ P$À PtÀ P„À PÆÀ PÇÀ PòÀ Q!À Q/À Q5À Q]À QtÀ QxÀ QyÀ Q²À Q¸À RÀ R$À R*À RwÀ R†À R¨À RºÀ R»À RØÀ RöÀ SÀ S
+À S!À S8À S<À S=À SjÀ S”À S®À S¯À SÔÀ SòÀ T À TÀ TÀ TmÀ T„À TˆÀ T‰À TÏÀ TëÀ TñÀ U)À U/À U€À UŸÀ U®À UÍÀ V:À VtÀ VxÀ V¶À V·À VÆÀ VåÀ WRÀ WŒÀ WÀ W¶À WáÀ WåÀ WæÀ XÀ XUÀ XVÀ X{À X§À XµÀ X»À XàÀ XüÀ YÀ YÀ YÀ YRÀ YXÀ YŸÀ YØÀ ZÀ Z(À Z)À ZPÀ ZvÀ Z„À ZŠÀ Z©À Z»À [À [pÀ [ˆÀ [À [’À [“À [ßÀ \*À \bÀ \À \‘À \ŞÀ \êÀ ]À ]/À ]YÀ ]gÀ ]mÀ ]À ]¬À ]ÃÀ ]ÇÀ ]ÈÀ ^
+À ^&À ^,À ^xÀ ^ÂÀ _À _JÀ _wÀ _xÀ _•À _³À _ÛÀ _éÀ _ïÀ `À `,À `CÀ `GÀ `HÀ `À `¸À `¹À `ÖÀ `üÀ a(À a6À a<À aaÀ a}À a”À a˜À a™À aÔÀ bÀ bÀ bFÀ bvÀ b„À bŠÀ b³À bÏÀ bæÀ bêÀ bëÀ cÀ ciÀ cjÀ c£À c×À cåÀ cëÀ dÀ d4À dKÀ dOÀ dPÀ d„À dŠÀ dÕÀ eÀ eÀ e À eEÀ eiÀ ewÀ e}À ešÀ eÁÀ f
+À fÀ f(À f@À fFÀ fJÀ fKÀ fƒÀ fãÀ fçÀ fèÀ fôÀ g'À g{À g’À gÉÀ hÀ h3À h:À hVÀ h’À h¨À hÄÀ hÈÀ hÉÀ hÕÀ iÀ i\À isÀ i·À jÀ j=À jÀ j§À j®À jÊÀ kÀ kÀ k8À k<À k=À k›À k¡À k×À kìÀ l2À l3À ldÀ l€À l¦À lÈÀ lİÀ mÀ m=À mLÀ mXÀ mŸÀ m°À m´À mµÀ mÁÀ môÀ nÀ n#À n$À n0À ncÀ nÀ n’À n“À nŸÀ nÌÀ nÍÀ nÙÀ næÀ o4À o‚À oÎÀ pÀ pnÀ p²À pÜÀ püÀ qJÀ q{À qÇÀ qÓÀ qãÀ qúÀ rÀ rGÀ r\À rjÀ r¢À r¨À r¬À r­À rÌÀ rêÀ rëÀ s:À sHÀ sNÀ s‰À sÀ sÜÀ sİÀ séÀ t	À t+À tOÀ tSÀ tTÀ t À t¥À tôÀ uDÀ u‹À uÂÀ uÃÀ uïÀ vFÀ vJÀ vKÀ v‹À vœÀ vÕÀ w6À w:À w;À wGÀ wTÀ w”À wªÀ wÃÀ wíÀ xÀ x;À xoÀ x£À x¶À xÆÀ xŞÀ yÀ yOÀ y`À ysÀ y›À yŸÀ y À y¬À yîÀ zÀ z;À zhÀ z³À zûÀ {HÀ {•À {ÛÀ |À |gÀ |kÀ |lÀ |xÀ |ÓÀ }À }À }7À }UÀ }uÀ }¡À }ÍÀ }ØÀ }àÀ ~AÀ ~–À ~šÀ ~›À ~§À ~ÀÀ ~çÀ 2À 9À rÀ ¥À ÁÀ æÀ €À €À €?À €À €‚À €¯À €ÛÀ €ÜÀ @À À ÎÀ ‚À ‚lÀ ‚¹À ‚üÀ ƒFÀ ƒcÀ ƒ~À ƒ¡À ƒÃÀ ƒåÀ „À „)À „JÀ „lÀ „ŒÀ „­À „ÜÀ …)À …SÀ …wÀ …“À …ªÀ …ÌÀ †À †]À †²À †ÁÀ †óÀ ‡À ‡=À ‡†À ‡•À ‡¨À ‡ØÀ ˆ%À ˆWÀ ˆ}À ˆ¡À ˆêÀ ˆùÀ ‰À ‰*À ‰2À ‰?À ‰]À ‰{À ‰À ‰…À ‰†À ‰’À ‰ÓÀ ŠÀ Š	À Š
+À ŠÀ ŠMÀ ŠÀ ŠïÀ ‹À ‹GÀ ‹WÀ ‹ƒÀ ‹ÎÀ ŒÀ ŒÀ Œ À Œ*À Œ+À ŒWÀ ŒsÀ Œ’À ŒÂÀ ŒÊÀ À JÀ RÀ nÀ À ˜À À ŸÀ ¹À âÀ À UÀ ’À ÅÀ ÔÀ óÀ ûÀ "À (À )À 9À ƒÀ –À  À ¡À ÑÀ ÒÀ üÀ ıÀ À <À tÀ ’À ½À ãÀ ‘À ‘'À ‘GÀ ‘MÀ ‘NÀ ‘zÀ ‘ÈÀ ‘øÀ ’ À ’À ’
+À ’À ’AÀ ’GÀ ’hÀ ’±À ’ĞÀ ’ıÀ “BÀ “FÀ “GÀ “‰À “À “°À “èÀ ”À ”4À ”xÀ ”|À ”}À ”»À ”ÁÀ •À •PÀ •›À •¡À •ğÀ –?À –wÀ –}À –À –¤À –´À –ºÀ —À —'À —PÀ —oÀ —¯À —ìÀ —óÀ ˜À ˜?À ˜mÀ ˜~À ˜¤À ˜ÈÀ ˜ÏÀ ˜ÓÀ ˜ÔÀ ™À ™!À ™BÀ ™wÀ ™–À ™ÃÀ ™ùÀ ™ıÀ ™şÀ šKÀ šœÀ šêÀ ›À ›À ›gÀ ›¥À ›«À ›ÌÀ œÀ œ À œMÀ œ€À œ„À œ…À œäÀ œåÀ #À nÀ ·À õÀ 4À 8À 9À wÀ ÁÀ Ÿ
+À ŸGÀ Ÿ†À ŸŠÀ Ÿ‹À ŸãÀ  7À  ŒÀ  ÑÀ  ÕÀ  ÖÀ ¡À ¡À ¡]À ¡­À ¡ÓÀ ¡ÙÀ ¢$À ¢*À ¢KÀ ¢aÀ ¢€À ¢À ¢¢À ¢£À ¢ãÀ ¢éÀ £AÀ £GÀ £hÀ £‡À £¦À £ÑÀ £ÕÀ £ÖÀ ¤À ¤6À ¤nÀ ¤oÀ ¤{À ¤ÂÀ ¤ôÀ ¥)À ¥UÀ ¥‡À ¥ĞÀ ¦À ¦DÀ ¦SÀ ¦[À ¦¼À ¦ÂÀ ¦ÃÀ ¦éÀ §À §9À §lÀ §¾À §ËÀ §øÀ ¨À ¨7À ¨gÀ ¨´À ¨õÀ ©DÀ ©…À ©¡À ©ÃÀ ©åÀ ªÀ ªOÀ ªbÀ ªsÀ ª‚À ªÀ ª­À ªÏÀ ªÙÀ «À «VÀ «aÀ «iÀ «¥À «ÑÀ «×À «ÛÀ «ÜÀ ¬(À ¬WÀ ¬]À ¬À ¬¼À ¬ÛÀ ­À ­OÀ ­§À ­ÇÀ ®À ®RÀ ®µÀ ®÷À ¯À ¯#À ¯BÀ ¯QÀ ¯´À ¯ÜÀ ¯äÀ ¯êÀ °À °
+À °À °MÀ °yÀ °À °ÌÀ ±À ±jÀ ±vÀ ±¦À ±ÎÀ ±èÀ ±îÀ ²4À ²LÀ ²`À ²fÀ ²‘À ²ÆÀ ²ôÀ ²üÀ ³À ³À ³À ³À ³UÀ ³‚À ³–À ³œÀ ³ÃÀ ´&À ´VÀ ´“À ´”À ´¿À ´ÓÀ µÀ µÀ µEÀ µoÀ µ¡À µĞÀ µÙÀ ¶À ¶	À ¶-À ¶SÀ ¶~À ¶‚À ¶ƒÀ ¶ÏÀ ·À ·]À ·‡À ·µÀ ·¶À ·ÂÀ ·àÀ ·øÀ ¸À ¸AÀ ¸GÀ ¸‰À ¸´À ¸èÀ ¸şÀ ¹À ¹(À ¹FÀ ¹^À ¹À ¹³À º À ºXÀ ººÀ ºÛÀ ºÜÀ ºüÀ »JÀ »‘À »ÀÀ »ÕÀ »üÀ ¼MÀ ¼—À ¼ÚÀ ½'À ½RÀ ½zÀ ½†À ½¡À ½«À ½ÏÀ ½îÀ ½ıÀ ¾0À ¾xÀ ¾•À ¾©À ¾³À ¾İÀ ¿À ¿IÀ ¿‚À ¿²À ¿¼À ¿ÿÀ ÀCÀ ÀaÀ À…À À¨À ÀŞÀ ÁÀ Á!À ÁoÀ ÁÀÀ ÁåÀ ÂÀ Â:À ÂeÀ Â‘À ÂœÀ ÂÓÀ ÃÀ Ã0À ÃhÀ Ã˜À ÃÆÀ ÃõÀ ÄÀ Ä%À ÄnÀ ÄÃÀ ÄæÀ ÅÀ Å>À ÅLÀ Å±À ÅØÀ ÆÀ ÆÀ Æ2À ÆEÀ ÆXÀ Æ§À Æ±À ÆáÀ Ç4À Ç‚À ÇŒÀ Ç²À ÇèÀ È8À ÈIÀ ÈlÀ ÈÅÀ ÈÏÀ ÈàÀ ÉÀ É.À É_À É‚À ÉŠÀ ÉÀ ÉÎÀ ÉùÀ ÊÀ ÊÀ Ê<À Ê‹À ÊÀ ÊÀ ÊÂÀ ÊÒÀ ËÀ ËDÀ ËKÀ ËOÀ ËPÀ Ë\À ËvÀ Ë’À Ë°À Ë´À ËµÀ ËÁÀ ËóÀ ÌÀ ÌeÀ ÌlÀ ÌpÀ ÌqÀ Ì}À ÌÂÀ ÌíÀ Í2À ÍƒÀ Í—À Í«À Í¿À ÍØÀ ÎÀ ÎAÀ ÎYÀ ÎbÀ ÎiÀ Î¯À ÎÃÀ Ï(À Ï/À Ï†À ÏÒÀ Ğ/À Ğ3À Ğ5À Ğ6À ĞgÀ ĞkÀ ĞºÀ Ñ À ÑPÀ Ñ›À Ñ«À ÑÅÀ ÑùÀ ÒÀ ÒzÀ ÒÄÀ ÒğÀ Ó(À Ó.À Ó`À ÓdÀ ÓeÀ Ó~À Ó¡À ÓºÀ Ó»À ÓàÀ ÔÀ ÔÀ Ô:À Ô;À Ô_À ÔÀ Ô‚À ÔÀ ÔÃÀ ÔğÀ ÔñÀ ÕÀ ÕUÀ ÕVÀ Õ€À ÕÀ Õ”À Õ·À ÕÎÀ ÕÒÀ ÕÓÀ ÖÀ ÖEÀ Ö›À Ö¡À Ö¢À ÖŞÀ ×À ×QÀ ×§À ×ÃÀ ×ÊÀ ØÀ ØHÀ Ø‡À ØİÀ Ù:À Ù_À Ù®À ÙÚÀ ÙàÀ ÚÀ Ú+À ÚcÀ Ú™À ÚÎÀ ÛÀ ÛnÀ ÛÄÀ ÜÀ Ü"À Ü@À ÜkÀ Ü¥À ÜåÀ İÀ İÀ İEÀ İ}À İ½À İéÀ İòÀ ŞÀ ŞtÀ ŞŒÀ Ş“À Ş—À Ş˜À Ş¤À ŞåÀ ßÀ ßRÀ ß”À ß®À ßİÀ à
+À àHÀ à‡À àˆÀ à§À àÑÀ àüÀ á%À áoÀ á~À á£À áÜÀ âÀ âOÀ âŠÀ â™À âÃÀ ãÀ ã4À ã~À ã¾À äÀ äÀ äDÀ äiÀ äÇÀ äÑÀ äöÀ å À åIÀ ånÀ å˜À åÖÀ æÀ æDÀ æŒÀ æ²À æĞÀ æùÀ ç1À çBÀ çÀ ç—À çĞÀ è#À èVÀ èƒÀ è®À èßÀ èêÀ é&À éÀ éµÀ éàÀ êÀ ê@À êKÀ êQÀ êRÀ ê‹À êÀÀ êİÀ êãÀ êöÀ êúÀ êûÀ ëÀ ë1À ëuÀ ëˆÀ ëÀ ëæÀ ì<À ìƒÀ ì‡À ìˆÀ ì”À ì½À íÀ íÀ íÀ í;À íkÀ í—À íÀ í¢À í£À íÂÀ íâÀ îÀ îÀ îÀ î?À îfÀ î“À î®À îØÀ ï À ïÀ ï(À ïHÀ ïVÀ ï’À ïÌÀ ïÕÀ ğÀ ğ4À ğ^À ğ­À ğÖÀ ñÀ ñDÀ ñcÀ ñ¹À ñØÀ òÀ òPÀ òcÀ òšÀ ò¦À òùÀ óKÀ óÀ óïÀ ôÀ ôFÀ ô‰À ô–À ô·À õ	À õ9À õlÀ õ…À õ’À õ£À õâÀ öÀ öaÀ ö˜À ö«À ÷À ÷<À ÷HÀ ÷RÀ ÷aÀ ÷À ÷İÀ ø9À øxÀ ø±À øÄÀ øûÀ ùÀ ùÀ ùWÀ ù À ùªÀ ù²À ù¿À úÀ ú}À úºÀ úíÀ ûÀ ûCÀ û”À ûäÀ ü'À üvÀ üŸÀ üèÀ ıÀ ı,À ı‚À ıƒÀ ı¢À şÀ şÀ şXÀ ş›À ş¨À şÉÀ ÿ,À ÿEÀ ÿRÀ ÿ\À ÿdÀ ÿjÀ ÿ‘À ÿ•À ÿ–À ÿÌÀ ÿóÀ  À ;À eÀ À “À µÀ ÕÀ ãÀÀYÀbÀ•ÀÁÀëÀ<ÀeÀ®ÀÓÀòÀJÀiÀªÀãÀöÀ-À9ÀŒÀŞÀ#À„À–ÀÛÀÀ+ÀLÀ ÀĞÀÀÀ*À;À|ÀµÀıÀ4ÀGÀ£ÀÖÀâÀìÀûÀ	)À	yÀ	ÓÀ
+À
+MÀ
+`À
+—À
+£À
+´À
+ñÀ:ÀDÀLÀYÀ¬ÀÀTÀ‡À³ÀİÀ.À~ÀÁÀÀ;À„À©ÀÀÀ<ÀÀ¯ÀôÀ7ÀDÀeÀÈÀâÀïÀùÀÀÀ.À2À3ÀiÀ†ÀŸÀÕÀÜÀ.À†ÀæÀ,ÀnÀoÀÀÜÀôÀLÀeÀÅÀâÀ	À7À‰ÀŸÀ¨À½ÀÃÀÀÀ(ÀRÀYÀZÀ¬ÀşÀOÀ¡ÀÅÀÀ/À?À_À›ÀİÀÀ[ÀºÀÀsÀ›À¶À¼ÀøÀÀ7ÀSÀrÀŠÀ°ÀÔÀâÀÀ3ÀRÀjÀÀ´ÀÃÀÊÀËÀÀ2ÀUÀ[À\ÀŒÀ³À¹À	ÀYÀ«ÀÅÀÀÀÀgÀ–ÀÔÀìÀ DÀ ]À ½À ÚÀ!À!/À!À!—À! À!µÀ!»À!şÀ"À" À"JÀ"QÀ"RÀ"ˆÀ"¾À"ÅÀ"øÀ# À#CÀ#IÀ#sÀ#šÀ# À#ğÀ$@À$’À$¬À$òÀ$öÀ$÷À%DÀ%ŠÀ%ÚÀ%îÀ%óÀ&CÀ&À&İÀ&âÀ'1À'ZÀ'¥À'ØÀ'üÀ(À(AÀ(iÀ(oÀ(ˆÀ(¹À(ãÀ)À)[À)oÀ)ÑÀ)øÀ*JÀ*{À*×À+%À+sÀ+ÂÀ,À,CÀ,‹À,¦À,ÄÀ,ÿÀ-:À-LÀ-rÀ-†À-‘À-¼À-íÀ.!À.XÀ.®À.ÛÀ/À/LÀ/‡À/˜À/òÀ0OÀ0YÀ0xÀ0™À0¹À1À1,À1EÀ1RÀ1\À1­À1ÚÀ2 À2cÀ2¤À2ËÀ2ÕÀ3À3]À3ˆÀ3’À3¹À4À4EÀ4QÀ4´À4áÀ4íÀ4şÀ5^À5†À5’À5ñÀ6À6&À60À6?À6À6ÍÀ7À7fÀ7´À8À8SÀ8„À8ÌÀ8çÀ9À9@À9{À9À9³À9ÇÀ9ÒÀ:À:[À:†À:À:ØÀ;À;?À;IÀ;À;ôÀ<4À<[À<eÀ<¯À=À=QÀ=|À=†À=À=›À=êÀ>4À>ˆÀ>¿À>ãÀ?@À?À?–À?À?ÈÀ@$À@KÀ@§À@åÀA#ÀAQÀAÀAãÀB&ÀBxÀB£ÀB­ÀBğÀC1ÀCÀC¨ÀC²ÀCÓÀDÀD|ÀD¤ÀD°ÀDóÀEEÀEnÀEzÀE‹ÀEğÀF7ÀFdÀFpÀF¸ÀFàÀFìÀFöÀFşÀGÀGÀGÀGÀGeÀG«ÀGûÀHÀHÀHbÀH¬ÀHüÀIÀIRÀI{ÀIÄÀI÷ÀJÀJ6ÀJ`ÀJˆÀJÀJ¦ÀJ×ÀKÀK)ÀKyÀKÀKïÀLÀLhÀL™ÀLõÀMCÀM•ÀMçÀN7ÀNhÀN°ÀNËÀNòÀOÀOMÀOŠÀOÀO±ÀO¼ÀOçÀPÀPNÀPƒÀPÙÀQÀQCÀQwÀQ²ÀQÃÀRÀRzÀR„ÀR£ÀRÄÀRäÀSHÀSWÀSqÀS~ÀSˆÀSÙÀTÀTLÀTÀTĞÀT÷ÀUÀUFÀU‰ÀU´ÀU¾ÀUåÀVEÀVmÀVyÀVØÀWÀWÀWÀW‚ÀWªÀW¶ÀXÀXFÀXRÀX\ÀXkÀX¹ÀXùÀYDÀY’ÀYäÀZ6ÀZ†ÀZ·ÀZÿÀ[À[AÀ[_À[œÀ[ÙÀ[ìÀ\ À\À\TÀ\·À\÷À]"À],À]tÀ]ÙÀ^À^@À^JÀ^‘À^ÑÀ^øÀ_À_LÀ_ŒÀ_·À_ÁÀ_ÉÀ_ÖÀ`%À`oÀ`ÃÀ`úÀaÀa{Àa¼ÀaÑÀaÙÀbÀbaÀbˆÀbâÀc Àc^ÀcŠÀc×ÀdÀd_Àd±ÀdÜÀdæÀe)ÀejÀeºÀeáÀeëÀfÀfqÀf¸ÀfåÀfñÀg9ÀgaÀgmÀg~ÀgÂÀh'ÀhOÀh[ÀhÀhğÀiÀi%Ài/Ài7Ài=ÀiNÀiRÀiSÀiÀiĞÀiùÀişÀjDÀjEÀj’ÀjØÀk(Àk<ÀkAÀk”ÀkáÀl3ÀlgÀllÀlÈÀlñÀmIÀm|Àm—Àm»ÀmÖÀn Àn(Àn.ÀnGÀnxÀn¢ÀnÊÀoÀo.ÀoÀoÕÀp"ÀpPÀp—Àp²Àp×ÀpëÀqÀq-Àq8Àq@ÀqŒÀq¬ÀqúÀrÀr+Àr4Àr‹Àr±ÀrºÀsÀsCÀsLÀswÀsÈÀtÀt[Àt¾ÀuÀu3ÀuIÀuTÀuœÀuĞÀuæÀuñÀvÀvMÀvÀv¸ÀvØÀw3ÀwyÀw¶ÀxÀx>ÀxOÀx©ÀxÜÀxæÀyÀyKÀyUÀy¦ÀyÓÀzÀzvÀz‘ÀzœÀz×À{À{jÀ{uÀ{ÒÀ|-À|TÀ|^À|½À}À}EÀ}OÀ}vÀ}ÖÀ}şÀ~
+À~iÀ~’À~À~¯ÀÀ;ÀGÀªÀ×ÀãÀíÀüÀ€LÀ€ŒÀ€—À€êÀ;ÀjÀ±ÀØÀ‚ À‚.À‚9À‚À‚ÃÀƒ Àƒ;ÀƒFÀƒÀƒÁÀ„À„À„?À„À„¸À…
+À…5À…?À…`À… À…×À†'À†NÀ†XÀ†xÀ†¸À†ïÀ‡5À‡…À‡¬À‡¶À‡×ÀˆÀˆPÀˆ–ÀˆèÀ‰À‰À‰%À‰2À‰‡À‰ÙÀ‰şÀŠ%ÀŠlÀŠ‡ÀŠ¬ÀŠÀÀŠâÀ‹À‹À‹À‹?À‹’À‹ÏÀ‹ôÀŒÀŒÀŒ^ÀŒÃÀŒêÀŒõÀXÀ~ÀšÀŞÀ	À,ÀQÀhÀrÀ™ÀõÀ3ÀqÀŸÀìÀMÀzÀÀ›ÀøÀ‘À‘À‘YÀ‘™À‘ìÀ‘÷À’FÀ’À’ÌÀ“À“WÀ“‚À“ŒÀ“ÛÀ”À”_À”–À”æÀ•À•À•8À•ˆÀ•½À–À–7À–CÀ–’À–ÇÀ—À—BÀ—NÀ—_À—±À—èÀ˜<À˜dÀ˜pÀ˜ÁÀ˜øÀ™LÀ™yÀ™…À™À™—À™À™®À™²À™³À™şÀšDÀš”Àš¨Àš­ÀšşÀ›PÀ›À›ÑÀ›ÖÀœ%Àœ_ÀœµÀœèÀÀ'ÀBÀlÀ”ÀšÀ²ÀãÀÀ5À…À™ÀûÀŸ@ÀŸÀŸ»À  À À @À TÀ vÀ –À ¡À ©À õÀ¡À¡cÀ¡|À¡”À¡À¡ôÀ¢À¢#À¢†À¢¬À¢µÀ¢àÀ£1À£À£ÄÀ¤'À¤oÀ¤œÀ¤²À¤½À¥À¥9À¥OÀ¥ZÀ¥…À¥¶À¥ìÀ¦!À¦AÀ¦œÀ¦âÀ§À§lÀ§§À§¸À¨À¨CÀ¨MÀ¨lÀ¨±À¨»À©À©9À©À©ÜÀ©÷ÀªÀª=Àª}ÀªĞÀªÛÀ«8À«“À«ºÀ«ÄÀ¬#À¬€À¬«À¬µÀ¬ÜÀ­<À­dÀ­pÀ­ÏÀ­øÀ®À®À®yÀ®¡À®­À¯À¯=À¯IÀ¯SÀ¯bÀ¯²À¯òÀ¯ıÀ°PÀ°¡À°ĞÀ±À±>À±fÀ±”À±ŸÀ±öÀ²)À²†À²¡À²¬À²çÀ³'À³zÀ³…À³¥À³åÀ´À´cÀ´µÀ´àÀ´êÀµÀµKÀµ‚ÀµÇÀ¶À¶>À¶HÀ¶hÀ¶¨À¶ßÀ·/À·VÀ·`À·À·ÁÀ·úÀ¸LÀ¸wÀ¸À¸‰À¸–À¸ëÀ¹=À¹bÀ¹‰À¹ÎÀ¹éÀºÀº"ÀºDÀºdÀºoÀºwÀº£ÀºöÀ»3À»XÀ»oÀ»yÀ»ÂÀ¼'À¼NÀ¼YÀ¼¼À¼âÀ¼şÀ½BÀ½mÀ½À½µÀ½ÌÀ½ÖÀ½ıÀ¾WÀ¾•À¾ÓÀ¾ÿÀ¿LÀ¿­À¿ÚÀ¿ğÀ¿ûÀÀXÀÀsÀÀ~ÀÀ¹ÀÀùÀÁLÀÁWÀÁ¦ÀÁßÀÂ,ÀÂeÀÂ·ÀÂâÀÂìÀÃ;ÀÃrÀÃ¿ÀÃöÀÄFÀÄmÀÄwÀÄ˜ÀÄêÀÅ!ÀÅuÀÅÀÅ©ÀÅúÀÆ1ÀÆ…ÀÆ²ÀÆ¾ÀÆÏÀÇÀÇTÀÇ¦ÀÇÎÀÇÚÀÈ)ÀÈ^ÀÈ°ÀÈÙÀÈåÀÈïÀÈ÷ÀÈıÀÉÀÉÀÉÀÉXÀÉuÀÉÀÉÊÀÊÀÊÀÊ`ÀÊ¸ÀËÀË^ÀË ÀË¡ÀËĞÀÌÀÌ&ÀÌ~ÀÌ—ÀÌ÷ÀÍÀÍ;ÀÍiÀÍ»ÀÍÑÀÍÚÀÍïÀÍõÀÎ8ÀÎEÀÎZÀÎ„ÀÎ‹ÀÎáÀÎşÀÏÀÏ=ÀÏDÀÏEÀÏ—ÀÏãÀĞÀĞÀĞÀĞ7ÀĞSÀĞhÀĞ·ÀĞÖÀĞôÀÑ1ÀÑSÀÑyÀÑÀÑ«ÀÑüÀÒÀÒ9ÀÒvÀÒ˜ÀÒ¾ÀÒâÀÒñÀÒşÀÓÀÓUÀÓtÀÓ±ÀÓÓÀÓùÀÔÀÔ+ÀÔoÀÔÀÔËÀÔíÀÕÀÕ7ÀÕFÀÕLÀÕfÀÕ{ÀÕÀÕ‚ÀÕÔÀÖ%ÀÖwÀÖ›ÀÖéÀ×À×$À×DÀ×€À×ÂÀØ ÀØ@ÀØŸÀØşÀÙXÀÙ€ÀÙ›ÀÙ¡ÀÙİÀÙéÀÚÀÚ8ÀÚ^ÀÚvÀÚœÀÚÀÀÚÎÀÛÀÛÀÛEÀÛ]ÀÛƒÀÛ§ÀÛ¶ÀÛ½ÀÛ¾ÀÛ÷ÀÜ%ÀÜHÀÜNÀÜOÀÜÀÜ¦ÀÜ¬ÀÜüÀİLÀİÀİ¸ÀİşÀŞÀŞÀŞbÀŞ»ÀßÀßpÀßtÀßuÀßÀßÓÀàÀàÀàGÀà\ÀàdÀà„ÀàŠÀàœÀà Àà¡ÀàËÀáÀá]Àá¤Àá×Àâ$ÀâbÀâÀâ¶ÀâÔÀâüÀã4ÀãoÀãÉÀäÀäEÀänÀäƒÀä‘ÀäÀäÓÀåÀåÀåÀå"ÀåBÀåHÀåqÀåuÀåvÀåÎÀåéÀåïÀæ7ÀæÀæÍÀçÀçBÀç`ÀçˆÀçÏÀçòÀèCÀè_ÀèyÀè„ÀèÖÀèÿÀé
+Àé8ÀéÀé—ÀéŸÀé¿ÀéÅÀéÖÀéÚÀéÛÀêÀê9Àê^ÀêsÀê{ÀêÀê“Àê—Àê˜ÀêÓÀêıÀë$Àë~ÀëÍÀëÓÀëüÀì,Àì2ÀìGÀìKÀìLÀìšÀì«ÀìÏÀìÜÀíÀíÀíÀíÀí9ÀíYÀíwÀíªÀíËÀíÏÀíĞÀí÷Àî4ÀîÀî¯Àî³Àî´ÀïÀïXÀï¦ÀïöÀğÀğVÀğÀğ·ÀğøÀñ/ÀñRÀñXÀñ¨ÀñÈÀñÔÀòÀòFÀòMÀòƒÀòµÀòçÀóÀóÀóÀó@Àó\ÀóxÀó­ÀóÜÀóúÀôÀôGÀôMÀô^ÀôbÀôcÀôÀÀõÀõbÀõ²Àõ×ÀöÀöLÀösÀö´ÀöëÀ÷À÷À÷;À÷kÀ÷—À÷À÷èÀø
+ÀøRÀø–ÀøÊÀùÀù(Àù0ÀùRÀùXÀùyÀù}Àù~ÀùãÀúÀú'ÀúUÀúÀúÀúÕÀû*Àû0ÀûeÀûiÀûjÀû§ÀûéÀüÀüÀü‚Àü¤ÀüªÀüıÀı1Àı5Àı6Àı€ÀıÀÀıßÀşÀşÀşÀş`ÀşªÀşûÀÿNÀÿ^ÀÿnÀÿuÀÿ»Àÿ¿ÀÿÀÀ 
+À SÀ ”À äÀ6ÀKÀOÀPÀ¬ÀãÀ>ÀlÀ‹À¿ÀÀ:À[ÀhÀsÀÀåÀ5À^À¢À¦À§ÀıÀ8À“ÀÁÀÚÀÀiÀÀ®À»ÀÆÀİÀ6ÀhÀ~À£À·ÀÑÀıÀÀ6ÀLÀdÀ´ÀİÀ	!À	%À	&À	]À	|À	À	¶À	¼À	úÀ
+À
+9À
+mÀ
+À
+ÈÀ
+øÀ'ÀNÀVÀ\ÀªÀ»ÀàÀêÀÀAÀcÀ{À­ÀÛÀ%À…ÀáÀùÀMÀÀ˜À¾ÀáÀÀ<À‡À·ÀÀ:ÀšÀóÀÀÀSÀ}ÀÆÀ&À1ÀÀ³À¹ÀÍÀôÀÀ*À0ÀCÀGÀHÀ|ÀÀ¡ÀÂÀÈÀêÀÀbÀ‘ÀíÀ&ÀIÀOÀ‹À²À¸ÀÚÀşÀÀ?ÀwÀ±ÀÉÀÜÀÿÀ
+À0ÀQÀµÀÀ:À`À˜ÀÒÀêÀıÀ À+ÀQÀrÀÓÀùÀÀVÀÀ¨À»ÀİÀèÀ"ÀKÀÀ¼ÀÍÀõÀÿÀÀÀÀAÀNÀwÀ}ÀÀ”À•ÀæÀ1À‚ÀœÀÏÀåÀ÷ÀÀÀ>ÀˆÀØÀÀÀ	ÀXÀ¨À×À À À .À MÀ SÀ pÀ ‹À §À ÉÀ óÀ!À!FÀ!PÀ!À!¥À!»À!ÌÀ"/À"?À"NÀ"rÀ"”À"šÀ"¹À#À#QÀ#zÀ#~À#À#ÂÀ#ßÀ$À$6À$=À$‘À$İÀ%À%,À%ZÀ%ˆÀ%—À%ŸÀ%¥À%ÉÀ%ıÀ&SÀ&€À&·À&ÄÀ'	À'1À'YÀ'®À'¹À'ÂÀ'ÈÀ'êÀ(À(@À(rÀ(—À(¤À(ÈÀ(ÎÀ)À)=À)†À)ŠÀ)‹À)ÓÀ)àÀ)æÀ*À*`À*¤À*¸À*¾À*âÀ+À+(À+wÀ+¢À+ÉÀ+ÖÀ+ÿÀ,(À,.À,oÀ,©À,­À,®À,ÑÀ,×À-,À-JÀ-¢À-ÔÀ-äÀ.À..À.lÀ.|À.‰À.ËÀ.ÑÀ.ÕÀ.ÖÀ.âÀ/À/DÀ/HÀ/IÀ/UÀ/À/¼À0À0"À0(À0XÀ0ƒÀ0¥À0«À0×À0şÀ1 À1&À1*À1+À1OÀ1PÀ1\À1}À1¥À1çÀ20À2NÀ2WÀ2uÀ2À2ÅÀ2üÀ3À3À3wÀ3À3¯À3ûÀ4À43À4;À4AÀ4cÀ4gÀ4hÀ4}À4~À4‘À4°À4òÀ5;À5YÀ5bÀ5€À5¬À5ìÀ6.À68À6VÀ6eÀ6ÇÀ6îÀ7 À7LÀ7WÀ7_À7eÀ7~À7‚À7ƒÀ7§À7¿À7àÀ7äÀ7åÀ7ñÀ8%À8&À82À8DÀ8[À8_À8`À8 À8äÀ8òÀ8øÀ9$À9KÀ9|À9­À9¶À9ÛÀ: À:-À:~À:ÏÀ:×À:İÀ:áÀ:âÀ; À;dÀ;rÀ;xÀ;ÆÀ;ßÀ;ôÀ<À<aÀ<lÀ<¡À<¶À<¿À<ÅÀ=À=(À==À=cÀ=¦À=±À=æÀ=ûÀ>À>
+À>À>À>À>TÀ>•À>ÕÀ?À?QÀ?UÀ?VÀ?bÀ?ŸÀ?éÀ?íÀ?îÀ?úÀ@7À@À@…À@†À@’À@íÀ@îÀ@úÀA?ÀAjÀAÊÀBÀBUÀBYÀB[   
+_kEllipsis PlaceholderSpanIndexSemanticsTagTextParentData%RenderInlineChildrenContainerDefaults_UnspecifiedTextScalerRenderParagraph_SelectableFragment  Úõ

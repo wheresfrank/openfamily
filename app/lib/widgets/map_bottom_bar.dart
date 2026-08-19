@@ -1,0 +1,243 @@
+import 'package:flutter/material.dart';
+
+import '../theme/app_theme.dart';
+
+/// The fixed bottom control bar, pinned to the very bottom of the map screen.
+///
+/// It is *always* visible — the draggable member sheet slides up over the map
+/// and stops *above* this bar, so the controls are never covered. Layout, left
+/// to right:
+///
+/// * a large, prominent **SOS** button (emergency red but flat at rest,
+///   escalating to intense red only during an active SOS countdown),
+/// * **Places** and **Keys** as small circular icon buttons,
+/// * **Safety** as a labeled *tab* (icon + text, not a bare circle),
+/// * a **Settings** gear pinned to the bottom-right corner as a distinct
+///   corner element.
+///
+/// The widget is transparent — it renders only the controls — so the map stays
+/// full-bleed behind it. The `+` action lives in a separate floating action
+/// button at bottom-center, above the collapsed sheet.
+class MapBottomBar extends StatelessWidget {
+  const MapBottomBar({
+    super.key,
+    this.onSos,
+    this.onPlaces,
+    this.onKeys,
+    this.onSafety,
+    this.onSettings,
+    this.sosIntense = false,
+  });
+
+  final VoidCallback? onSos;
+  final VoidCallback? onPlaces;
+  final VoidCallback? onKeys;
+  final VoidCallback? onSafety;
+  final VoidCallback? onSettings;
+
+  /// When true, the SOS button escalates to intense red (an active countdown).
+  /// The map screen keeps this false; the countdown escalation lives on the
+  /// SOS screen. Exposed so a future design that keeps the map visible during
+  /// a countdown can wire it to shared state.
+  final bool sosIntense;
+
+  /// Height of the SOS button.
+  static const double sosHeight = 72;
+
+  /// Total height of the bar (SOS button + 8px vertical padding on each side).
+  /// Exposed so the map screen can reserve space and stop the sheet above it.
+  static const double height = sosHeight + 16;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Large, dominant SOS button — clearly bigger than the other controls.
+          _SosButton(onTap: onSos, intense: sosIntense),
+          const SizedBox(width: 12),
+          // Places.
+          _FloatingIconButton(
+            icon: Icons.place_outlined,
+            label: 'Places',
+            onTap: onPlaces,
+          ),
+          const SizedBox(width: 8),
+          // Keys / Tile.
+          _FloatingIconButton(
+            icon: Icons.key_outlined,
+            label: 'Keys',
+            onTap: onKeys,
+          ),
+          const SizedBox(width: 8),
+          // Safety — a labeled tab, not a bare circular icon.
+          _SafetyTab(onTap: onSafety),
+          const Spacer(),
+          // Settings gear — a distinct corner element, bottom-right.
+          _SettingsGear(onTap: onSettings),
+        ],
+      ),
+    );
+  }
+}
+
+/// A large, prominent SOS button floating over the map. It is a tall rounded
+/// rectangle (not a small circle) so it reads as the dominant control.
+///
+/// At rest it is emergency red but flat (no glow/elevation), so it is
+/// prominent yet not alarming. It escalates to a deeper intense red with a red
+/// glow only when [intense] is true — i.e. during an actual SOS countdown.
+class _SosButton extends StatelessWidget {
+  const _SosButton({this.onTap, this.intense = false});
+
+  final VoidCallback? onTap;
+  final bool intense;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color fill = intense ? AppColors.sosIntenseRed : AppColors.sosRed;
+    return Semantics(
+      button: true,
+      label: 'SOS — send emergency alert',
+      child: Material(
+        color: fill,
+        borderRadius: BorderRadius.circular(24),
+        // At rest: emergency red, flat (no glow/elevation) so it is prominent
+        // yet not alarming. Intense: escalate to a deeper red with a red glow.
+        elevation: intense ? 8 : 0,
+        shadowColor: intense ? AppColors.sosIntenseRed : Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onTap,
+          child: Container(
+            height: MapBottomBar.sosHeight,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.sos, color: Colors.white, size: 34),
+                SizedBox(width: 8),
+                Text(
+                  'SOS',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small circular icon button floating over the map (Places, Keys).
+class _FloatingIconButton extends StatelessWidget {
+  const _FloatingIconButton({
+    required this.icon,
+    required this.label,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: label,
+      child: Material(
+        color: Colors.white,
+        shape: const CircleBorder(),
+        elevation: 3,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Icon(icon, color: AppColors.purple, size: 22),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A labeled "Safety" tab: an icon with a text label beneath it, so it reads
+/// as a bottom-of-screen tab rather than a bare circular icon identical to
+/// Places / Keys.
+class _SafetyTab extends StatelessWidget {
+  const _SafetyTab({this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Safety',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.shield_outlined, color: AppColors.purple, size: 24),
+              SizedBox(height: 2),
+              Text(
+                'Safety',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.purple,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The Settings gear, pinned to the bottom-right corner as a distinct corner
+/// element. It is a bare gear (no solid white disc) with a soft shadow, so it
+/// reads as a corner affordance rather than another circular button.
+class _SettingsGear extends StatelessWidget {
+  const _SettingsGear({this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Settings',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: const Padding(
+            padding: EdgeInsets.all(10),
+            child: Icon(
+              Icons.settings_outlined,
+              color: AppColors.purple,
+              size: 26,
+              shadows: [
+                Shadow(color: Color(0x66000000), blurRadius: 6),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
