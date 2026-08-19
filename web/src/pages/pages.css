@@ -1,0 +1,146 @@
+/* Shared page layout utilities */
+
+.wb-page {
+  padding: var(--space-6) var(--space-6) var(--space-8);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+.wb-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+.wb-page-title {
+  margin: 0;
+  font-size: var(--font-xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.wb-page-subtitle {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+}
+.wb-stack { display: flex; flex-direction: column; gap: var(--space-4); }
+.wb-row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+
+/* ---- Table ---- */
+.wb-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.wb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-sm);
+}
+.wb-table thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: var(--font-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-soft);
+}
+.wb-table tbody td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+.wb-table tbody tr:last-child td { border-bottom: none; }
+.wb-table tbody tr {
+  transition: background 0.1s ease;
+}
+.wb-table tbody tr:hover { background: var(--surface-hover); }
+.wb-table td.wb-muted { color: var(--text-muted); }
+.wb-table td.wb-num { font-variant-numeric: tabular-nums; }
+
+/* ---- Stat cards ---- */
+.wb-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+}
+.wb-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+.wb-stat-label {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.wb-stat-value {
+  margin-top: var(--space-2);
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.wb-stat-hint {
+  margin-top: var(--space-1);
+  font-size: var(--font-xs);
+  color: var(--text-faint);
+}
+
+/* ---- Loading skeletons ---- */
+.wb-skeleton {
+  background: linear-gradient(90deg, var(--surface-soft) 25%, var(--surface-soft-2) 37%, var(--surface-soft) 63%);
+  background-size: 400% 100%;
+  animation: wb-shimmer 1.2s ease-in-out infinite;
+  border-radius: var(--radius-xs);
+}
+@keyframes wb-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.wb-skeleton-row { height: 44px; }
+.wb-skeleton-stat { height: 96px; }
+
+/* ---- Forms ---- */
+.wb-field { display: flex; flex-direction: column; gap: var(--space-2); }
+.wb-label {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+.wb-input,
+.wb-select {
+  height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--font-md);
+  font-family: inherit;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.wb-input::placeholder { color: var(--text-faint); }
+.wb-input:hover,
+.wb-select:hover { border-color: var(--text-faint); }
+.wb-input:focus,
+.wb-select:focus {
+  outline: none;
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.wb-input.wb-error-input { border-color: var(--sos-red); }
+.wb-input.wb-error-input:focus { box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.25); }
+.wb-help { font-size: var(--font-xs); color: var(--text-faint); }
+.wb-error-text { font-size: var(--font-xs); color: var(--sos-red); }

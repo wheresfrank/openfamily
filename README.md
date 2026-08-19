@@ -9,9 +9,11 @@ server.
 > location ingest, WebSocket live streaming, places, geofences, and push
 > (ntfy/APNs). The Flutter app covers login/signup with 2FA, a live map with
 > member positions, a member list, places with geofence alerts, onboarding with
-> circle invites, and foreground + background location reporting. Privacy is
-> first-class: self-hosted, configurable tile URLs, geocoding disabled by
-> default, 90-day retention, and audit logging.
+> circle invites, and foreground + background location reporting. A **web admin
+> panel** (served by the backend at `/admin`) lets a platform admin view a live
+> map of every family and member, browse groups, and build/download the Android
+> APK. Privacy is first-class: self-hosted, configurable tile URLs, geocoding
+> disabled by default, 90-day retention, and audit logging.
 
 ## Architecture
 
@@ -37,6 +39,7 @@ point the app at them via `WHEREABOUTS_TILE_URL`. On iOS, push goes through
 |---|---|---|
 | Go API | `backend/` | REST + WebSocket, Argon2id + JWT + TOTP auth |
 | Flutter app | `app/` | Android + iOS |
+| Web admin panel | `web/` | Vite + React + Leaflet SPA, embedded in the Go binary and served at `/admin` |
 | Docker Compose | `docker-compose.yml` | caddy, api, postgres, ntfy |
 | Migrations | `backend/internal/db/migrations/` | PostGIS + TimescaleDB schema |
 
@@ -85,6 +88,13 @@ location/
 │   ├── android/                    # Android platform files
 │   ├── ios/                        # iOS platform files
 │   └── pubspec.yaml
+├── web/                            # Web admin panel (Vite + React + Leaflet)
+│   ├── src/
+│   │   ├── components/             # shell: sidebar, top bar, ⌘K, primitives
+│   │   ├── pages/                  # dashboard, groups, builds, settings
+│   │   └── map/                    # live map: bubbles, clustering, places, WS
+│   ├── vite.config.ts
+│   └── package.json
 ├── caddy/Caddyfile
 ├── docker-compose.yml
 ├── .env.example
@@ -117,6 +127,22 @@ location/
 | GET | `/devices` | List your devices |
 | POST | `/locations` | Ingest a location point |
 | WS | `/ws/stream` | Live position stream (family-scoped) |
+
+### Platform-admin API (web admin panel)
+
+All routes require a platform admin (see `PLATFORM_ADMIN_EMAIL` below). The
+admin SPA is served at `/admin` and calls these under `/api/admin/*`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/admin/families` | List every family |
+| GET | `/api/admin/families/{id}/members` | List one family's members |
+| GET | `/api/admin/members` | List every member across all families |
+| GET | `/api/admin/places` | List every saved place (Home/School/Work) across all families |
+| GET | `/api/admin/apk` | Download the built Android APK |
+| POST | `/api/admin/apk/build` | Kick off an APK build |
+| GET | `/api/admin/apk/status` | Poll APK build status |
+| WS | `/api/admin/ws` | Live position stream across all families |
 
 ## Run locally
 
@@ -279,6 +305,50 @@ flutter run \
 Without `WHEREABOUTS_NOMINATIM_URL`, the place picker still works by tapping
 the map; only address search and auto-fill are unavailable.
 
+## Web admin panel
+
+The backend serves a web admin panel at `/admin` (the SPA is embedded in the Go
+binary via `go:embed`, so no separate web server is needed). It lets a
+**platform admin** — a user who can see *all* families, not just their own —
+view a live map of every group and member, browse groups, and build/download the
+Android APK.
+
+### Grant platform-admin access
+
+Platform admin is a per-user flag (`users.platform_admin`, migration `000013`),
+distinct from family admin. There is no self-service signup for it; the only way
+to grant it is to bootstrap the first admin via an environment variable:
+
+1. Register (or already have) a normal account, e.g. `admin@example.com`.
+2. Set `PLATFORM_ADMIN_EMAIL=admin@example.com` in `.env`.
+3. Restart the API. On startup it promotes that user to `platform_admin = true`
+   (idempotent — safe to leave set across restarts).
+
+### Use it
+
+1. Start the stack (`docker compose up -d --build`) and open
+   `https://<your-host>/admin`.
+2. Log in with the platform-admin account (the panel reuses the normal
+   `/auth/login` flow, including TOTP 2FA if enabled).
+3. The **Dashboard** shows a live map of every family's members (with
+   per-member color rings, status dots, movement badges, and Home/School/Work
+   place pins), streaming updates over `/api/admin/ws`. The **Groups** page
+   lists families and members; **Builds** builds and downloads the Android APK;
+   **Settings** shows your session token and API endpoints.
+
+### Build the web panel (development)
+
+The panel is a Vite + React + TypeScript + Leaflet app in `web/`. To rebuild the
+embedded bundle after changing it:
+
+```bash
+cd web
+npm install
+npm run build          # outputs web/dist/
+cd ../backend
+go build ./...         # re-embeds web/dist/ into the binary
+```
+
 ## Run on a Synology NAS
 
 1. **Requirements:** an x86_64 model with **Container Manager** (Docker) and
@@ -323,6 +393,7 @@ the map; only address search and auto-fill are unavailable.
 | `TLS_BEHIND_PROXY` | `false` | Set `true` when a reverse proxy terminates TLS |
 | `INSECURE_HTTP` | `false` | Explicit opt-out of TLS (trusted private networks only) |
 | `VERBOSE_PUSH` | `false` | Include the user's name in push payloads (default omits it) |
+| `PLATFORM_ADMIN_EMAIL` | *(empty)* | Email of the first platform admin; on startup the matching user is promoted to `platform_admin = true` (idempotent). This is the only way to grant platform-admin access to the web panel. |
 | `APNS_KEY_FILE` | *(empty)* | Path to the APNs `.p8` auth key (empty disables APNs) |
 | `APNS_KEY_ID` | *(empty)* | APNs key ID |
 | `APNS_TEAM_ID` | *(empty)* | Apple Developer team ID |
@@ -368,8 +439,9 @@ the map; only address search and auto-fill are unavailable.
 Done: auth (Argon2id + JWT + TOTP), families, devices, location ingest,
 WebSocket live streaming, places, geofences, ntfy/APNs push, the Flutter map,
 onboarding, foreground + background location reporting, 90-day retention,
-audit logging, and a location history timeline (day detail; synthetic fallback
-until backend history is wired).
+audit logging, a location history timeline (day detail; synthetic fallback
+until backend history is wired), and the web admin panel (platform-admin live
+map of all families, groups, APK build/download, served at `/admin`).
 
 Pending: app icon, the "Bubble" privacy feature, self-hosted Nominatim
 deployment, a phone field, member join/leave presence, activity recognition

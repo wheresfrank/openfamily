@@ -1,0 +1,213 @@
+/* Sidebar + TopBar (shell grid lives in shell.css) */
+
+/* ---- Sidebar ---- */
+.wb-sidebar {
+  height: 100%;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4) var(--space-3);
+}
+.wb-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-4);
+  height: 48px;
+}
+.wb-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 1px 2px rgba(108, 43, 217, 0.25));
+}
+.wb-brand-name {
+  font-weight: 700;
+  font-size: var(--font-md);
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.wb-brand-sub {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--purple);
+  background: var(--surface-soft);
+  border-radius: var(--radius-xs);
+  padding: 1px 6px;
+  margin-left: 2px;
+}
+
+.wb-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--space-2);
+}
+.wb-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  height: 36px;
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  font-size: var(--font-md);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.wb-nav-item:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.wb-nav-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.wb-nav-item.is-active {
+  color: var(--surface-active-fg);
+  background: var(--surface-active);
+  font-weight: 600;
+}
+.wb-nav-item.is-active:hover {
+  background: var(--surface-active);
+}
+.wb-nav-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+.wb-nav-active-bar {
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--purple), var(--pink));
+}
+
+.wb-sidebar-footer {
+  margin-top: auto;
+  padding: var(--space-3) var(--space-2);
+  color: var(--text-faint);
+  font-size: var(--font-xs);
+}
+
+/* ---- TopBar ---- */
+.wb-topbar {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.wb-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.wb-topbar-title {
+  margin: 0;
+  font-size: var(--font-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.wb-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ---- Account menu ---- */
+.wb-account { position: relative; }
+.wb-account-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 36px;
+  padding: 0 var(--space-2) 0 var(--space-1);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.wb-account-btn:hover { background: var(--surface-hover); border-color: var(--border); }
+.wb-account-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.wb-account-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-xs);
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--purple), var(--pink));
+}
+.wb-account-email {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wb-account-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-1);
+  z-index: 20;
+}
+.wb-account-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-sm);
+  color: var(--text);
+  cursor: pointer;
+}
+.wb-account-menu-item:hover { background: var(--surface-hover); }
+.wb-account-menu-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* ---- Responsive: collapse sidebar on narrow viewports ---- */
+@media (max-width: 860px) {
+  .wb-shell {
+    grid-template-columns: 64px 1fr;
+  }
+  .wb-nav-label,
+  .wb-brand-name,
+  .wb-brand-sub,
+  .wb-account-email {
+    display: none;
+  }
+  .wb-nav-item { justify-content: center; padding: var(--space-2); }
+  .wb-nav-active-bar { left: -8px; }
+}

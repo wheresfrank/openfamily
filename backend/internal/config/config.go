@@ -70,28 +70,52 @@ type Config struct {
 	APNsTeamID     string
 	APNsTopic      string
 	APNsProduction bool
+
+	// PlatformAdminEmail bootstraps the first platform admin. When set, on
+	// startup the server promotes the existing user with this email to
+	// platform_admin = TRUE (the platform-admin flag is added by migration
+	// 000013). This is the ONLY way to become a platform admin: no credentials
+	// are hardcoded, and the user must already be registered. Empty disables
+	// promotion (admin panel is simply unreachable until an operator sets it).
+	// The comparison is case-insensitive on the lowercased email column.
+	PlatformAdminEmail string
+
+	// APKDir is the directory served by GET /api/admin/apk and where successful
+	// builds are published. Empty disables APK download/build (the endpoints
+	// return a clear "not configured" error). Should be an absolute path or
+	// resolvable from the server's working directory.
+	APKDir string
+
+	// FlutterAppDir is the Flutter project root (containing pubspec.yaml) used
+	// by POST /api/admin/apk/build to run "flutter build apk". Defaults to "./app"
+	// (the repo's Flutter app). The build is only attempted when the flutter
+	// binary is on PATH (exec.LookPath).
+	FlutterAppDir string
 }
 
 // Load reads configuration from the environment, applying sensible defaults.
 func Load() Config {
 	return Config{
-		HTTPAddr:        getenv("HTTP_ADDR", ":8080"),
-		DatabaseURL:     getenv("DATABASE_URL", defaultDatabaseURL),
-		JWTSecret:       getenv("JWT_SECRET", ""),
-		AccessTokenTTL:  getenvDuration("ACCESS_TOKEN_TTL", 15*time.Minute),
-		RefreshTokenTTL: getenvDuration("REFRESH_TOKEN_TTL", 30*24*time.Hour),
-		AllowedOrigin:   getenv("ALLOWED_ORIGIN", ""),
-		AppEnv:          getenv("APP_ENV", "development"),
-		TLSCertFile:     getenv("TLS_CERT_FILE", ""),
-		TLSKeyFile:      getenv("TLS_KEY_FILE", ""),
-		TLSBehindProxy:  getenvBool("TLS_BEHIND_PROXY", false),
-		InsecureHTTP:    getenvBool("INSECURE_HTTP", false),
-		VerbosePush:     getenvBool("VERBOSE_PUSH", false),
-		APNsKeyFile:     getenv("APNS_KEY_FILE", ""),
-		APNsKeyID:       getenv("APNS_KEY_ID", ""),
-		APNsTeamID:      getenv("APNS_TEAM_ID", ""),
-		APNsTopic:       getenv("APNS_TOPIC", ""),
-		APNsProduction:  getenvBool("APNS_PRODUCTION", false),
+		HTTPAddr:           getenv("HTTP_ADDR", ":8080"),
+		DatabaseURL:        getenv("DATABASE_URL", defaultDatabaseURL),
+		JWTSecret:          getenv("JWT_SECRET", ""),
+		AccessTokenTTL:     getenvDuration("ACCESS_TOKEN_TTL", 15*time.Minute),
+		RefreshTokenTTL:    getenvDuration("REFRESH_TOKEN_TTL", 30*24*time.Hour),
+		AllowedOrigin:      getenv("ALLOWED_ORIGIN", ""),
+		AppEnv:             getenv("APP_ENV", "development"),
+		TLSCertFile:        getenv("TLS_CERT_FILE", ""),
+		TLSKeyFile:         getenv("TLS_KEY_FILE", ""),
+		TLSBehindProxy:     getenvBool("TLS_BEHIND_PROXY", false),
+		InsecureHTTP:       getenvBool("INSECURE_HTTP", false),
+		VerbosePush:        getenvBool("VERBOSE_PUSH", false),
+		APNsKeyFile:        getenv("APNS_KEY_FILE", ""),
+		APNsKeyID:          getenv("APNS_KEY_ID", ""),
+		APNsTeamID:         getenv("APNS_TEAM_ID", ""),
+		APNsTopic:          getenv("APNS_TOPIC", ""),
+		APNsProduction:     getenvBool("APNS_PRODUCTION", false),
+		PlatformAdminEmail: getenv("PLATFORM_ADMIN_EMAIL", ""),
+		APKDir:             getenv("APK_DIR", ""),
+		FlutterAppDir:      getenv("FLUTTER_APP_DIR", "./app"),
 	}
 }
 

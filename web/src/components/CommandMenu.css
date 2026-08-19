@@ -1,0 +1,108 @@
+/* Command menu (⌘K search) — top-bar search input + results dropdown. */
+
+.wb-cmd {
+  position: relative;
+  flex: 1 1 auto;
+  max-width: 420px;
+  margin: 0 var(--space-4);
+}
+
+.wb-cmd-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 34px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  color: var(--text-muted);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.wb-cmd-input-wrap:focus-within {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(108, 43, 217, 0.12);
+  color: var(--text);
+}
+
+.wb-cmd-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--font-sm);
+  color: var(--text);
+}
+.wb-cmd-input::placeholder {
+  color: var(--text-faint);
+}
+
+.wb-cmd-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-2);
+  z-index: 1200;
+}
+
+.wb-cmd-group {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.wb-cmd-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--font-sm);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.wb-cmd-item:hover,
+.wb-cmd-item:focus-visible {
+  background: var(--surface-hover);
+  outline: none;
+}
+.wb-cmd-item[data-active="true"] {
+  background: var(--surface-active);
+}
+
+.wb-cmd-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wb-cmd-item-meta {
+  flex: 0 0 auto;
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}
+
+.wb-cmd-empty {
+  padding: var(--space-4);
+  text-align: center;
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+}

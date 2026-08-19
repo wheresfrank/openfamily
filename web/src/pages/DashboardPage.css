@@ -1,0 +1,65 @@
+/* Dashboard page — full-bleed map */
+
+.wb-dashboard {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-5) var(--space-6) var(--space-6);
+  gap: var(--space-4);
+}
+.wb-dashboard-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex: 0 0 auto;
+}
+.wb-dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-4);
+  flex: 1 1 auto;
+}
+.wb-dashboard-stat {
+  padding: var(--space-4) var(--space-5);
+}
+.wb-dashboard-status {
+  flex: 0 0 auto;
+}
+.wb-dashboard-status-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}
+.wb-dashboard-map {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+.wb-dashboard-mapcard {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+}
+.wb-dashboard-mapcard > :first-child {
+  flex: 1 1 auto;
+}
+.wb-stat-value-green { color: #1c8a4f; }
+.wb-stat-value-purple { color: var(--purple); }
+.wb-stat-skeleton {
+  display: inline-block;
+  width: 48px;
+  height: 22px;
+  vertical-align: middle;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(90deg, var(--surface-soft) 25%, var(--surface-soft-2) 37%, var(--surface-soft) 63%);
+  background-size: 400% 100%;
+  animation: wb-shimmer 1.2s ease-in-out infinite;
+}
+
+@media (max-width: 860px) {
+  .wb-dashboard { padding: var(--space-4); }
+}

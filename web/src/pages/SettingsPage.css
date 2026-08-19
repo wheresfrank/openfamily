@@ -1,0 +1,62 @@
+/* Settings page */
+
+.wb-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+@media (max-width: 900px) {
+  .wb-settings-grid { grid-template-columns: 1fr; }
+}
+
+.wb-settings-title {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-lg);
+  font-weight: 600;
+}
+.wb-settings-list {
+  margin: 0 0 var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.wb-settings-list div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.wb-settings-list dt {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.wb-settings-list dd {
+  margin: 0;
+  font-size: var(--font-md);
+  color: var(--text);
+}
+.wb-settings-mono {
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  color: var(--purple-dark);
+  word-break: break-all;
+}
+.wb-settings-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+.wb-settings-note {
+  margin: 0;
+  font-size: var(--font-xs);
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+.wb-settings-value-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+.wb-settings-value-row .wb-mono { min-width: 0; }
