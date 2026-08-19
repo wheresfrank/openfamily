@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../main.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
 import 'add_locations_screen.dart';
@@ -35,7 +36,7 @@ class _CreateCircleScreenState extends State<CreateCircleScreen> {
           circleName: name,
           doneLabel: 'Continue',
           step: 5,
-          onDone: () => Navigator.of(context).pushReplacement(
+          onDone: () => navigatorKey.currentState?.pushReplacement(
             MaterialPageRoute<void>(
               builder: (_) => AddLocationsScreen(circleName: name, step: 6),
             ),

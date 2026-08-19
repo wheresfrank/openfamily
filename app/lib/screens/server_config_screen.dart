@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/server_config.dart';
 import '../theme/app_theme.dart';
+import 'welcome_screen.dart';
 
 /// First-launch server configuration screen.
 ///
@@ -48,8 +49,13 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
     try {
       await ServerConfig.instance.setUrl(url);
       if (mounted) {
-        // Replace this screen so the user can't navigate back to it.
-        Navigator.of(context).pop(true);
+        // Replace this screen with the welcome screen so the user can't
+        // navigate back to the server config. pushAndRemoveUntil is needed
+        // because ServerConfigScreen is the root — pop() would show black.
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()),
+          (route) => false,
+        );
       }
     } catch (e) {
       setState(() {
