@@ -45,20 +45,6 @@ export interface AdminMember extends Member {
   family_name: string
 }
 
-export type ApkStatusKind = 'idle' | 'building' | 'success' | 'failed'
-
-export interface ApkStatus {
-  status: ApkStatusKind
-  /** ISO timestamp of the last finished build, if any. */
-  finished_at?: string | null
-  /** Human-readable error message when status === 'failed'. */
-  error?: string | null
-  /** Download URL for a successful build. */
-  download_url?: string | null
-  /** Progress fraction 0..1 while building, if available. */
-  progress?: number | null
-}
-
 /** Discriminated result for the API client. */
 export type ApiResult<T> =
   | { ok: true; value: T }

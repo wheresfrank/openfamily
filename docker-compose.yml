@@ -44,6 +44,12 @@ services:
       APNS_TEAM_ID: ${APNS_TEAM_ID:-}
       APNS_TOPIC: ${APNS_TOPIC:-}
       APNS_PRODUCTION: ${APNS_PRODUCTION:-false}
+      # Directory the admin panel serves the pre-built Android APK from. The APK
+      # is built in CI and dropped into ./apk/ on the host; the server only
+      # serves it (it does not build APKs).
+      APK_DIR: ${APK_DIR:-/data/apk}
+    volumes:
+      - ./apk:/data/apk
     depends_on:
       postgres:
         condition: service_healthy

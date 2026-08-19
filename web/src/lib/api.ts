@@ -5,7 +5,6 @@ import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth'
 import type {
   AdminMember,
   ApiResult,
-  ApkStatus,
   Family,
   LoginResponse,
   Member,
@@ -150,14 +149,6 @@ export function listFamilyMembers(familyId: string): Promise<Member[]> {
 
 export function listAllMembers(): Promise<AdminMember[]> {
   return request<AdminMember[]>('/api/admin/members')
-}
-
-export function getApkStatus(): Promise<ApkStatus> {
-  return request<ApkStatus>('/api/admin/apk/status')
-}
-
-export function triggerApkBuild(): Promise<ApkStatus> {
-  return request<ApkStatus>('/api/admin/apk/build', { method: 'POST' })
 }
 
 /** Returns a blob; caller should trigger a download. */

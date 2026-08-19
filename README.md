@@ -11,8 +11,8 @@ server.
 > member positions, a member list, places with geofence alerts, onboarding with
 > circle invites, and foreground + background location reporting. A **web admin
 > panel** (served by the backend at `/admin`) lets a platform admin view a live
-> map of every family and member, browse groups, and build/download the Android
-> APK. Privacy is first-class: self-hosted, configurable tile URLs, geocoding
+> map of every family and member, browse groups, and download the Android APK.
+> Privacy is first-class: self-hosted, configurable tile URLs, geocoding
 > disabled by default, 90-day retention, and audit logging.
 
 ## Architecture
@@ -139,9 +139,9 @@ admin SPA is served at `/admin` and calls these under `/api/admin/*`.
 | GET | `/api/admin/families/{id}/members` | List one family's members |
 | GET | `/api/admin/members` | List every member across all families |
 | GET | `/api/admin/places` | List every saved place (Home/School/Work) across all families |
-| GET | `/api/admin/apk` | Download the built Android APK |
-| POST | `/api/admin/apk/build` | Kick off an APK build |
-| GET | `/api/admin/apk/status` | Poll APK build status |
+| GET | `/api/admin/apk` | Download the Android APK (served from `APK_DIR`) |
+| POST | `/api/admin/apk/build` | Kick off an APK build (optional; requires Flutter on the server) |
+| GET | `/api/admin/apk/status` | Poll APK build status (optional) |
 | WS | `/api/admin/ws` | Live position stream across all families |
 
 ## Run locally
@@ -310,7 +310,7 @@ the map; only address search and auto-fill are unavailable.
 The backend serves a web admin panel at `/admin` (the SPA is embedded in the Go
 binary via `go:embed`, so no separate web server is needed). It lets a
 **platform admin** — a user who can see *all* families, not just their own —
-view a live map of every group and member, browse groups, and build/download the
+view a live map of every group and member, browse groups, and download the
 Android APK.
 
 ### Grant platform-admin access
@@ -333,8 +333,25 @@ to grant it is to bootstrap the first admin via an environment variable:
 3. The **Dashboard** shows a live map of every family's members (with
    per-member color rings, status dots, movement badges, and Home/School/Work
    place pins), streaming updates over `/api/admin/ws`. The **Groups** page
-   lists families and members; **Builds** builds and downloads the Android APK;
-   **Settings** shows your session token and API endpoints.
+   lists families and members; **APK** downloads the Android APK; **Settings**
+   shows your session token and API endpoints.
+
+### APK builds (CI)
+
+The server does **not** build APKs itself — that would require a multi-GB
+Flutter/Android toolchain in the server image. Instead, the APK is built in CI
+and the admin panel's **APK** page just serves it.
+
+1. Push a release tag (e.g. `v0.1.0`). The
+   [`.github/workflows/apk.yml`](.github/workflows/apk.yml) workflow builds the
+   release APK and attaches it to the GitHub release.
+2. Download the APK from the release and copy it into the server's `APK_DIR`
+   directory (see `.env.example`), e.g. `./apk/whereabouts-release.apk`.
+3. The **APK** page's **Download** button then serves it via
+   `GET /api/admin/apk`.
+
+The app has a runtime server-config screen, so one generic APK works for any
+deployment — no per-deployment rebuild is needed.
 
 ### Build the web panel (development)
 
