@@ -201,11 +201,14 @@ class BackgroundLocationService {
     _shouldRun = true;
     await BackgroundLocator.initialize();
     if (!_shouldRun) return;
-    // Don't start if location permission is permanently denied. A `denied`
-    // state may still be granted later, so proceed in that case.
+    // Don't start unless location permission is actually granted. A `denied`
+    // state (not yet granted during onboarding) would make
+    // registerLocationUpdate throw; return and let the post-onboarding start
+    // retry once the permission is granted.
     try {
       final LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         return;
       }
     } catch (_) {
@@ -213,30 +216,35 @@ class BackgroundLocationService {
       // and let the plugin surface any remaining problem.
     }
     if (!_shouldRun) return;
-    await BackgroundLocator.registerLocationUpdate(
-      onLocationUpdate,
-      androidSettings: const AndroidSettings(
-        accuracy: LocationAccuracy.HIGH,
-        interval: 60,
-        distanceFilter: 50,
-        wakeLockTime: 60,
-        client: LocationClient.google,
-        androidNotificationSettings: AndroidNotificationSettings(
-          notificationChannelName: 'Whereabouts',
-          notificationTitle: 'Whereabouts',
-          notificationMsg: 'Sharing your location with your family',
-          notificationBigMsg:
-              'Whereabouts is sharing your location in the background so your '
-              'family can see where you are.',
+    try {
+      await BackgroundLocator.registerLocationUpdate(
+        onLocationUpdate,
+        androidSettings: const AndroidSettings(
+          accuracy: LocationAccuracy.HIGH,
+          interval: 60,
+          distanceFilter: 50,
+          wakeLockTime: 60,
+          client: LocationClient.google,
+          androidNotificationSettings: AndroidNotificationSettings(
+            notificationChannelName: 'Whereabouts',
+            notificationTitle: 'Whereabouts',
+            notificationMsg: 'Sharing your location with your family',
+            notificationBigMsg:
+                'Whereabouts is sharing your location in the background so your '
+                'family can see where you are.',
+          ),
         ),
-      ),
-      iosSettings: const IOSSettings(
-        accuracy: LocationAccuracy.HIGH,
-        distanceFilter: 50,
-        showsBackgroundLocationIndicator: true,
-        stopWithTerminate: false,
-      ),
-    );
+        iosSettings: const IOSSettings(
+          accuracy: LocationAccuracy.HIGH,
+          distanceFilter: 50,
+          showsBackgroundLocationIndicator: true,
+          stopWithTerminate: false,
+        ),
+      );
+    } catch (_) {
+      // Never throw from start(): it is called fire-and-forget, and a failure
+      // here (e.g. permission revoked mid-flight) must not crash the app.
+    }
   }
 
   /// Stops background location tracking.

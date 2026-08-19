@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import 'welcome_screen.dart';
 
 /// The Settings screen. A simple list of account, notification, location, and
 /// privacy settings. Values are local toggles for now (no backend).
@@ -15,6 +17,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _locationSharing = true;
   bool _notifications = true;
   bool _driveDetection = true;
+  bool _loggingOut = false;
+
+  Future<void> _logout() async {
+    if (_loggingOut) return;
+    setState(() => _loggingOut = true);
+    try {
+      await AuthService.logout();
+    } catch (_) {
+      // Logout is best-effort; always navigate away even if clearing fails.
+    }
+    if (!mounted) return;
+    // Clear the stack so the back button can't return to the (now logged-out)
+    // map screen.
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()),
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +81,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: Icon(Icons.info_outline, color: AppColors.purple),
             title: Text('Whereabouts'),
             subtitle: Text('Version 0.1.0'),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.logout, color: AppColors.sosRed),
+            title: const Text(
+              'Log Out',
+              style: TextStyle(color: AppColors.sosRed),
+            ),
+            enabled: !_loggingOut,
+            onTap: _logout,
           ),
         ],
       ),

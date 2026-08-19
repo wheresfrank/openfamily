@@ -93,8 +93,12 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
+    // Clear the whole stack (including the welcome screen underneath) so the
+    // Android back button on the map exits the app instead of revealing the
+    // logged-out welcome screen.
+    Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => const MapScreen()),
+      (route) => false,
     );
   }
 
