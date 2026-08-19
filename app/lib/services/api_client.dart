@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import 'app_config.dart';
+import 'server_config.dart';
 import 'token_storage.dart';
 
 /// Thrown when the backend returns a non-2xx response.
@@ -168,7 +168,7 @@ class ApiClient {
   // ---------------------------------------------------------------------------
 
   static Uri _uri(String path, {Map<String, String>? query}) {
-    final Uri uri = Uri.parse('$kApiBaseUrl$path');
+    final Uri uri = Uri.parse('${ServerConfig.instance.apiBaseUrl}$path');
     return query == null ? uri : uri.replace(queryParameters: query);
   }
 
@@ -211,11 +211,11 @@ class ApiClient {
     Object? body,
     bool auth = true,
   }) async {
-    if (kApiBaseUrl.isEmpty) {
+    if (ServerConfig.instance.apiBaseUrl.isEmpty) {
       throw const ApiException(
         0,
-        'API URL not configured. Set WHEREABOUTS_API_URL '
-        '(e.g. --dart-define=WHEREABOUTS_API_URL=https://your.server).',
+        'Server URL not configured. Enter your Whereabouts server address '
+        'in the app settings.',
       );
     }
 

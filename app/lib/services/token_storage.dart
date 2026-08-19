@@ -1,7 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'app_config.dart';
 import 'background_credential_store.dart';
+import 'server_config.dart';
 
 /// Stores auth tokens in the platform secure store:
 /// - iOS: Keychain
@@ -29,7 +29,7 @@ class TokenStorage {
     // happened yet); it is synced later by [saveDeviceId].
     final String? deviceId = await readDeviceId();
     await BackgroundCredentialStore.sync(
-      apiBaseUrl: kApiBaseUrl,
+      apiBaseUrl: ServerConfig.instance.apiBaseUrl,
       accessToken: access,
       refreshToken: refresh,
       deviceId: deviceId ?? '',

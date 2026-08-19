@@ -6,8 +6,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../models/member.dart';
 import 'api_client.dart';
-import 'app_config.dart';
 import 'member_mapper.dart';
+import 'server_config.dart';
 import 'token_storage.dart';
 
 /// The caller's family summary from `GET /family`.
@@ -225,10 +225,10 @@ class FamilyService {
     return Duration(seconds: seconds);
   }
 
-  /// Derives the WebSocket URL from [kApiBaseUrl] by swapping the scheme
-  /// (https→wss, http→ws) and appending `/ws/stream`.
+  /// Derives the WebSocket URL from the configured API base URL by swapping
+  /// the scheme (https→wss, http→ws) and appending `/ws/stream`.
   Uri _wsUri() {
-    final Uri base = Uri.parse(kApiBaseUrl);
+    final Uri base = Uri.parse(ServerConfig.instance.apiBaseUrl);
     final String scheme = base.scheme == 'https' ? 'wss' : 'ws';
     return base.replace(scheme: scheme, path: '/ws/stream');
   }
