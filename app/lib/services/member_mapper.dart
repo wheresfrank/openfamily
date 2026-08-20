@@ -41,6 +41,7 @@ Member memberFromJson(Map<String, dynamic> json) {
     movement: movement,
     speedMph: speedMps != null ? (speedMps * 2.23694).round() : null,
     lastSeen: timestamp,
+    accuracyMeters: accuracy,
   );
 }
 
@@ -95,6 +96,7 @@ Member memberFromLocationUpdate(Member existing, Map<String, dynamic> json) {
     movement: movement,
     speedMph: speedMps != null ? (speedMps * 2.23694).round() : existing.speedMph,
     lastSeen: timestamp,
+    accuracyMeters: accuracy ?? existing.accuracyMeters,
   );
 }
 
