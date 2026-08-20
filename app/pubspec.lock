@@ -20,10 +20,9 @@ packages:
   background_locator_2:
     dependency: "direct main"
     description:
-      name: background_locator_2
-      sha256: "145ef41767306052cbb2159478c0369b83c9800740f7acc656530c263d371695"
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/background_locator_2"
+      relative: true
+    source: path
     version: "2.0.6"
   battery_plus:
     dependency: "direct main"

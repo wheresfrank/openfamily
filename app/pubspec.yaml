@@ -45,5 +45,13 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
 
+# background_locator_2 is abandoned upstream (last published 3 years ago) and
+# its Android build.gradle still references jcenter(), which was removed in
+# Gradle 8+. We vendor a patched copy (jcenter removed, modern AGP/Kotlin, and a
+# Kotlin null-safety fix in LocationParserUtil.kt) so the APK builds in CI.
+dependency_overrides:
+  background_locator_2:
+    path: packages/background_locator_2
+
 flutter:
   uses-material-design: true

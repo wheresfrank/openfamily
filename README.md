@@ -87,6 +87,8 @@ location/
 │   │   └── theme/                  # app_theme
 │   ├── android/                    # Android platform files
 │   ├── ios/                        # iOS platform files
+│   ├── packages/                   # vendored background_locator_2 (patched:
+│   │                               #   jcenter removed for Gradle 8+)
 │   └── pubspec.yaml
 ├── web/                            # Web admin panel (Vite + React + Leaflet)
 │   ├── src/
