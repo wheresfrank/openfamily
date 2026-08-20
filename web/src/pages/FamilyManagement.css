@@ -1,0 +1,29 @@
+.wb-family-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.wb-family-rename {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.wb-family-rename input {
+  flex: 1;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  padding: 0 10px;
+  font: inherit;
+}
+
+.wb-family-rename .wb-inline-error {
+  margin: 0;
+}

@@ -1,18 +1,18 @@
-import 'dart:math' as math;
-
 import 'server_config.dart';
+import 'api_client.dart';
 
-/// Generates and shares 6-digit circle invite codes.
+/// Requests and shares 6-digit circle invite codes.
 ///
 /// A single source of truth for the code format and the share message, used by
 /// both the map's "Add a person" flow and the onboarding "Invite family" flow.
 class InviteService {
   InviteService._();
 
-  /// Generates a fresh 6-digit invite code.
-  static String generateCode() {
-    final math.Random rng = math.Random.secure();
-    return (rng.nextInt(900000) + 100000).toString();
+  /// Requests a fresh invite code from the server.
+  static Future<String> createCode() async {
+    final dynamic data = await ApiClient.post('/family/invites');
+    final Map<String, dynamic> map = data as Map<String, dynamic>;
+    return map['code'] as String;
   }
 
   /// The deep link a recipient can tap to join, pointing at the user's own

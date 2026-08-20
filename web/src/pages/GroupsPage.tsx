@@ -2,7 +2,7 @@
 // action that expands an inline member table for a family.
 
 import React from 'react'
-import { listFamilyMembers, listFamilies } from '../lib/api'
+import { createFamily, listFamilyMembers, listUsers, listFamilies, renameFamily } from '../lib/api'
 import { useAsync, isAccessDenied } from '../lib/useAsync'
 import {
   AccessDenied,
@@ -22,53 +22,26 @@ import {
   initialsOf,
   motionLabel,
 } from '../lib/format'
-import type { Family, Member } from '../lib/types'
+import type { AdminUser, Family, Member } from '../lib/types'
 import './pages.css'
+import './FamilyManagement.css'
 
 export function GroupsPage() {
   const families = useAsync(listFamilies, [])
 
   if (families.loading) return <GroupsSkeleton />
   if (isAccessDenied(families.error)) {
-    return (
-      <div className="wb-page">
-        <AccessDenied />
-      </div>
-    )
+    return <div className="wb-page"><AccessDenied /></div>
   }
   if (families.error) {
     return (
       <div className="wb-page">
-        <ErrorState
-          title="Couldn’t load groups"
-          description={families.error.message}
-          onRetry={families.refetch}
-        />
+        <ErrorState title="Couldn’t load groups" description={families.error.message} onRetry={families.refetch} />
       </div>
     )
   }
 
   const list = families.data ?? []
-  if (list.length === 0) {
-    return (
-      <div className="wb-page">
-        <div className="wb-page-header">
-          <div>
-            <h1 className="wb-page-title">Groups</h1>
-            <p className="wb-page-subtitle">Families using this Whereabouts server.</p>
-          </div>
-        </div>
-        <Card>
-          <EmptyState
-            title="No groups yet"
-            description="Families will appear here once members sign up and create a group. Invite people from the mobile app to get started."
-            icon={<GroupsIcon />}
-          />
-        </Card>
-      </div>
-    )
-  }
-
   return (
     <div className="wb-page">
       <div className="wb-page-header">
@@ -78,21 +51,53 @@ export function GroupsPage() {
             {list.length} {list.length === 1 ? 'family' : 'families'} on this server.
           </p>
         </div>
-        <Button variant="secondary" size="sm" onClick={families.refetch}>
-          Refresh
-        </Button>
+        <Button variant="secondary" size="sm" onClick={families.refetch}>Refresh</Button>
       </div>
-
-      <div className="wb-groups-list">
-        {list.map((f) => (
-          <FamilyRow key={f.id} family={f} />
-        ))}
-      </div>
+      <CreateFamilyCard onCreated={families.refetch} />
+      {list.length === 0 ? (
+        <Card><EmptyState title="No groups yet" description="Create a family here, then assign users to it from the Users page." icon={<GroupsIcon />} /></Card>
+      ) : (
+        <div className="wb-groups-list">
+          {list.map((family) => <FamilyRow key={family.id} family={family} onChanged={families.refetch} />)}
+        </div>
+      )}
     </div>
   )
 }
 
-function FamilyRow({ family }: { family: Family }) {
+function CreateFamilyCard({ onCreated }: { onCreated: () => void }) {
+  const users = useAsync(listUsers, [])
+  const [name, setName] = React.useState('')
+  const [ownerUserId, setOwnerUserId] = React.useState('')
+  const [saving, setSaving] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault(); setSaving(true); setError(null)
+    try {
+      await createFamily(name, ownerUserId || undefined)
+      setName(''); setOwnerUserId(''); onCreated()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Could not create family')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <Card className="wb-create-card">
+      <div className="wb-section-heading"><div><h2>Create family</h2><p>Optionally assign an existing user as the first family admin.</p></div></div>
+      <form className="wb-form-grid wb-family-form" onSubmit={submit}>
+        <label>Family name<input value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} placeholder="The Smiths" /></label>
+        <label>First admin<select value={ownerUserId} onChange={(e) => setOwnerUserId(e.target.value)}><option value="">Assign later</option>{(users.data ?? []).filter((user: AdminUser) => !user.family_id).map((user) => <option key={user.id} value={user.id}>{user.name} · {user.email}</option>)}</select></label>
+        <div className="wb-form-submit"><Button type="submit" loading={saving}>Create family</Button></div>
+      </form>
+      {users.error && <p className="wb-inline-error">Could not load unassigned users: {users.error.message}</p>}
+      {error && <p className="wb-inline-error">{error}</p>}
+    </Card>
+  )
+}
+
+
+function FamilyRow({ family, onChanged }: { family: Family; onChanged: () => void }) {
   const [open, setOpen] = React.useState(false)
   const members = useAsync(
     () => (open ? listFamilyMembers(family.id) : Promise.resolve([] as Member[])),
@@ -127,6 +132,7 @@ function FamilyRow({ family }: { family: Family }) {
           </svg>
         </span>
       </button>
+      <RenameFamily family={family} onChanged={onChanged} />
 
       {open && (
         <div className="wb-group-body">
@@ -193,8 +199,28 @@ function FamilyRow({ family }: { family: Family }) {
   )
 }
 
+function RenameFamily({ family, onChanged }: { family: Family; onChanged: () => void }) {
+  const [name, setName] = React.useState(family.name)
+  const [editing, setEditing] = React.useState(false)
+  const [saving, setSaving] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+
+  if (!editing) {
+    return <div className="wb-family-actions"><Button variant="ghost" size="sm" onClick={() => setEditing(true)}>Rename</Button></div>
+  }
+
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault(); setSaving(true); setError(null)
+    try { await renameFamily(family.id, name); setEditing(false); onChanged() }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : 'Could not rename family') }
+    finally { setSaving(false) }
+  }
+
+  return <form className="wb-family-rename" onSubmit={save}><input value={name} onChange={(e) => setName(e.target.value)} maxLength={120} required aria-label={`Rename ${family.name}`} /><Button size="sm" type="submit" loading={saving}>Save</Button><Button size="sm" variant="ghost" type="button" onClick={() => setEditing(false)}>Cancel</Button>{error && <span className="wb-inline-error">{error}</span>}</form>
+}
+
 function RoleBadge({ role }: { role: Member['role'] }) {
-  const tone = role === 'admin' ? 'pink' : role === 'parent' ? 'purple' : 'grey'
+  const tone = role === 'admin' ? 'pink' : role === 'member' ? 'purple' : 'grey'
   return <Badge tone={tone}>{motionLabel(role)}</Badge>
 }
 

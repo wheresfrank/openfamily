@@ -107,9 +107,13 @@ func main() {
 		r.Use(mid.RequireAuth(tm))
 
 		r.Post("/families", srv.CreateFamily)
+		r.Patch("/family", srv.RenameFamily)
 		r.Get("/family", srv.GetFamily)
 		r.Get("/family/members", srv.ListMembers)
 		r.Patch("/family/members/{id}/role", srv.UpdateMemberRole)
+		r.Delete("/family/members/{id}", srv.RemoveFamilyMember)
+		r.Post("/family/invites", srv.CreateInvite)
+		r.Post("/family/join", srv.JoinFamily)
 
 		r.Get("/family/geofences", srv.ListGeofences)
 		r.Post("/family/geofences", srv.CreateGeofence)
@@ -139,8 +143,15 @@ func main() {
 		r.Use(mid.RequirePlatformAdmin(pool))
 
 		r.Get("/api/admin/families", srv.AdminListFamilies)
+		r.Post("/api/admin/families", srv.AdminCreateFamily)
+		r.Patch("/api/admin/families/{id}", srv.AdminRenameFamily)
 		r.Get("/api/admin/families/{id}/members", srv.AdminListFamilyMembers)
 		r.Get("/api/admin/members", srv.AdminListMembers)
+		r.Get("/api/admin/users", srv.AdminListUsers)
+		r.Post("/api/admin/users", srv.AdminCreateUser)
+		r.Patch("/api/admin/users/{id}/family", srv.AdminAssignUser)
+		r.Patch("/api/admin/users/{id}/role", srv.AdminUpdateUserRole)
+		r.Patch("/api/admin/users/{id}/password", srv.AdminResetUserPassword)
 		r.Get("/api/admin/places", srv.AdminListPlaces)
 
 		r.Get("/api/admin/apk", srv.AdminDownloadAPK)

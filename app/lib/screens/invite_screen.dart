@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../services/api_client.dart';
 import '../services/invite_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
@@ -35,20 +36,31 @@ class InviteScreen extends StatefulWidget {
 class _InviteScreenState extends State<InviteScreen> {
   String? _code;
 
+  bool _creatingCode = false;
+
   Future<void> _sendCode() async {
-    final String code = _code ?? InviteService.generateCode();
-    setState(() => _code = code);
+    if (_creatingCode) return;
+    setState(() => _creatingCode = true);
     try {
+      final String code = _code ?? await InviteService.createCode();
+      if (!mounted) return;
+      setState(() => _code = code);
       await Share.share(
         InviteService.shareMessage(code),
         subject: InviteService.shareSubject,
       );
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not open the share sheet')),
         );
       }
+    } finally {
+      if (mounted) setState(() => _creatingCode = false);
     }
   }
 

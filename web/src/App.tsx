@@ -9,6 +9,7 @@ import { TopBar } from './components/TopBar'
 import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { GroupsPage } from './pages/GroupsPage'
+import { UsersPage } from './pages/UsersPage'
 import { BuildsPage } from './pages/BuildsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { DEFAULT_ROUTE, routeFromHash, type RouteKey } from './lib/routes'
@@ -69,6 +70,8 @@ function renderPage(route: RouteKey, email: string | null, logout: () => void): 
       return <DashboardPage />
     case 'groups':
       return <GroupsPage />
+    case 'users':
+      return <UsersPage />
     case 'builds':
       return <BuildsPage />
     case 'settings':

@@ -112,8 +112,12 @@ location/
 | POST | `/auth/refresh` | Rotate refresh token |
 | POST | `/families` | Create a family (caller becomes admin) |
 | GET | `/family` | Get your family |
+| PATCH | `/family` | Rename your family (admin only) |
 | GET | `/family/members` | List members |
 | PATCH | `/family/members/{id}/role` | Change a member's role |
+| DELETE | `/family/members/{id}` | Remove a member without deleting their account |
+| POST | `/family/invites` | Create a 7-day family invite (admin only) |
+| POST | `/family/join` | Join a family with an invite code |
 | GET | `/family/places` | List places |
 | POST | `/family/places` | Create a place |
 | PATCH | `/family/places/{id}` | Update a place |
@@ -136,7 +140,14 @@ admin SPA is served at `/admin` and calls these under `/api/admin/*`.
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/admin/families` | List every family |
+| POST | `/api/admin/families` | Create a family and optionally assign its first admin |
+| PATCH | `/api/admin/families/{id}` | Rename a family |
 | GET | `/api/admin/families/{id}/members` | List one family's members |
+| GET | `/api/admin/users` | List every account, including users without a family |
+| POST | `/api/admin/users` | Create an account and optionally assign it to a family |
+| PATCH | `/api/admin/users/{id}/family` | Assign or unassign a user from a family |
+| PATCH | `/api/admin/users/{id}/role` | Change a user's family role |
+| PATCH | `/api/admin/users/{id}/password` | Reset a user's password |
 | GET | `/api/admin/members` | List every member across all families |
 | GET | `/api/admin/places` | List every saved place (Home/School/Work) across all families |
 | GET | `/api/admin/apk` | Download the Android APK (served from `APK_DIR`) |

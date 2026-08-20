@@ -1,7 +1,7 @@
 // Shared API types for the Whereabouts admin panel.
 // Mirrors the backend contract documented in the task brief.
 
-export type Role = 'admin' | 'parent' | 'member'
+export type Role = 'admin' | 'member' | 'child'
 
 export type MotionState =
   | 'stationary'
@@ -25,6 +25,18 @@ export interface Family {
   member_count: number
 }
 
+export interface AdminUser {
+  id: string
+  family_id: string | null
+  family_name: string | null
+  email: string
+  name: string
+  role: Role
+  platform_admin: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Member {
   id: string
   name: string
@@ -41,8 +53,8 @@ export interface Member {
 
 /** Member as returned by GET /api/admin/members — tagged with its family. */
 export interface AdminMember extends Member {
-  family_id: string
-  family_name: string
+  family_id: string | null
+  family_name: string | null
 }
 
 /** Discriminated result for the API client. */

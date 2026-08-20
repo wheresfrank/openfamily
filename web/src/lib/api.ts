@@ -4,6 +4,7 @@
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth'
 import type {
   AdminMember,
+  AdminUser,
   ApiResult,
   Family,
   LoginResponse,
@@ -141,6 +142,55 @@ export async function login(email: string, password: string): Promise<LoginRespo
 
 export function listFamilies(): Promise<Family[]> {
   return request<Family[]>('/api/admin/families')
+}
+
+export function createFamily(name: string, ownerUserId?: string): Promise<Family> {
+  return request<Family>('/api/admin/families', {
+    method: 'POST',
+    body: { name, owner_user_id: ownerUserId ?? '' },
+  })
+}
+
+export function renameFamily(familyId: string, name: string): Promise<Family> {
+  return request<Family>(`/api/admin/families/${encodeURIComponent(familyId)}`, {
+    method: 'PATCH',
+    body: { name },
+  })
+}
+
+export function listUsers(): Promise<AdminUser[]> {
+  return request<AdminUser[]>('/api/admin/users')
+}
+
+export function createUser(input: {
+  email: string
+  password: string
+  name: string
+  role: AdminUser['role']
+  family_id?: string
+}): Promise<AdminUser> {
+  return request<AdminUser>('/api/admin/users', { method: 'POST', body: input })
+}
+
+export function assignUser(userId: string, familyId: string | null): Promise<AdminUser> {
+  return request<AdminUser>(`/api/admin/users/${encodeURIComponent(userId)}/family`, {
+    method: 'PATCH',
+    body: { family_id: familyId },
+  })
+}
+
+export function updateUserRole(userId: string, role: AdminUser['role']): Promise<AdminUser> {
+  return request<AdminUser>(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
+    method: 'PATCH',
+    body: { role },
+  })
+}
+
+export function resetUserPassword(userId: string, password: string): Promise<void> {
+  return request<void>(`/api/admin/users/${encodeURIComponent(userId)}/password`, {
+    method: 'PATCH',
+    body: { password },
+  })
 }
 
 export function listFamilyMembers(familyId: string): Promise<Member[]> {

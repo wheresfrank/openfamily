@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/api_client.dart';
 import '../services/join_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
@@ -15,6 +16,7 @@ class JoinCircleScreen extends StatefulWidget {
     this.onDone,
     this.step,
     this.totalSteps = 4,
+    this.closeOnDone = false,
   });
 
   /// When provided, called instead of popping on "Done" (used by onboarding
@@ -28,6 +30,9 @@ class JoinCircleScreen extends StatefulWidget {
   /// create-or-join → join). The join path is shorter than the create path
   /// (6 steps), so the indicator must not claim "of 6" and then skip 5–6.
   final int totalSteps;
+
+  /// Closes this screen after [onDone] for embedded management flows.
+  final bool closeOnDone;
 
   @override
   State<JoinCircleScreen> createState() => _JoinCircleScreenState();
@@ -55,16 +60,26 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
       _submitting = true;
       _error = null;
     });
-    final bool ok = await JoinService.join(code);
-    if (!mounted) return;
-    setState(() {
-      _submitting = false;
-      if (ok) {
-        _joined = true;
-      } else {
-        _error = 'That code isn\'t valid. Check it and try again.';
-      }
-    });
+    try {
+      final bool ok = await JoinService.join(code);
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _joined = ok;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = 'Could not join this Circle. Check your connection and try again.';
+      });
+    }
   }
 
   @override
@@ -161,6 +176,7 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
           onPressed: () {
             if (widget.onDone != null) {
               widget.onDone!();
+              if (widget.closeOnDone && mounted) Navigator.of(context).pop();
             } else {
               Navigator.of(context).pop();
             }
