@@ -49,9 +49,11 @@ export function BuildsPage() {
             </div>
 
             <p className="wb-build-info-text">
-              The release APK is built automatically by CI and served from the
-              server's <code className="wb-build-info-code">APK_DIR</code>. Download
-              it and install it on an Android device.
+              The release APK is built by CI and committed to the repository at
+              <code className="wb-build-info-code">apk/whereabouts-release.apk</code>.
+              Servers pull master, which brings the APK down with the code, and the
+              button serves it from the server's <code className="wb-build-info-code">APK_DIR</code>.
+              No manual copy is needed.
             </p>
 
             <div className="wb-build-actions">
@@ -77,10 +79,13 @@ export function BuildsPage() {
         <Card>
           <h3 className="wb-build-info-title">How the APK is built</h3>
           <p className="wb-build-info-text">
-            The APK is built by a GitHub Actions workflow on every release tag
-            (<code className="wb-build-info-code">v*</code>) and attached to the
-            GitHub release. To make it available here, copy the built APK into the
-            server's <code className="wb-build-info-code">APK_DIR</code> directory.
+            The APK is built by a GitHub Actions workflow on every merge to master
+            (<code className="wb-build-info-code">push</code>) and committed straight
+            back into the repository at
+            <code className="wb-build-info-code">apk/whereabouts-release.apk</code>.
+            A server that pulls master receives the APK automatically; the download
+            button serves the newest <code className="wb-build-info-code">.apk</code>
+            from its <code className="wb-build-info-code">APK_DIR</code>.
           </p>
           <ul className="wb-build-info-list">
             <li>
