@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart' hide Circle;
 import '../models/member.dart';
 import '../services/api_client.dart';
 import '../services/app_config.dart';
+import '../services/background_location_service.dart';
 import '../services/family_service.dart';
 import '../services/location_reporter.dart';
 import '../services/permission_service.dart';
@@ -115,6 +116,12 @@ class _MapScreenState extends State<MapScreen>
     // Fire-and-forget: reporting must not block the UI. The reporter handles
     // its own errors (including the location-off case) internally.
     _reporter.start();
+    // Start background location reporting only after the first frame, when the
+    // activity is visible. Starting a `location` foreground service during
+    // startup (before the app is in the foreground) is rejected on Android 15+.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      BackgroundLocationService.start();
+    });
   }
 
   void _onMembersChanged(List<Member> members) {

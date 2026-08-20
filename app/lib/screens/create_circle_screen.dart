@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../main.dart';
-import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
 import 'add_locations_screen.dart';
@@ -13,11 +12,7 @@ import 'invite_screen.dart';
 /// "My Circle" (the user can rename it later in Settings), so this step adds
 /// no friction.
 class CreateCircleScreen extends StatefulWidget {
-  const CreateCircleScreen({super.key, this.onCreated});
-
-  /// Called after the server creates the family when this screen is opened
-  /// from Settings instead of onboarding.
-  final VoidCallback? onCreated;
+  const CreateCircleScreen({super.key});
 
   @override
   State<CreateCircleScreen> createState() => _CreateCircleScreenState();
@@ -32,45 +27,23 @@ class _CreateCircleScreenState extends State<CreateCircleScreen> {
     super.dispose();
   }
 
-  bool _creating = false;
-
-  Future<void> _create() async {
-    if (_creating) return;
+  void _create() {
     final String trimmed = _name.text.trim();
     final String name = trimmed.isEmpty ? 'My Circle' : trimmed;
-    setState(() => _creating = true);
-    try {
-      await ApiClient.post(
-        '/families',
-        body: <String, dynamic>{'name': name},
-      );
-      if (!mounted) return;
-      if (widget.onCreated != null) {
-        widget.onCreated!();
-        Navigator.of(context).pop();
-        return;
-      }
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(
-          builder: (_) => InviteScreen(
-            circleName: name,
-            doneLabel: 'Continue',
-            step: 5,
-            onDone: () => navigatorKey.currentState?.pushReplacement(
-              MaterialPageRoute<void>(
-                builder: (_) => AddLocationsScreen(circleName: name, step: 6),
-              ),
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => InviteScreen(
+          circleName: name,
+          doneLabel: 'Continue',
+          step: 5,
+          onDone: () => navigatorKey.currentState?.pushReplacement(
+            MaterialPageRoute<void>(
+              builder: (_) => AddLocationsScreen(circleName: name, step: 6),
             ),
           ),
         ),
-      );
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-      }
-    } finally {
-      if (mounted) setState(() => _creating = false);
-    }
+      ),
+    );
   }
 
   @override
@@ -110,12 +83,10 @@ class _CreateCircleScreenState extends State<CreateCircleScreen> {
               ),
               const Spacer(),
               FilledButton(
-                onPressed: _creating ? null : _create,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: _creating
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Create Circle', style: TextStyle(fontSize: 16)),
+                onPressed: _create,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Text('Create Circle', style: TextStyle(fontSize: 16)),
                 ),
               ),
             ],

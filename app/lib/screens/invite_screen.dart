@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../services/api_client.dart';
 import '../services/invite_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
 
-/// The "Invite" step: explain inviting, then "Send Code" generates a 6-digit
-/// code and opens the native share sheet (pick a share app → send). The code
-/// is also tap-to-copy.
+/// The "Invite" step: explain inviting, then "Send Code" generates an
+/// alphanumeric code and opens the native share sheet (pick a share app →
+/// send). The code is also tap-to-copy.
 ///
 /// Used by both the map's `+` → Invite flow and onboarding (where [onDone]
 /// continues to the next step).
@@ -36,31 +35,32 @@ class InviteScreen extends StatefulWidget {
 class _InviteScreenState extends State<InviteScreen> {
   String? _code;
 
-  bool _creatingCode = false;
-
   Future<void> _sendCode() async {
-    if (_creatingCode) return;
-    setState(() => _creatingCode = true);
-    try {
-      final String code = _code ?? await InviteService.createCode();
-      if (!mounted) return;
+    String code = _code ?? '';
+    if (code.isEmpty) {
+      try {
+        code = await InviteService.createCode();
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not create an invite code')),
+          );
+        }
+        return;
+      }
       setState(() => _code = code);
+    }
+    try {
       await Share.share(
         InviteService.shareMessage(code),
         subject: InviteService.shareSubject,
       );
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not open the share sheet')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _creatingCode = false);
     }
   }
 

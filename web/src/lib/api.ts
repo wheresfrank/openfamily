@@ -3,12 +3,14 @@
 
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth'
 import type {
+  AdminInvite,
   AdminMember,
-  AdminUser,
   ApiResult,
   Family,
+  InviteCode,
   LoginResponse,
   Member,
+  Role,
 } from './types'
 
 const API_BASE = '/api'
@@ -144,61 +146,54 @@ export function listFamilies(): Promise<Family[]> {
   return request<Family[]>('/api/admin/families')
 }
 
-export function createFamily(name: string, ownerUserId?: string): Promise<Family> {
-  return request<Family>('/api/admin/families', {
-    method: 'POST',
-    body: { name, owner_user_id: ownerUserId ?? '' },
-  })
-}
-
-export function renameFamily(familyId: string, name: string): Promise<Family> {
-  return request<Family>(`/api/admin/families/${encodeURIComponent(familyId)}`, {
-    method: 'PATCH',
-    body: { name },
-  })
-}
-
-export function listUsers(): Promise<AdminUser[]> {
-  return request<AdminUser[]>('/api/admin/users')
-}
-
-export function createUser(input: {
-  email: string
-  password: string
-  name: string
-  role: AdminUser['role']
-  family_id?: string
-}): Promise<AdminUser> {
-  return request<AdminUser>('/api/admin/users', { method: 'POST', body: input })
-}
-
-export function assignUser(userId: string, familyId: string | null): Promise<AdminUser> {
-  return request<AdminUser>(`/api/admin/users/${encodeURIComponent(userId)}/family`, {
-    method: 'PATCH',
-    body: { family_id: familyId },
-  })
-}
-
-export function updateUserRole(userId: string, role: AdminUser['role']): Promise<AdminUser> {
-  return request<AdminUser>(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
-    method: 'PATCH',
-    body: { role },
-  })
-}
-
-export function resetUserPassword(userId: string, password: string): Promise<void> {
-  return request<void>(`/api/admin/users/${encodeURIComponent(userId)}/password`, {
-    method: 'PATCH',
-    body: { password },
-  })
-}
-
 export function listFamilyMembers(familyId: string): Promise<Member[]> {
   return request<Member[]>(`/api/admin/families/${encodeURIComponent(familyId)}/members`)
 }
 
 export function listAllMembers(): Promise<AdminMember[]> {
   return request<AdminMember[]>('/api/admin/members')
+}
+
+export function createFamily(name: string): Promise<Family> {
+  return request<Family>('/api/admin/families', { method: 'POST', body: { name } })
+}
+
+export function renameFamily(familyId: string, name: string): Promise<{ status: string }> {
+  return request<{ status: string }>(`/api/admin/families/${encodeURIComponent(familyId)}`, {
+    method: 'PATCH',
+    body: { name },
+  })
+}
+
+export function deleteFamily(familyId: string): Promise<{ status: string }> {
+  return request<{ status: string }>(`/api/admin/families/${encodeURIComponent(familyId)}`, {
+    method: 'DELETE',
+  })
+}
+
+export function moveMember(
+  memberId: string,
+  familyId: string,
+  role?: Role,
+): Promise<{ status: string }> {
+  return request<{ status: string }>(`/api/admin/members/${encodeURIComponent(memberId)}/family`, {
+    method: 'PATCH',
+    body: { family_id: familyId, role },
+  })
+}
+
+export function listInvites(): Promise<AdminInvite[]> {
+  return request<AdminInvite[]>('/api/admin/invites')
+}
+
+export function createInvite(
+  familyId: string,
+  opts?: { role?: Role; max_uses?: number; expires_in_hours?: number },
+): Promise<InviteCode> {
+  return request<InviteCode>('/api/admin/invites', {
+    method: 'POST',
+    body: { family_id: familyId, ...opts },
+  })
 }
 
 /** Returns a blob; caller should trigger a download. */

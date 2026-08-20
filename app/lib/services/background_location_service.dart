@@ -201,14 +201,14 @@ class BackgroundLocationService {
     _shouldRun = true;
     await BackgroundLocator.initialize();
     if (!_shouldRun) return;
-    // Don't start unless location permission is actually granted. A `denied`
-    // state (not yet granted during onboarding) would make
-    // registerLocationUpdate throw; return and let the post-onboarding start
-    // retry once the permission is granted.
+    // The background isolate's foreground service needs background location
+    // ("Allow all the time"). With only foreground ("While using the app")
+    // access, Android 15+ rejects starting a `location` foreground service
+    // unless the app is in the foreground — which crashes the app when start()
+    // runs during startup. Only proceed when background access is granted.
     try {
       final LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      if (permission != LocationPermission.always) {
         return;
       }
     } catch (_) {

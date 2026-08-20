@@ -1,7 +1,4 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
@@ -14,18 +11,9 @@ import 'permissions_screen.dart';
 /// A practical email format check (not RFC-exhaustive).
 final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
-/// A practical phone format check: optional leading `+`, then digits with
-/// spaces, dashes, dots, or parentheses — 7 to 15 digits total.
-final RegExp _phonePattern = RegExp(r'^\+?[0-9][0-9\s\-().]*$');
-
-bool _isValidPhone(String phone) {
-  final String trimmed = phone.trim();
-  if (!_phonePattern.hasMatch(trimmed)) return false;
-  final int digits = trimmed.replaceAll(RegExp(r'\D'), '').length;
-  return digits >= 7 && digits <= 15;
-}
-
-/// Sign-up: phone number, email address, password, and a profile photo.
+/// Sign-up: name, email, password, and an invite code. Kept minimal on purpose —
+/// the invite code is the security gate on a managed server, and everything else
+/// (profile photo, etc.) can be added later in Settings.
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -35,45 +23,30 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _name = TextEditingController();
-  final TextEditingController _phone = TextEditingController();
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
+  final TextEditingController _inviteCode = TextEditingController();
   bool _obscure = true;
-  XFile? _photo;
   bool _submitting = false;
   String? _error;
 
   @override
   void dispose() {
     _name.dispose();
-    _phone.dispose();
     _email.dispose();
     _password.dispose();
+    _inviteCode.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickPhoto() async {
-    final XFile? file = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 800,
-      maxHeight: 800,
-    );
-    if (file != null) setState(() => _photo = file);
   }
 
   Future<void> _submit() async {
     final String name = _name.text.trim();
-    final String phone = _phone.text.trim();
     final String email = _email.text.trim();
     final String password = _password.text;
+    final String inviteCode = _inviteCode.text.trim();
 
     if (name.isEmpty) {
       setState(() => _error = 'Enter your name.');
-      return;
-    }
-    if (phone.isNotEmpty && !_isValidPhone(phone)) {
-      setState(() => _error =
-          'Enter a valid phone number (e.g. +1 555 123 4567).');
       return;
     }
     if (!_emailPattern.hasMatch(email)) {
@@ -84,8 +57,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() => _error = 'Password must be at least 8 characters.');
       return;
     }
-    // A profile photo is a step, not a blocker: the user can continue without
-    // one and add it later in Settings. We nudge (below) rather than gate.
 
     setState(() {
       _submitting = true;
@@ -96,8 +67,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         name: name,
         email: email,
         password: password,
-        phone: phone.isEmpty ? null : phone,
-        photoPath: _photo?.path,
+        inviteCode: inviteCode.isEmpty ? null : inviteCode,
       );
     } on AccountCreatedException catch (e) {
       // The account was created but we couldn't establish a session. Send the
@@ -183,17 +153,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 16),
               TextField(
-                controller: _phone,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone number (optional)',
-                  hintText: '+1 555 123 4567',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
@@ -218,8 +177,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-              Center(child: _PhotoPicker(photo: _photo, onTap: _pickPhoto)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _inviteCode,
+                keyboardType: TextInputType.text,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(
+                  labelText: 'Invite code',
+                  hintText: 'e.g. AB12CD34',
+                  prefixIcon: Icon(Icons.key_outlined),
+                  border: OutlineInputBorder(),
+                ),
+              ),
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -277,100 +246,5 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
     );
-  }
-}
-
-/// A tappable circular profile-photo picker with a live preview.
-class _PhotoPicker extends StatelessWidget {
-  const _PhotoPicker({required this.photo, required this.onTap});
-
-  final XFile? photo;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 96,
-            height: 96,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.surfaceTint,
-              border: Border.all(
-                color: AppColors.purple.withValues(alpha: 0.4),
-                width: 2,
-              ),
-            ),
-            child: ClipOval(
-              child: photo != null
-                  ? _PhotoPreview(photo: photo!)
-                  : const Icon(
-                      Icons.add_a_photo_outlined,
-                      size: 36,
-                      color: AppColors.purple,
-                    ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            photo == null ? 'Add a profile photo' : 'Change photo',
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.purple,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 2),
-          const Text(
-            'Optional — helps your family recognize you on the map.',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Displays a picked [XFile] image without `dart:io` (web-safe): reads the
-/// bytes once and renders them with [Image.memory].
-class _PhotoPreview extends StatefulWidget {
-  const _PhotoPreview({required this.photo});
-
-  final XFile photo;
-
-  @override
-  State<_PhotoPreview> createState() => _PhotoPreviewState();
-}
-
-class _PhotoPreviewState extends State<_PhotoPreview> {
-  Uint8List? _bytes;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final Uint8List bytes = await widget.photo.readAsBytes();
-    if (mounted) setState(() => _bytes = bytes);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final Uint8List? bytes = _bytes;
-    if (bytes == null) {
-      return const Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      );
-    }
-    return Image.memory(bytes, fit: BoxFit.cover);
   }
 }

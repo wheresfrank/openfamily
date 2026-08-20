@@ -14,9 +14,10 @@ import (
 )
 
 type registerRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Name     string `json:"name"`
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	Name       string `json:"name"`
+	InviteCode string `json:"invite_code,omitempty"`
 }
 
 type loginRequest struct {
@@ -32,8 +33,11 @@ type tokenPair struct {
 	ExpiresIn    int64  `json:"expires_in"`
 }
 
-// Register creates a new user account. In v1 this is open; a later phase will
-// gate it behind an invite code.
+// Register creates a new user account. When the server requires an invite
+// (RequireInvite), the request must carry a valid invite code, which assigns
+// the new user to the code's family and role. When invites are not required,
+// a code is still honored if present (so joining a family works in open mode),
+// and a missing code creates an unassigned account as before.
 func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 	var req registerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -41,6 +45,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	req.InviteCode = strings.TrimSpace(req.InviteCode)
 	if req.Email == "" || req.Password == "" || req.Name == "" {
 		writeError(w, http.StatusBadRequest, "email, password, and name are required")
 		return
@@ -56,12 +61,40 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tx, err := s.Pool.Begin(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to begin transaction")
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	// Resolve the family and role for the new user.
+	var familyID *string
+	role := models.RoleMember
+	if req.InviteCode != "" {
+		fid, rl, err := s.consumeInviteCode(r.Context(), tx, req.InviteCode)
+		if err != nil {
+			var ie *inviteError
+			if errors.As(err, &ie) {
+				writeError(w, http.StatusBadRequest, ie.msg)
+			} else {
+				writeError(w, http.StatusInternalServerError, "failed to validate invite code")
+			}
+			return
+		}
+		familyID = &fid
+		role = rl
+	} else if s.RequireInvite {
+		writeError(w, http.StatusForbidden, "an invite code is required to register")
+		return
+	}
+
 	var user models.User
-	err = s.Pool.QueryRow(r.Context(), `
-		INSERT INTO users (email, name, password_hash)
-		VALUES ($1, $2, $3)
+	err = tx.QueryRow(r.Context(), `
+		INSERT INTO users (email, name, password_hash, family_id, role)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, family_id, email, name, role, totp_enabled, created_at, updated_at`,
-		req.Email, req.Name, hash,
+		req.Email, req.Name, hash, familyID, role,
 	).Scan(&user.ID, &user.FamilyID, &user.Email, &user.Name, &user.Role, &user.TOTPEnabled, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -69,6 +102,11 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeError(w, http.StatusInternalServerError, "failed to create user")
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to commit")
 		return
 	}
 

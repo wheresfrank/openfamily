@@ -88,11 +88,10 @@ class _SessionGateState extends State<_SessionGate> {
       // Ignore sync failures; the reporter's 401→refresh path recovers.
     }
     final bool hasSession = await ApiClient.hasValidSession();
-    if (hasSession) {
-      // Start background location reporting (fire-and-forget) so the device
-      // keeps reporting even when backgrounded.
-      BackgroundLocationService.start();
-    }
+    // Background location reporting is started by MapScreen once it is shown
+    // (and the app is in the foreground), not here — starting a `location`
+    // foreground service during startup, before the activity is visible, is
+    // rejected on Android 15+.
     return hasSession ? _GateResult.hasSession : _GateResult.noSession;
   }
 

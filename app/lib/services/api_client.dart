@@ -71,20 +71,49 @@ class ApiClient {
   // ---------------------------------------------------------------------------
 
   /// POST /auth/register → the created user object.
+  ///
+  /// [inviteCode], when provided, is validated by the server and assigns the
+  /// new user to the code's family and role. On a managed server (one with a
+  /// configured platform admin) it is required.
   static Future<Map<String, dynamic>> register({
     required String email,
     required String password,
     required String name,
+    String? inviteCode,
   }) async {
+    final Map<String, dynamic> body = <String, dynamic>{
+      'email': email,
+      'password': password,
+      'name': name,
+    };
+    if (inviteCode != null && inviteCode.isNotEmpty) {
+      body['invite_code'] = inviteCode;
+    }
     final dynamic data = await _send(
       'POST',
       _uri('/auth/register'),
-      body: <String, dynamic>{
-        'email': email,
-        'password': password,
-        'name': name,
-      },
+      body: body,
       auth: false,
+    );
+    return data as Map<String, dynamic>;
+  }
+
+  /// POST /family/invites → the created invite code (family admin only).
+  static Future<Map<String, dynamic>> createInvite() async {
+    final dynamic data = await _send(
+      'POST',
+      _uri('/family/invites'),
+      body: <String, dynamic>{},
+    );
+    return data as Map<String, dynamic>;
+  }
+
+  /// POST /family/join → join a family by invite code.
+  static Future<Map<String, dynamic>> joinFamily(String code) async {
+    final dynamic data = await _send(
+      'POST',
+      _uri('/family/join'),
+      body: <String, dynamic>{'code': code},
     );
     return data as Map<String, dynamic>;
   }

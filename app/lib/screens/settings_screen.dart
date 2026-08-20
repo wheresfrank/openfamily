@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import 'family_management_screen.dart';
 import 'profile_screen.dart';
 import 'welcome_screen.dart';
 
@@ -53,14 +52,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.group_outlined, color: AppColors.purple),
-            title: const Text('Family management'),
-            subtitle: const Text('Create, join, and manage members'),
-            trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const FamilyManagementScreen()),
-            ),
+          const ListTile(
+            leading: Icon(Icons.group_outlined, color: AppColors.purple),
+            title: Text('Circles'),
+            trailing: Icon(Icons.chevron_right, color: AppColors.textMuted),
           ),
           const Divider(height: 1),
           const _SectionHeader('Location'),

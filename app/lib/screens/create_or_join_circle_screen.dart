@@ -6,8 +6,8 @@ import 'create_circle_screen.dart';
 import 'join_circle_screen.dart';
 import 'map_screen.dart';
 
-/// Onboarding step: create a new Circle or join an existing one with a
-/// 6-digit code.
+/// Onboarding step: create a new Circle or join an existing one with an
+/// invite code.
 class CreateOrJoinCircleScreen extends StatelessWidget {
   const CreateOrJoinCircleScreen({super.key});
 
@@ -44,7 +44,7 @@ class CreateOrJoinCircleScreen extends StatelessWidget {
               _OptionCard(
                 icon: Icons.group_add_outlined,
                 title: 'Join a Circle',
-                subtitle: 'Enter a 6-digit code from a family member.',
+                subtitle: 'Enter an invite code from a family member.',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => JoinCircleScreen(

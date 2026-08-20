@@ -11,13 +11,15 @@ import (
 	"github.com/whereabouts/whereabouts/backend/internal/models"
 )
 
+const maxProfileNameLength = 120
+
 func normalizeProfileName(name string) (string, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return "", errors.New("name is required")
 	}
-	if len([]rune(name)) > maxAdminNameLength {
-		return "", fmt.Errorf("name must be %d characters or fewer", maxAdminNameLength)
+	if len([]rune(name)) > maxProfileNameLength {
+		return "", fmt.Errorf("name must be %d characters or fewer", maxProfileNameLength)
 	}
 	return name, nil
 }

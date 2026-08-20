@@ -74,11 +74,18 @@ type Config struct {
 	// PlatformAdminEmail bootstraps the first platform admin. When set, on
 	// startup the server promotes the existing user with this email to
 	// platform_admin = TRUE (the platform-admin flag is added by migration
-	// 000013). This is the ONLY way to become a platform admin: no credentials
-	// are hardcoded, and the user must already be registered. Empty disables
-	// promotion (admin panel is simply unreachable until an operator sets it).
-	// The comparison is case-insensitive on the lowercased email column.
+	// 000013). If no user with that email exists yet, the server auto-creates
+	// the account (using PlatformAdminPassword) so the admin is the FIRST user
+	// to log in. Empty disables promotion (admin panel is simply unreachable
+	// until an operator sets it). The comparison is case-insensitive on the
+	// lowercased email column.
 	PlatformAdminEmail string
+
+	// PlatformAdminPassword is the password for the auto-created first admin
+	// account. It is only used when PlatformAdminEmail is set and no user with
+	// that email exists yet. Empty means the account cannot be auto-created
+	// (the operator must register it manually first, as before).
+	PlatformAdminPassword string
 
 	// APKDir is the directory served by GET /api/admin/apk and where successful
 	// builds are published. Empty disables APK download/build (the endpoints
@@ -113,8 +120,9 @@ func Load() Config {
 		APNsTeamID:         getenv("APNS_TEAM_ID", ""),
 		APNsTopic:          getenv("APNS_TOPIC", ""),
 		APNsProduction:     getenvBool("APNS_PRODUCTION", false),
-		PlatformAdminEmail: getenv("PLATFORM_ADMIN_EMAIL", ""),
-		APKDir:             getenv("APK_DIR", ""),
+		PlatformAdminEmail:    getenv("PLATFORM_ADMIN_EMAIL", ""),
+		PlatformAdminPassword: getenv("PLATFORM_ADMIN_PASSWORD", ""),
+		APKDir:                getenv("APK_DIR", ""),
 		FlutterAppDir:      getenv("FLUTTER_APP_DIR", "./app"),
 	}
 }

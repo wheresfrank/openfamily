@@ -25,18 +25,6 @@ export interface Family {
   member_count: number
 }
 
-export interface AdminUser {
-  id: string
-  family_id: string | null
-  family_name: string | null
-  email: string
-  name: string
-  role: Role
-  platform_admin: boolean
-  created_at: string
-  updated_at: string
-}
-
 export interface Member {
   id: string
   name: string
@@ -53,8 +41,26 @@ export interface Member {
 
 /** Member as returned by GET /api/admin/members — tagged with its family. */
 export interface AdminMember extends Member {
-  family_id: string | null
-  family_name: string | null
+  family_id: string
+  family_name: string
+}
+
+/** Invite code as returned by the admin invite endpoints. */
+export interface InviteCode {
+  id: string
+  code: string
+  family_id: string
+  created_by: string | null
+  role: Role
+  max_uses: number
+  uses: number
+  expires_at: string | null
+  created_at: string
+}
+
+/** Invite code tagged with its family name (GET /api/admin/invites). */
+export interface AdminInvite extends InviteCode {
+  family_name: string
 }
 
 /** Discriminated result for the API client. */
