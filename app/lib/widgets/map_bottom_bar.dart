@@ -72,11 +72,20 @@ class MapBottomBar extends StatelessWidget {
             onTap: onKeys,
           ),
           const SizedBox(width: 8),
-          // Safety — a labeled tab, not a bare circular icon.
-          _SafetyTab(onTap: onSafety),
+          // Safety — a white circular icon button, matching Places / Keys.
+          _FloatingIconButton(
+            icon: Icons.shield_outlined,
+            label: 'Safety',
+            onTap: onSafety,
+          ),
           const Spacer(),
-          // Settings gear — a distinct corner element, bottom-right.
-          _SettingsGear(onTap: onSettings),
+          // Settings — a white circular icon button, matching Places / Keys,
+          // pinned to the bottom-right corner.
+          _FloatingIconButton(
+            icon: Icons.settings_outlined,
+            label: 'Settings',
+            onTap: onSettings,
+          ),
         ],
       ),
     );
@@ -117,8 +126,9 @@ class _SosButton extends StatelessWidget {
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.sos, color: Colors.white, size: 34),
-                SizedBox(width: 8),
+                // Only the "SOS" word is drawn. The `sos` glyph icon already
+                // renders the letters "SOS", so drawing both would read the
+                // word twice — keep just the text.
                 Text(
                   'SOS',
                   style: TextStyle(
@@ -137,7 +147,9 @@ class _SosButton extends StatelessWidget {
   }
 }
 
-/// A small circular icon button floating over the map (Places, Keys).
+/// A small circular icon button floating over the map (Places, Keys, Safety,
+/// Settings). A white disc with a purple glyph and a soft shadow, which is how
+/// every secondary map control reads consistently.
 class _FloatingIconButton extends StatelessWidget {
   const _FloatingIconButton({
     required this.icon,
@@ -163,78 +175,6 @@ class _FloatingIconButton extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Icon(icon, color: AppColors.purple, size: 22),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A labeled "Safety" tab: an icon with a text label beneath it, so it reads
-/// as a bottom-of-screen tab rather than a bare circular icon identical to
-/// Places / Keys.
-class _SafetyTab extends StatelessWidget {
-  const _SafetyTab({this.onTap});
-
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: 'Safety',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.shield_outlined, color: AppColors.purple, size: 24),
-              SizedBox(height: 2),
-              Text(
-                'Safety',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.purple,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The Settings gear, pinned to the bottom-right corner as a distinct corner
-/// element. It is a bare gear (no solid white disc) with a soft shadow, so it
-/// reads as a corner affordance rather than another circular button.
-class _SettingsGear extends StatelessWidget {
-  const _SettingsGear({this.onTap});
-
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: 'Settings',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: const Padding(
-            padding: EdgeInsets.all(10),
-            child: Icon(
-              Icons.settings_outlined,
-              color: AppColors.purple,
-              size: 26,
-              shadows: [
-                Shadow(color: Color(0x66000000), blurRadius: 6),
-              ],
-            ),
           ),
         ),
       ),
