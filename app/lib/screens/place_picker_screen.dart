@@ -48,6 +48,7 @@ class PlacePickerScreen extends StatefulWidget {
 class _PlacePickerScreenState extends State<PlacePickerScreen> {
   final MapController _mapController = MapController();
   late LatLng _position;
+  late final TextEditingController _name;
   late final TextEditingController _address;
   late double _radiusMeters;
 
@@ -72,6 +73,7 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
   void initState() {
     super.initState();
     _position = widget.initial?.position ?? _fallbackPosition;
+    _name = TextEditingController(text: widget.placeName);
     _address = TextEditingController(text: widget.initial?.address ?? '');
     _radiusMeters = widget.initial?.radiusMeters ?? 152.4; // ~500 ft
     // Only auto-locate for a brand-new place; editing keeps the saved pin.
@@ -83,6 +85,7 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
   @override
   void dispose() {
     _reverseTimer?.cancel();
+    _name.dispose();
     _address.dispose();
     super.dispose();
   }
@@ -163,12 +166,21 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
   }
 
   void _save() {
+    final String name = _name.text.trim();
+    if (name.isEmpty) {
+      // The backend rejects places without a name, so require one here
+      // instead of silently saving a blank label.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add a name for this place first.')),
+      );
+      return;
+    }
     final String address = _address.text.trim();
     final Place place = Place(
       id: widget.initial?.id ??
-          '${widget.placeName.toLowerCase()}-'
+          '${name.toLowerCase()}-'
               '${DateTime.now().millisecondsSinceEpoch}',
-      name: widget.placeName,
+      name: name,
       icon: widget.icon,
       address: address.isEmpty ? 'Pinned location' : address,
       position: _position,
@@ -183,7 +195,9 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Set ${widget.placeName} location'),
+        title: Text(
+          widget.placeName.isEmpty ? 'Add a place' : 'Set ${widget.placeName} location',
+        ),
         actions: [
           TextButton(
             onPressed: _save,
@@ -277,6 +291,18 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  TextField(
+                    controller: _name,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Name',
+                      hintText: 'e.g. Grandma',
+                      prefixIcon: const Icon(Icons.label_outline),
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   TextField(
                     controller: _address,
                     textCapitalization: TextCapitalization.words,
