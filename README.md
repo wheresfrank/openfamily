@@ -110,6 +110,8 @@ location/
 | POST | `/auth/register` | Create account |
 | POST | `/auth/login` | Password + optional TOTP → token pair |
 | POST | `/auth/refresh` | Rotate refresh token |
+| GET | `/me` | Get the signed-in user's profile |
+| PATCH | `/me` | Update the signed-in user's display name |
 | POST | `/families` | Create a family (caller becomes admin) |
 | GET | `/family` | Get your family |
 | PATCH | `/family` | Rename your family (admin only) |
