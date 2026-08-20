@@ -1,14 +1,14 @@
 name: Build Android APK
 
-# Builds the release APK and attaches it to a GitHub release. The server does
-# NOT build APKs itself (that would require a multi-GB Flutter/Android toolchain
-# in the server image); instead this workflow builds the APK in CI and the admin
-# panel's "Download" button serves whatever is placed in the server's APK_DIR.
+# Builds the release APK on every merge to master (and on manual dispatch) and
+# commits it back into the repository at apk/whereabouts-release.apk. Servers
+# pull master to obtain both new code and the APK, so the admin panel's
+# Download button (which serves APK_DIR) works without any server-side build
+# or GitHub token. The server does NOT build APKs itself.
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [ master ]
   workflow_dispatch:
 
 permissions:
@@ -17,6 +17,11 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Skip the run that our own APK commit-back push on master triggers, so
+    # pushing the APK back does not cause another build (infinite loop). Manual
+    # dispatch always builds. Match both the marker AND the bot author so a
+    # human commit message that happens to start with "[APK]" still builds.
+    if: ${{ github.event_name == 'workflow_dispatch' || !(startsWith(github.event.head_commit.message, '[APK]') && github.event.head_commit.author.email == 'build@whereabouts.invalid') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,25 +43,25 @@ jobs:
         working-directory: app
         run: flutter build apk --release
 
-      - name: Stage APK
+      - name: Stage APK into the repo
         run: |
           set -euo pipefail
           APK=$(find app/build/app/outputs -name 'app-release.apk' -print -quit)
           test -n "$APK" || { echo "APK not found after build" >&2; exit 1; }
-          cp "$APK" whereabouts-release.apk
-          echo "Staged $APK -> whereabouts-release.apk"
+          mkdir -p apk
+          cp "$APK" apk/whereabouts-release.apk
+          echo "Staged $APK -> apk/whereabouts-release.apk"
 
-      - name: Attach APK to release (tag builds)
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: whereabouts-release.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload APK as artifact (manual builds)
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
-        with:
-          name: whereabouts-release-apk
-          path: whereabouts-release.apk
+      - name: Commit and push APK back to the repo
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- apk/whereabouts-release.apk; then
+            echo "APK unchanged; no commit"
+            exit 0
+          fi
+          git config user.name "whereabouts-build"
+          git config user.email "build@whereabouts.invalid"
+          git add apk/whereabouts-release.apk
+          git commit -m "[APK] update release APK"
+          git push
+          echo "Committed and pushed apk/whereabouts-release.apk"

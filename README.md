@@ -388,13 +388,12 @@ The server does **not** build APKs itself — that would require a multi-GB
 Flutter/Android toolchain in the server image. Instead, the APK is built in CI
 and the admin panel's **APK** page just serves it.
 
-1. Push a release tag (e.g. `v0.1.0`). The
+1. Merge a PR to `master`. The
    [`.github/workflows/apk.yml`](.github/workflows/apk.yml) workflow builds the
-   release APK and attaches it to the GitHub release.
-2. Download the APK from the release and copy it into the server's `APK_DIR`
-   directory (see `.env.example`), e.g. `./apk/whereabouts-release.apk`.
-3. The **APK** page's **Download** button then serves it via
-   `GET /api/admin/apk`.
+   release APK and commits it to `apk/whereabouts-release.apk`.
+2. Any server that pulls `master` receives the APK with the code. Its compose
+   mounts `./apk/` as `APK_DIR` (default `/data/apk`), so the **APK** page's
+   **Download** button serves it via `GET /api/admin/apk` with no manual copy.
 
 The app has a runtime server-config screen, so one generic APK works for any
 deployment — no per-deployment rebuild is needed.
