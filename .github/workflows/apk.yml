@@ -55,13 +55,13 @@ jobs:
       - name: Commit and push APK back to the repo
         run: |
           set -euo pipefail
-          if git diff --quiet -- apk/whereabouts-release.apk; then
+          git add apk/whereabouts-release.apk
+          if git diff --cached --quiet -- apk/whereabouts-release.apk; then
             echo "APK unchanged; no commit"
             exit 0
           fi
           git config user.name "whereabouts-build"
           git config user.email "build@whereabouts.invalid"
-          git add apk/whereabouts-release.apk
           git commit -m "[APK] update release APK"
           git push
           echo "Committed and pushed apk/whereabouts-release.apk"
