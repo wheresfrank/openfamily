@@ -4,8 +4,8 @@ import '../theme/app_theme.dart';
 
 /// The fixed bottom control bar, pinned to the very bottom of the map screen.
 ///
-/// It is *always* visible — the draggable member sheet slides up over the map
-/// and stops *above* this bar, so the controls are never covered. Layout, left
+/// It is *always* visible — the Family member panel sits directly above this
+/// bar and stops *above* it, so the controls are never covered. Layout, left
 /// to right:
 ///
 /// * a large, prominent **SOS** button (emergency red but flat at rest,
@@ -16,8 +16,8 @@ import '../theme/app_theme.dart';
 ///   corner element.
 ///
 /// The widget is transparent — it renders only the controls — so the map stays
-/// full-bleed behind it. The `+` action lives in a separate floating action
-/// button at bottom-center, above the collapsed sheet.
+/// full-bleed behind it. The `+` add action lives inside the Family panel's
+/// header, above this bar.
 class MapBottomBar extends StatelessWidget {
   const MapBottomBar({
     super.key,
@@ -45,7 +45,8 @@ class MapBottomBar extends StatelessWidget {
   static const double sosHeight = 72;
 
   /// Total height of the bar (SOS button + 8px vertical padding on each side).
-  /// Exposed so the map screen can reserve space and stop the sheet above it.
+  /// Exposed so the map screen can reserve space and anchor the Family panel
+  /// above it.
   static const double height = sosHeight + 16;
 
   @override
