@@ -244,8 +244,9 @@ class _SosButton extends StatelessWidget {
             child: const Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.sos, color: Colors.white, size: 64),
-                SizedBox(height: 8),
+                // Only the "SOS" word is drawn. The `sos` glyph icon already
+                // renders the letters "SOS", so drawing both would read the
+                // word twice — keep just the text.
                 Text(
                   'SOS',
                   style: TextStyle(

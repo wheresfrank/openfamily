@@ -10,6 +10,7 @@ import '../services/app_config.dart';
 import '../services/background_location_service.dart';
 import '../services/family_service.dart';
 import '../services/location_reporter.dart';
+import '../services/location_service.dart';
 import '../services/permission_service.dart';
 import '../services/token_storage.dart';
 import '../theme/app_theme.dart';
@@ -56,9 +57,13 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  static const double _minSheetSize = 0.22;
+  static const double _minSheetSize = 0.12;
   static const double _midSheetSize = 0.5;
   static const double _maxSheetSize = 0.9;
+
+  /// Below this sheet size the member list renders its slim compact avatar
+  /// strip; at/above it the full member list appears.
+  static const double _expandSheetSize = 0.3;
 
   /// Zoom the camera animates to when a cluster is expanded.
   static const double _expandZoom = 16.0;
@@ -264,6 +269,24 @@ class _MapScreenState extends State<MapScreen>
     final LatLng? position = member.position;
     if (position == null) return; // No location yet — nothing to recenter on.
     _animateTo(position, 15);
+  }
+
+  /// Recenters the map on the caller ("You"). Prefers the caller's own member
+  /// (which always carries the freshest GPS fix); falls back to the live device
+  /// position when the caller has no backend location yet.
+  Future<void> _centerOnUser() async {
+    final String? uid = _userId;
+    if (uid != null) {
+      for (final Member m in _members) {
+        if (m.id == uid && m.position != null) {
+          _animateTo(m.position!, 15);
+          return;
+        }
+      }
+    }
+    final LatLng? pos = await LocationService.currentPosition();
+    if (pos == null || !mounted) return;
+    _animateTo(pos, 15);
   }
 
   /// Expands a tapped cluster so its members fan out and become tappable.
@@ -558,18 +581,25 @@ class _MapScreenState extends State<MapScreen>
             ),
           ),
 
-          // Top-right: satellite / standard layer toggle.
+          // Top-right: satellite / standard layer toggle, with a "center on
+          // me" button stacked beneath it.
           Positioned(
             top: 0,
             right: 12,
             child: SafeArea(
               bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: _LayerToggle(
-                  isSatellite: _satellite,
-                  onToggle: _toggleSatellite,
-                ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: _LayerToggle(
+                      isSatellite: _satellite,
+                      onToggle: _toggleSatellite,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _LocateButton(onTap: _centerOnUser),
+                ],
               ),
             ),
           ),
@@ -596,6 +626,7 @@ class _MapScreenState extends State<MapScreen>
                   members: members,
                   onMemberTap: _recenterOn,
                   onAddPerson: _openAddPerson,
+                  compact: _sheetController.size < _expandSheetSize,
                 );
               },
             ),
@@ -691,6 +722,34 @@ class _LayerToggle extends StatelessWidget {
               size: 22,
               color: AppColors.purple,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small circular "center on me" button that recenters the map on the
+/// caller's current location.
+class _LocateButton extends StatelessWidget {
+  const _LocateButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Center on my location',
+      child: Material(
+        color: Colors.white,
+        shape: const CircleBorder(),
+        elevation: 3,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: const Padding(
+            padding: EdgeInsets.all(10),
+            child: Icon(Icons.my_location, size: 22, color: AppColors.purple),
           ),
         ),
       ),
