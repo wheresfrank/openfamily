@@ -8,7 +8,7 @@ import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
-import { GroupsPage } from './pages/GroupsPage'
+import { FamiliesPage } from './pages/FamiliesPage'
 import { BuildsPage } from './pages/BuildsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { DEFAULT_ROUTE, routeFromHash, type RouteKey } from './lib/routes'
@@ -67,8 +67,8 @@ function renderPage(route: RouteKey, email: string | null, logout: () => void): 
   switch (route) {
     case 'dashboard':
       return <DashboardPage />
-    case 'groups':
-      return <GroupsPage />
+    case 'families':
+      return <FamiliesPage />
     case 'builds':
       return <BuildsPage />
     case 'settings':

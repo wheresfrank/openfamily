@@ -1,7 +1,7 @@
 // Shared API types for the Whereabouts admin panel.
 // Mirrors the backend contract documented in the task brief.
 
-export type Role = 'admin' | 'parent' | 'member'
+export type Role = 'admin' | 'member' | 'child'
 
 export type MotionState =
   | 'stationary'
@@ -42,6 +42,24 @@ export interface Member {
 /** Member as returned by GET /api/admin/members — tagged with its family. */
 export interface AdminMember extends Member {
   family_id: string
+  family_name: string
+}
+
+/** Invite code as returned by the admin invite endpoints. */
+export interface InviteCode {
+  id: string
+  code: string
+  family_id: string
+  created_by: string | null
+  role: Role
+  max_uses: number
+  uses: number
+  expires_at: string | null
+  created_at: string
+}
+
+/** Invite code tagged with its family name (GET /api/admin/invites). */
+export interface AdminInvite extends InviteCode {
   family_name: string
 }
 

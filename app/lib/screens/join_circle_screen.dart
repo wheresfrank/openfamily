@@ -7,8 +7,8 @@ import '../widgets/onboarding_step_indicator.dart';
 /// The Join a Circle flow, reached from the map's `+` action sheet, the
 /// Circle switcher's `+` chip, and onboarding.
 ///
-/// Accepts a 6-digit invite code and validates it against the server — an
-/// invalid/unknown code shows a clear error (no false success).
+/// Accepts an alphanumeric invite code and validates it against the server —
+/// an invalid/unknown code shows a clear error (no false success).
 class JoinCircleScreen extends StatefulWidget {
   const JoinCircleScreen({
     super.key,
@@ -47,8 +47,8 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
 
   Future<void> _join() async {
     final String code = _code.text.trim();
-    if (code.length != 6 || int.tryParse(code) == null) {
-      setState(() => _error = 'Enter a valid 6-digit code');
+    if (code.isEmpty) {
+      setState(() => _error = 'Enter your invite code');
       return;
     }
     setState(() {
@@ -71,7 +71,7 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Join a Circle'),
+        title: const Text('Join a family'),
         bottom: widget.step == null
             ? null
             : OnboardingStepIndicator(
@@ -98,20 +98,21 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Ask a Circle member for the 6-digit code to join their Circle.',
+          'Ask a family member for the invite code to join their family.',
           style: TextStyle(fontSize: 14, color: AppColors.textMuted),
         ),
         const SizedBox(height: 20),
         TextField(
           controller: _code,
           autofocus: true,
-          keyboardType: TextInputType.number,
-          maxLength: 6,
+          keyboardType: TextInputType.text,
+          textCapitalization: TextCapitalization.characters,
           onChanged: (_) {
             if (_error != null) setState(() => _error = null);
           },
           decoration: InputDecoration(
-            labelText: '6-digit invite code',
+            labelText: 'Invite code',
+            hintText: 'e.g. AB12CD34',
             border: const OutlineInputBorder(),
             errorText: _error,
           ),
@@ -147,12 +148,12 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
         const Icon(Icons.check_circle, size: 72, color: AppColors.statusGreen),
         const SizedBox(height: 16),
         const Text(
-          'Circle joined',
+          'Family joined',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         const Text(
-          'You are now a member of the Circle.',
+          'You are now a member of the family.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 15, color: AppColors.textMuted),
         ),

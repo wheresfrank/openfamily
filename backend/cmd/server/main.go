@@ -67,11 +67,15 @@ func main() {
 	srv.AllowedOrigin = cfg.AllowedOrigin
 	srv.APKDir = cfg.APKDir
 	srv.FlutterAppDir = cfg.FlutterAppDir
+	// A managed server (one with a configured platform admin) closes open
+	// registration: new users must present an invite code.
+	srv.RequireInvite = cfg.PlatformAdminEmail != ""
 
-	// Promote the configured user to platform admin (idempotent, every startup).
-	// This is the secure bootstrap for the first platform admin: no credentials
-	// are hardcoded; it requires an already-registered user and the env var.
-	srv.BootstrapPlatformAdmin(ctx, cfg.PlatformAdminEmail)
+	// Promote (or auto-create) the configured platform admin (idempotent, every
+	// startup). This is the secure bootstrap for the first platform admin: no
+	// credentials are hardcoded; it requires the env vars and, when the account
+	// does not exist yet, PLATFORM_ADMIN_PASSWORD to create it.
+	srv.BootstrapPlatformAdmin(ctx, cfg.PlatformAdminEmail, cfg.PlatformAdminPassword)
 
 	// Background reconciliation self-heals any geofence evaluation that failed
 	// or was interrupted during ingest.
@@ -110,6 +114,8 @@ func main() {
 		r.Get("/family", srv.GetFamily)
 		r.Get("/family/members", srv.ListMembers)
 		r.Patch("/family/members/{id}/role", srv.UpdateMemberRole)
+		r.Post("/family/invites", srv.CreateFamilyInvite)
+		r.Post("/family/join", srv.JoinFamily)
 
 		r.Get("/family/geofences", srv.ListGeofences)
 		r.Post("/family/geofences", srv.CreateGeofence)
@@ -139,9 +145,15 @@ func main() {
 		r.Use(mid.RequirePlatformAdmin(pool))
 
 		r.Get("/api/admin/families", srv.AdminListFamilies)
+		r.Post("/api/admin/families", srv.AdminCreateFamily)
+		r.Patch("/api/admin/families/{id}", srv.AdminRenameFamily)
+		r.Delete("/api/admin/families/{id}", srv.AdminDeleteFamily)
 		r.Get("/api/admin/families/{id}/members", srv.AdminListFamilyMembers)
 		r.Get("/api/admin/members", srv.AdminListMembers)
+		r.Patch("/api/admin/members/{id}/family", srv.AdminMoveMember)
 		r.Get("/api/admin/places", srv.AdminListPlaces)
+		r.Get("/api/admin/invites", srv.AdminListInvites)
+		r.Post("/api/admin/invites", srv.AdminCreateInvite)
 
 		r.Get("/api/admin/apk", srv.AdminDownloadAPK)
 		r.Post("/api/admin/apk/build", srv.AdminBuildAPK)

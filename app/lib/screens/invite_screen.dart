@@ -6,9 +6,9 @@ import '../services/invite_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
 
-/// The "Invite" step: explain inviting, then "Send Code" generates a 6-digit
-/// code and opens the native share sheet (pick a share app → send). The code
-/// is also tap-to-copy.
+/// The "Invite" step: explain inviting, then "Send Code" generates an
+/// alphanumeric code and opens the native share sheet (pick a share app →
+/// send). The code is also tap-to-copy.
 ///
 /// Used by both the map's `+` → Invite flow and onboarding (where [onDone]
 /// continues to the next step).
@@ -36,8 +36,20 @@ class _InviteScreenState extends State<InviteScreen> {
   String? _code;
 
   Future<void> _sendCode() async {
-    final String code = _code ?? InviteService.generateCode();
-    setState(() => _code = code);
+    String code = _code ?? '';
+    if (code.isEmpty) {
+      try {
+        code = await InviteService.createCode();
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not create an invite code')),
+          );
+        }
+        return;
+      }
+      setState(() => _code = code);
+    }
     try {
       await Share.share(
         InviteService.shareMessage(code),

@@ -3,11 +3,14 @@
 
 import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth'
 import type {
+  AdminInvite,
   AdminMember,
   ApiResult,
   Family,
+  InviteCode,
   LoginResponse,
   Member,
+  Role,
 } from './types'
 
 const API_BASE = '/api'
@@ -149,6 +152,48 @@ export function listFamilyMembers(familyId: string): Promise<Member[]> {
 
 export function listAllMembers(): Promise<AdminMember[]> {
   return request<AdminMember[]>('/api/admin/members')
+}
+
+export function createFamily(name: string): Promise<Family> {
+  return request<Family>('/api/admin/families', { method: 'POST', body: { name } })
+}
+
+export function renameFamily(familyId: string, name: string): Promise<{ status: string }> {
+  return request<{ status: string }>(`/api/admin/families/${encodeURIComponent(familyId)}`, {
+    method: 'PATCH',
+    body: { name },
+  })
+}
+
+export function deleteFamily(familyId: string): Promise<{ status: string }> {
+  return request<{ status: string }>(`/api/admin/families/${encodeURIComponent(familyId)}`, {
+    method: 'DELETE',
+  })
+}
+
+export function moveMember(
+  memberId: string,
+  familyId: string,
+  role?: Role,
+): Promise<{ status: string }> {
+  return request<{ status: string }>(`/api/admin/members/${encodeURIComponent(memberId)}/family`, {
+    method: 'PATCH',
+    body: { family_id: familyId, role },
+  })
+}
+
+export function listInvites(): Promise<AdminInvite[]> {
+  return request<AdminInvite[]>('/api/admin/invites')
+}
+
+export function createInvite(
+  familyId: string,
+  opts?: { role?: Role; max_uses?: number; expires_in_hours?: number },
+): Promise<InviteCode> {
+  return request<InviteCode>('/api/admin/invites', {
+    method: 'POST',
+    body: { family_id: familyId, ...opts },
+  })
 }
 
 /** Returns a blob; caller should trigger a download. */

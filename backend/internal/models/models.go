@@ -57,6 +57,20 @@ type MemberWithLocation struct {
 	AccuracyMeters *float64   `json:"accuracy_meters,omitempty"`
 }
 
+// InviteCode gates registration: a new user presents a valid, unexpired,
+// unused code to register, and is assigned the code's family and role.
+type InviteCode struct {
+	ID        string     `json:"id"`
+	Code      string     `json:"code"`
+	FamilyID  string     `json:"family_id"`
+	CreatedBy *string    `json:"created_by,omitempty"`
+	Role      Role       `json:"role"`
+	MaxUses   int        `json:"max_uses"`
+	Uses      int        `json:"uses"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
 // Device is a phone/tablet that reports location for a user.
 type Device struct {
 	ID                 string     `json:"id"`

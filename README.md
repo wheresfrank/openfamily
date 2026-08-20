@@ -114,6 +114,8 @@ location/
 | GET | `/family` | Get your family |
 | GET | `/family/members` | List members |
 | PATCH | `/family/members/{id}/role` | Change a member's role |
+| POST | `/family/invites` | Create an invite code for your family (admin only) |
+| POST | `/family/join` | Join a family by invite code |
 | GET | `/family/places` | List places |
 | POST | `/family/places` | Create a place |
 | PATCH | `/family/places/{id}` | Update a place |
@@ -136,9 +138,15 @@ admin SPA is served at `/admin` and calls these under `/api/admin/*`.
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/admin/families` | List every family |
+| POST | `/api/admin/families` | Create a family |
+| PATCH | `/api/admin/families/{id}` | Rename a family |
+| DELETE | `/api/admin/families/{id}` | Delete a family |
 | GET | `/api/admin/families/{id}/members` | List one family's members |
 | GET | `/api/admin/members` | List every member across all families |
+| PATCH | `/api/admin/members/{id}/family` | Move a member to another family |
 | GET | `/api/admin/places` | List every saved place (Home/School/Work) across all families |
+| GET | `/api/admin/invites` | List every invite code |
+| POST | `/api/admin/invites` | Create an invite code for any family |
 | GET | `/api/admin/apk` | Download the Android APK (served from `APK_DIR`) |
 | POST | `/api/admin/apk/build` | Kick off an APK build (optional; requires Flutter on the server) |
 | GET | `/api/admin/apk/status` | Poll APK build status (optional) |
@@ -317,12 +325,19 @@ Android APK.
 
 Platform admin is a per-user flag (`users.platform_admin`, migration `000013`),
 distinct from family admin. There is no self-service signup for it; the only way
-to grant it is to bootstrap the first admin via an environment variable:
+to grant it is to bootstrap the first admin via environment variables:
 
-1. Register (or already have) a normal account, e.g. `admin@example.com`.
-2. Set `PLATFORM_ADMIN_EMAIL=admin@example.com` in `.env`.
-3. Restart the API. On startup it promotes that user to `platform_admin = true`
-   (idempotent — safe to leave set across restarts).
+1. Set `PLATFORM_ADMIN_EMAIL=admin@example.com` and
+   `PLATFORM_ADMIN_PASSWORD=<a strong password>` in `.env`.
+2. Start the API. On startup it **auto-creates** that account (if it doesn't
+   already exist), marks it `platform_admin = true`, and creates a family for
+   it — so the admin is the **first user to log in**. If the account already
+   exists, it is simply promoted (idempotent — safe to leave set across
+   restarts).
+
+Setting `PLATFORM_ADMIN_EMAIL` also **closes open registration**: new users must
+register with a valid invite code (see [Invite codes](#invite-codes)). Leave it
+empty to keep open registration (and disable the admin panel).
 
 ### Use it
 
@@ -332,9 +347,36 @@ to grant it is to bootstrap the first admin via an environment variable:
    `/auth/login` flow, including TOTP 2FA if enabled).
 3. The **Dashboard** shows a live map of every family's members (with
    per-member color rings, status dots, movement badges, and Home/School/Work
-   place pins), streaming updates over `/api/admin/ws`. The **Groups** page
-   lists families and members; **APK** downloads the Android APK; **Settings**
-   shows your session token and API endpoints.
+   place pins), streaming updates over `/api/admin/ws`. The **Families** page
+   lists families and members and lets you **move a member to another family**,
+   rename/delete/create families, and generate invite codes; **APK** downloads
+   the Android APK; **Settings** shows your session token and API endpoints.
+
+### Invite codes
+
+When `PLATFORM_ADMIN_EMAIL` is set, registration is closed: a new user must
+present a valid invite code to register. Each code is bound to a family and
+assigns the joining user that family and role (admin/member/child), with a
+default 7-day expiry and single use.
+
+Codes are 8-character alphanumeric strings drawn from a Crockford-style
+alphabet (digits and letters, with the ambiguous `0`/`O` and `1`/`I`/`L`
+removed) — about 40 bits of entropy. They are case-insensitive and tolerate
+spaces/dashes on input (e.g. `ab12-cd34` matches `AB12CD34`).
+
+- **Family admins** generate codes from the app (the "Invite" flow calls
+  `POST /family/invites`).
+- **Platform admins** generate codes for any family from the web panel's
+  **Families** page (`POST /api/admin/invites`).
+- A new user registers with the code (`POST /auth/register` with
+  `invite_code`), or an already-registered user joins a family with
+  `POST /family/join`.
+
+### Terminology
+
+The shared-location group is called a **family** everywhere (backend, web
+admin, and app). Earlier builds used "group" and "circle" interchangeably for
+the same concept; those have been standardized to "family".
 
 ### APK builds (CI)
 
@@ -410,7 +452,8 @@ go build ./...         # re-embeds web/dist/ into the binary
 | `TLS_BEHIND_PROXY` | `false` | Set `true` when a reverse proxy terminates TLS |
 | `INSECURE_HTTP` | `false` | Explicit opt-out of TLS (trusted private networks only) |
 | `VERBOSE_PUSH` | `false` | Include the user's name in push payloads (default omits it) |
-| `PLATFORM_ADMIN_EMAIL` | *(empty)* | Email of the first platform admin; on startup the matching user is promoted to `platform_admin = true` (idempotent). This is the only way to grant platform-admin access to the web panel. |
+| `PLATFORM_ADMIN_EMAIL` | *(empty)* | Email of the first platform admin. On startup the matching user is promoted to `platform_admin = true`; if no such user exists, the account is auto-created (see `PLATFORM_ADMIN_PASSWORD`). Setting it also closes open registration (invite codes required). |
+| `PLATFORM_ADMIN_PASSWORD` | *(empty)* | Password for the auto-created first admin account (only used when `PLATFORM_ADMIN_EMAIL` is set and the account does not exist yet). |
 | `APNS_KEY_FILE` | *(empty)* | Path to the APNs `.p8` auth key (empty disables APNs) |
 | `APNS_KEY_ID` | *(empty)* | APNs key ID |
 | `APNS_TEAM_ID` | *(empty)* | Apple Developer team ID |

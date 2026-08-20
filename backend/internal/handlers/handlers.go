@@ -27,6 +27,13 @@ type Server struct {
 	// stream (empty = same-origin only). It mirrors config.AllowedOrigin.
 	AllowedOrigin string
 
+	// RequireInvite gates registration behind an invite code. When true, a new
+	// user must present a valid invite code to register (the auto-created first
+	// platform admin is the only exception). Set from config: true whenever
+	// PLATFORM_ADMIN_EMAIL is configured, so a managed server is closed by
+	// default.
+	RequireInvite bool
+
 	// APKDir is the directory served by GET /api/admin/apk and where successful
 	// builds are published (config: APK_DIR). Empty disables APK features.
 	APKDir string

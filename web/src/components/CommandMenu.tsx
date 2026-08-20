@@ -95,7 +95,7 @@ export function CommandMenu({ onNavigate }: CommandMenuProps) {
   }, [q, loaded])
 
   const select = (r: Result) => {
-    onNavigate(r.kind === 'family' ? 'groups' : 'dashboard')
+    onNavigate(r.kind === 'family' ? 'families' : 'dashboard')
     setOpen(false)
     setQuery('')
   }

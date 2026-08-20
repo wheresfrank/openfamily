@@ -1,6 +1,5 @@
 import 'api_client.dart';
 import 'background_location_service.dart';
-import 'profile_storage.dart';
 import 'token_storage.dart';
 
 /// Thrown when the backend requires a TOTP code (2FA) to complete login.
@@ -42,17 +41,20 @@ class AuthService {
   /// account exists without a session, so we throw [AccountCreatedException]
   /// (rather than leaving the user to re-submit sign-up and hit a 409).
   ///
-  /// [phone] is accepted for backward compatibility but is NOT sent to the
-  /// backend (which is email-only) and is not persisted. [photoPath] is still
-  /// stored locally; photo upload is a later piece.
+  /// [inviteCode], when provided, is validated by the server and assigns the
+  /// new user to the code's family and role. On a managed server it is required.
   static Future<void> signUp({
     required String email,
     required String password,
     required String name,
-    String? phone,
-    String? photoPath,
+    String? inviteCode,
   }) async {
-    await ApiClient.register(email: email, password: password, name: name);
+    await ApiClient.register(
+      email: email,
+      password: password,
+      name: name,
+      inviteCode: inviteCode,
+    );
     try {
       await _loginAndPersist(email: email, password: password);
     } catch (_) {
@@ -64,9 +66,6 @@ class AuthService {
       } catch (_) {
         throw const AccountCreatedException();
       }
-    }
-    if (photoPath != null) {
-      await ProfileStorage.savePhotoPath(photoPath);
     }
   }
 

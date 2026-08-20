@@ -2,7 +2,7 @@
 
 import React from 'react'
 
-export type RouteKey = 'dashboard' | 'groups' | 'builds' | 'settings'
+export type RouteKey = 'dashboard' | 'families' | 'builds' | 'settings'
 
 export interface RouteDef {
   key: RouteKey
@@ -35,9 +35,9 @@ export const ROUTES: RouteDef[] = [
     ),
   },
   {
-    key: 'groups',
-    label: 'Groups',
-    hash: '#/groups',
+    key: 'families',
+    label: 'Families',
+    hash: '#/families',
     icon: icon(
       <path
         d="M16 11a3 3 0 1 0-2.6-4.5M8 11a3 3 0 1 1 2.6-4.5M3 20c0-2.8 2-5 4.5-5h9C19 15 21 17.2 21 20M8 15a2.5 2.5 0 1 1 5 0"
