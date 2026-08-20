@@ -110,6 +110,9 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(mid.RequireAuth(tm))
 
+		r.Get("/me", srv.GetMe)
+		r.Patch("/me", srv.UpdateMe)
+
 		r.Post("/families", srv.CreateFamily)
 		r.Get("/family", srv.GetFamily)
 		r.Get("/family/members", srv.ListMembers)

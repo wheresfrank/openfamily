@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import 'profile_screen.dart';
 import 'welcome_screen.dart';
 
 /// The Settings screen. A simple list of account, notification, location, and
@@ -43,10 +44,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         children: [
           const _SectionHeader('Account'),
-          const ListTile(
-            leading: Icon(Icons.person_outline, color: AppColors.purple),
-            title: Text('Profile'),
-            trailing: Icon(Icons.chevron_right, color: AppColors.textMuted),
+          ListTile(
+            leading: const Icon(Icons.person_outline, color: AppColors.purple),
+            title: const Text('Profile'),
+            trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
+            ),
           ),
           const ListTile(
             leading: Icon(Icons.group_outlined, color: AppColors.purple),
