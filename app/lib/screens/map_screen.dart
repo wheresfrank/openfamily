@@ -241,6 +241,21 @@ class _MapScreenState extends State<MapScreen>
         .toList();
   }
 
+  /// Whether to draw the blue accuracy/range circle around this member: when
+  /// we have a live accuracy value, or the member is in the approximate
+  /// GPS-accuracy state (which implies significant uncertainty).
+  bool _showRange(Member m) =>
+      m.position != null &&
+      ((m.accuracyMeters != null && m.accuracyMeters! > 0) ||
+          m.status == MemberStatus.gpsIssue);
+
+  /// The radius (meters) of the blue range circle for this member — the real
+  /// GPS accuracy when known, otherwise the broader-zone fallback.
+  double _rangeFor(Member m) =>
+      (m.accuracyMeters != null && m.accuracyMeters! > 0)
+          ? m.accuracyMeters!
+          : kApproxZoneRadiusMeters;
+
   /// Smoothly animates the camera to [center] at [zoom].
   void _animateTo(LatLng center, double zoom) {
     _cameraAnim?.dispose();
@@ -504,20 +519,22 @@ class _MapScreenState extends State<MapScreen>
                 urlTemplate: _satellite ? kSatelliteTileUrl : kTileUrl,
                 userAgentPackageName: 'com.whereabouts.whereabouts',
               ),
-              // "Broader zone" for members whose location is only
-              // approximate: a translucent purple circle. Drawn ONLY for
-              // the purple GPS-accuracy issue state — the orange warning
-              // (low battery / accuracy) state does not get a broader zone.
+              // Blue "range" circle for members whose location accuracy is
+              // known (or who are in the approximate GPS-accuracy state).
+              // The radius is the member's real GPS accuracy in meters, so the
+              // circle shows how uncertain the fix is. Drawn for every member
+              // that has a live accuracy value; approximate/flagged members
+              // fall back to the broader-zone radius.
               CircleLayer(
                 circles: [
                   for (final Member m in members)
-                    if (m.status == MemberStatus.gpsIssue && m.position != null)
+                    if (_showRange(m))
                       CircleMarker(
                         point: m.position!,
-                        radius: kApproxZoneRadiusMeters,
+                        radius: _rangeFor(m),
                         useRadiusInMeter: true,
-                        color: AppColors.statusPurple.withValues(alpha: 0.12),
-                        borderColor: AppColors.statusPurple.withValues(alpha: 0.5),
+                        color: AppColors.accuracyBlue.withValues(alpha: 0.12),
+                        borderColor: AppColors.accuracyBlue.withValues(alpha: 0.5),
                         borderStrokeWidth: 2,
                       ),
                 ],

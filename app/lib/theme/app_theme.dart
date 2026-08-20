@@ -24,6 +24,11 @@ abstract final class AppColors {
   /// Member status — GPS accuracy issue (broader zone).
   static const Color statusPurple = Color(0xFFAF52DE);
 
+  /// Accuracy / uncertainty range drawn around a member whose GPS fix is only
+  /// approximate. Blue so it reads as a range rather than the purple
+  /// brand/status accent.
+  static const Color accuracyBlue = Color(0xFF3B82F6);
+
   /// Member status — updates stopped (phone off / no signal).
   static const Color statusGrey = Color(0xFF8E8E93);
 

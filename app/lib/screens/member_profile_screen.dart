@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../models/member.dart';
+import '../services/app_config.dart';
 import '../theme/app_theme.dart';
 import '../widgets/member_avatar_bubble.dart';
 import '../widgets/movement_icon.dart';
@@ -54,6 +57,12 @@ class MemberProfileScreen extends StatelessWidget {
               ),
             ],
           ),
+          if (member.position != null) ...[
+            const SizedBox(height: 20),
+            // A live map pinning the member, with the blue circle showing the
+            // range (GPS accuracy) around their fix.
+            _AccuracyMapPreview(member: member),
+          ],
           const SizedBox(height: 24),
           _DetailRow(
             icon: Icon(_batteryIcon(), size: 22, color: _batteryColor()),
@@ -77,6 +86,15 @@ class MemberProfileScreen extends StatelessWidget {
             ),
             label: 'Status',
             value: _drivingStatus(),
+          ),
+          _DetailRow(
+            icon: const Icon(
+              Icons.gps_fixed,
+              size: 22,
+              color: AppColors.accuracyBlue,
+            ),
+            label: 'Accuracy',
+            value: _accuracyLabel,
           ),
           _DetailRow(
             icon: const Icon(
@@ -117,6 +135,83 @@ class MemberProfileScreen extends StatelessWidget {
     }
     if (member.movement == MovementType.none) return 'Not moving';
     return member.movement.label;
+  }
+
+  /// Human-readable GPS accuracy label (e.g. "± 45 m"), or "—" when the member
+  /// has never reported a location.
+  String get _accuracyLabel {
+    if (member.position == null) return '—';
+    final double? acc = member.accuracyMeters;
+    if (acc == null || acc <= 0) return 'Unknown';
+    final int metres = acc < 1 ? 1 : acc.round();
+    return '± $metres m';
+  }
+}
+
+/// A compact map pinning a single member with a blue circle that shows the
+/// range (GPS accuracy) around their current position.
+class _AccuracyMapPreview extends StatelessWidget {
+  const _AccuracyMapPreview({required this.member});
+
+  final Member member;
+
+  @override
+  Widget build(BuildContext context) {
+    final LatLng center = member.position!;
+    final double metres = _radiusFor();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        height: 200,
+        width: double.infinity,
+        child: FlutterMap(
+          options: MapOptions(
+            initialCenter: center,
+            initialZoom: 15,
+            interactionOptions: const InteractionOptions(
+              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+            ),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: kTileUrl,
+              userAgentPackageName: 'com.whereabouts.whereabouts',
+            ),
+            CircleLayer(
+              circles: [
+                CircleMarker(
+                  point: center,
+                  radius: metres,
+                  useRadiusInMeter: true,
+                  color: AppColors.accuracyBlue.withValues(alpha: 0.12),
+                  borderColor: AppColors.accuracyBlue.withValues(alpha: 0.5),
+                  borderStrokeWidth: 2,
+                ),
+              ],
+            ),
+            MarkerLayer(
+              markers: [
+                Marker(
+                  point: center,
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  child: StatusAvatar(member: member, size: 40),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  double _radiusFor() {
+    final double? acc = member.accuracyMeters;
+    if (acc == null || acc <= 0) {
+      return member.status == MemberStatus.gpsIssue ? 300.0 : 50.0;
+    }
+    return acc;
   }
 }
 

@@ -97,6 +97,7 @@ class Member {
     this.waypoints,
     this.history = const [],
     this.lastSeen,
+    this.accuracyMeters,
   });
 
   final String id;
@@ -144,6 +145,11 @@ class Member {
   /// member whose updates stop transitions to the grey "stopped" status.
   final DateTime? lastSeen;
 
+  /// GPS accuracy in meters — the uncertainty radius of the reported fix.
+  /// Null when the backend didn't provide an accuracy value. Used to draw the
+  /// blue "range" circle around the member and to label their accuracy.
+  final double? accuracyMeters;
+
   /// Whether this member is driving fast enough to show the "race car with
   /// flames" variant.
   bool get isSpeeding =>
@@ -176,6 +182,7 @@ class Member {
     int? speedMph,
     String? eta,
     DateTime? lastSeen,
+    double? accuracyMeters,
   }) {
     return Member(
       id: id,
@@ -192,6 +199,7 @@ class Member {
       waypoints: waypoints,
       history: history,
       lastSeen: lastSeen ?? this.lastSeen,
+      accuracyMeters: accuracyMeters ?? this.accuracyMeters,
     );
   }
 }
