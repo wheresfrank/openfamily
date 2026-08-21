@@ -5,43 +5,72 @@ import '../theme/app_theme.dart';
 import 'member_avatar_bubble.dart';
 import 'movement_icon.dart';
 
-/// The member list that lives inside the draggable bottom sheet on the map.
+/// The Family member-list bottom panel on the map.
 ///
-/// When the sheet is collapsed it renders a slim [compact] strip — a single
-/// row of member avatars — so the family is glanceable without swallowing the
-/// map. Dragging the sheet up expands it to the full list: a drag handle, the
-/// circle header, a scrollable list of member rows, and an "Add a person" row
-/// pinned at the bottom. The list is driven by the [scrollController] supplied
-/// by the enclosing [DraggableScrollableSheet] so dragging also drags the sheet.
-class MemberListSheet extends StatelessWidget {
+/// Self-contained and fully deterministic: the expanded/collapsed state is a
+/// plain [State] flag toggled by tapping the header (or the chevron), so the
+/// panel always works regardless of drag Gesture recognition in compact mode.
+/// A slim handle remains as a purely visual affordance that the panel can be
+/// raised; it is not required for interaction.
+///
+/// Collapsed it renders a short card: a drag handle, a tappable header (circle
+/// name + member count + chevron + a round "+" add button), and a single row
+/// of member avatar chips — so the family stays glanceable on the map. Tapping
+/// the header expands it to the full list: header, a scrollable list of member
+/// rows (battery % / ETA / speed chips + address), and an "Add a person" row
+/// pinned at the bottom. The panel is anchored to the bottom and grows upward,
+/// never covering the fixed control bar below it.
+class MemberListSheet extends StatefulWidget {
   const MemberListSheet({
     super.key,
-    required this.scrollController,
     required this.circleName,
     required this.members,
-    required this.onMemberTap,
-    required this.onAddPerson,
-    // When true (sheet collapsed), renders a slim avatar strip instead of the
-    // full rows, so the family takes far less room when you are not using it.
-    this.compact = false,
+    this.onMemberTap,
+    this.onAddPerson,
+    this.onShowActions,
   });
 
-  final ScrollController scrollController;
   final String circleName;
   final List<Member> members;
-  final ValueChanged<Member> onMemberTap;
-  final VoidCallback onAddPerson;
-  final bool compact;
+  final ValueChanged<Member>? onMemberTap;
+
+  /// Opens the "Add a person / Send Code" invite flow.
+  final VoidCallback? onAddPerson;
+
+  /// Opens the add-actions menu (Check In / Help Alert / Invite).
+  final VoidCallback? onShowActions;
+
+  @override
+  State<MemberListSheet> createState() => _MemberListSheetState();
+}
+
+class _MemberListSheetState extends State<MemberListSheet> {
+  bool _expanded = false;
+
+  void _toggle() {
+    setState(() => _expanded = !_expanded);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final List<Member> members = widget.members;
     return _sheetSurface(
-      child: compact ? _buildCompact() : _buildFull(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const _DragHandle(),
+          _buildHeader(context),
+          if (_expanded)
+            _buildFullList(members)
+          else
+            _buildCompactStrip(members),
+        ],
+      ),
     );
   }
 
-  /// The shared gradient card with rounded top corners that wraps either the
-  /// compact strip or the full member list, so both blend with the map.
+  /// The shared gradient card with rounded top corners that wraps the panel so
+  /// it blends with the map.
   Container _sheetSurface({required Widget child}) {
     return Container(
       decoration: const BoxDecoration(
@@ -59,121 +88,141 @@ class MemberListSheet extends StatelessWidget {
     );
   }
 
-  /// Collapsed view: a drag handle, a compact header, and a single row of
-  /// member avatars. Much shorter than the full list, so the map gets the
-  /// room back, while members stay visible and tappable at a glance.
-  Widget _buildCompact() {
+  /// Header row: circle name, member count, and on the trailing side a chevron
+  /// that expands/collapses the panel plus a round "+" add button. The whole
+  /// row is tappable so expanding never depends on a swipe gesture.
+  Widget _buildHeader(BuildContext context) {
+    final void Function()? showActions = widget.onShowActions;
+
+    return InkWell(
+      onTap: _toggle,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 12, 6),
+        child: Row(
+          children: [
+            Text(
+              widget.circleName,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 8),
+            _CountChip(count: widget.members.length),
+            const Spacer(),
+            Icon(
+              _expanded ? Icons.expand_more : Icons.expand_less,
+              size: 22,
+              color: AppColors.textMuted,
+            ),
+            const SizedBox(width: 4),
+            _AddButton(onTap: showActions),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Collapsed view: a single row of member avatars so the family stays
+  /// glanceable without swallowing the map. The header above it remains
+  /// tappable to expand the full list.
+  Widget _buildCompactStrip(List<Member> members) {
     final List<Widget> chips = <Widget>[];
     final int shown = members.length < 8 ? members.length : 8;
     for (int i = 0; i < shown; i++) {
       final Member m = members[i];
       chips.add(
-        _AvatarChip(member: m, onTap: () => onMemberTap(m)),
+        _AvatarChip(member: m, onTap: () => widget.onMemberTap?.call(m)),
       );
     }
     final int rest = members.length - shown;
 
-    return Column(
-      children: [
-        _DragHandle(),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
-          child: Row(
-            children: [
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            ...chips,
+            if (rest > 0)
               Text(
-                circleName,
+                '+$rest',
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
                 ),
               ),
-              const SizedBox(width: 6),
-              _CountChip(count: members.length),
-              const Spacer(),
-              const Text(
-                'Swipe up for the full list',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-              ),
-            ],
-          ),
+          ],
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              ...chips,
-              if (rest > 0)
-                Text(
-                  '+$rest',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  /// Expanded view: the original full member list (header, scrollable rows,
-  /// and the "Add a person" footer).
-  Widget _buildFull() {
+  /// Expanded view: a scrollable list of full member rows (battery %, ETA,
+  /// speed chips and address) plus an "Add a person" footer. The list is
+  /// shrink-wrapped so the panel sizes itself to the content, but the panel's
+  /// own max height (set by the enclosing [ConstrainedBox]) caps it and lets
+  /// a long list scroll within that bound.
+  Widget _buildFullList(List<Member> members) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Drag handle.
-        _DragHandle(),
-        // Header.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
-          child: Row(
-            children: [
-              Text(
-                circleName,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 8),
-              _CountChip(count: members.length),
-            ],
+        ListView.separated(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 4),
+          itemCount: members.length,
+          separatorBuilder: (_, __) => const Divider(
+            height: 1,
+            indent: 76,
+            color: Color(0x11000000),
           ),
+          itemBuilder: (context, index) {
+            final Member member = members[index];
+            return _MemberRow(
+              member: member,
+              onTap: () => widget.onMemberTap?.call(member),
+            );
+          },
         ),
-        // Member rows — the full row (battery %, ETA, address) is always
-        // visible here so members stay glanceable with full context.
-        Expanded(
-          child: ListView.separated(
-            controller: scrollController,
-            padding: const EdgeInsets.only(bottom: 4),
-            itemCount: members.length,
-            separatorBuilder: (_, __) => const Divider(
-              height: 1,
-              indent: 76,
-              color: Color(0x11000000),
-            ),
-            itemBuilder: (context, index) {
-              final Member member = members[index];
-              return _MemberRow(
-                member: member,
-                onTap: () => onMemberTap(member),
-              );
-            },
-          ),
-        ),
-        // Add a person.
-        _AddPersonRow(onTap: onAddPerson),
+        _AddPersonRow(onTap: widget.onAddPerson),
       ],
     );
   }
 }
 
-/// The drag handle pill at the top of the sheet.
+/// A small round "+" button in the panel header that opens the add-actions
+/// menu (Check In / Help Alert / Invite).
+class _AddButton extends StatelessWidget {
+  const _AddButton({this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Add — Check In / Help Alert / Invite',
+      child: Material(
+        color: AppColors.purple.withValues(alpha: 0.12),
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: const Padding(
+            padding: EdgeInsets.all(8),
+            child: Icon(Icons.add, size: 20, color: AppColors.purple),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The drag handle pill at the top of the panel. Purely a visual affordance
+/// (the panel is expanded/collapsed by tapping the header).
 class _DragHandle extends StatelessWidget {
   const _DragHandle();
 
@@ -351,9 +400,8 @@ class _MemberRow extends StatelessWidget {
       chips.add(
         _StatusChip(
           icon: Icons.directions_car,
-          color: member.isSpeeding
-              ? const Color(0xFFE65100)
-              : AppColors.purple,
+          color:
+              member.isSpeeding ? const Color(0xFFE65100) : AppColors.purple,
           label: '${member.speedMph} mph',
         ),
       );
@@ -416,11 +464,11 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-/// "Add a person" row pinned at the bottom of the member list.
+/// "Add a person" row pinned at the bottom of the expanded member list.
 class _AddPersonRow extends StatelessWidget {
-  const _AddPersonRow({required this.onTap});
+  const _AddPersonRow({this.onTap});
 
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -437,7 +485,11 @@ class _AddPersonRow extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: AppColors.purple.withValues(alpha: 0.12),
               ),
-              child: const Icon(Icons.person_add_alt_1, size: 20, color: AppColors.purple),
+              child: const Icon(
+                Icons.person_add_alt_1,
+                size: 20,
+                color: AppColors.purple,
+              ),
             ),
             const SizedBox(width: 12),
             const Expanded(

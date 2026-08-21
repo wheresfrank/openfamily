@@ -39,15 +39,15 @@ const double kApproxZoneRadiusMeters = 300.0;
 /// A full-bleed live map is the background — it extends behind *everything*.
 /// A Circle switcher floats at the top, member avatar bubbles are pinned to
 /// their locations (clustered and fanned out when near each other), and a
-/// draggable bottom sheet lists members as rows (locked to the map).
+/// Family member-list panel sits above the bottom control bar.
 ///
 /// The bottom control bar — a large, dominant SOS button plus Places / Keys /
 /// a labeled Safety tab and a Settings gear pinned bottom-right — is FIXED and
-/// pinned to the very bottom of the screen, always visible. The member sheet
-/// slides up over the *map* and its maximum extent stops *above* the control
-/// bar, so the controls (and SOS) are never covered. A `+` FAB floats at
-/// bottom-center and tracks the sheet's top edge, so it moves up with the
-/// sheet and never overlaps the member rows.
+/// pinned to the very bottom of the screen, always visible. The Family panel
+/// is anchored directly above it and grows upward over the *map*; its maximum
+/// extent stops *above* the control bar, so the controls (and SOS) are never
+/// covered. Tapping the panel header expands/collapses the member list and
+/// reveals a "+" add button, with no drag gesture required.
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -57,16 +57,13 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  static const double _minSheetSize = 0.12;
-  static const double _midSheetSize = 0.5;
-  static const double _maxSheetSize = 0.9;
-
-  /// Below this sheet size the member list renders its slim compact avatar
-  /// strip; at/above it the full member list appears.
-  static const double _expandSheetSize = 0.3;
-
   /// Zoom the camera animates to when a cluster is expanded.
   static const double _expandZoom = 16.0;
+
+  /// The member panel's maximum extent as a fraction of the area above the
+  /// fixed control bar. The panel grows upward from the bottom, so it never
+  /// covers the controls.
+  static const double _maxPanelFraction = 0.6;
 
   final MapController _mapController = MapController();
 
@@ -105,10 +102,6 @@ class _MapScreenState extends State<MapScreen>
 
   // Camera animation controller for smooth recentering.
   AnimationController? _cameraAnim;
-
-  // Drives the draggable sheet so the `+` FAB can track its top edge.
-  final DraggableScrollableController _sheetController =
-      DraggableScrollableController();
 
   @override
   void initState() {
@@ -203,7 +196,6 @@ class _MapScreenState extends State<MapScreen>
     _reporter.stop();
     _familyService.dispose();
     _cameraAnim?.dispose();
-    _sheetController.dispose();
     super.dispose();
   }
 
@@ -621,65 +613,35 @@ class _MapScreenState extends State<MapScreen>
             ),
           ),
 
-          // Bottom: draggable member sheet, locked to the map. Constrained to
-          // the area ABOVE the fixed control bar, so it slides up over the map
-          // and stops before ever covering the controls (SOS stays visible).
+          // Bottom: the Family member panel, anchored above the fixed control
+          // bar. It grows upward from the bottom and its maximum extent is a
+          // fraction of the area above the controls, so push notifications and
+          // the control bar are never covered. Expanding/collapsing is driven
+          // by tapping the panel header (no drag gesture required).
           Positioned(
-            top: 0,
             left: 0,
             right: 0,
             bottom: controlBarReserved,
-            child: DraggableScrollableSheet(
-              controller: _sheetController,
-              initialChildSize: _minSheetSize,
-              minChildSize: _minSheetSize,
-              maxChildSize: _maxSheetSize,
-              snap: true,
-              snapSizes: const [_minSheetSize, _midSheetSize, _maxSheetSize],
-              builder: (context, scrollController) {
-                return MemberListSheet(
-                  scrollController: scrollController,
+            child: SafeArea(
+              top: false,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: sheetAreaHeight * _maxPanelFraction,
+                ),
+                child: MemberListSheet(
                   circleName: _familyName,
                   members: members,
                   onMemberTap: _recenterOn,
                   onAddPerson: _openAddPerson,
-                  compact: _sheetController.size < _expandSheetSize,
-                );
-              },
-            ),
-          ),
-
-          // Bottom-center `+` FAB. It tracks the sheet's top edge (via the
-          // sheet controller) so it moves up with the sheet and never overlaps
-          // the member rows.
-          AnimatedBuilder(
-            animation: _sheetController,
-            builder: (context, _) {
-              final double sheetSize = _sheetController.size < _minSheetSize
-                  ? _minSheetSize
-                  : _sheetController.size;
-              final double sheetTop =
-                  controlBarReserved + sheetAreaHeight * sheetSize;
-              return Positioned(
-                left: 0,
-                right: 0,
-                bottom: sheetTop + 12,
-                child: Center(
-                  child: FloatingActionButton(
-                    onPressed: _showAddActions,
-                    backgroundColor: AppColors.purple,
-                    foregroundColor: Colors.white,
-                    tooltip: 'Add — Check In / Help Alert / Invite',
-                    child: const Icon(Icons.add),
-                  ),
+                  onShowActions: _showAddActions,
                 ),
-              );
-            },
+              ),
+            ),
           ),
 
           // Fixed bottom control bar (SOS + Places / Keys / Safety tab +
           // Settings gear), pinned to the very bottom and always visible.
-          // Drawn last so it sits above the map; the sheet never reaches it.
+          // Drawn last so it sits above the map; the panel never reaches it.
           Positioned(
             left: 0,
             right: 0,
