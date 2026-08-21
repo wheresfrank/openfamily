@@ -10,6 +10,7 @@ import type {
   InviteCode,
   LoginResponse,
   Member,
+  Profile,
   Role,
 } from './types'
 
@@ -54,28 +55,49 @@ async function refreshTokens(): Promise<boolean> {
 
 interface RequestOptions {
   method?: string
+  /** A value serialized as JSON. */
   body?: unknown
+  /** A body that must be passed to fetch unchanged, such as a File or Blob. */
+  rawBody?: BodyInit
+  /** Explicit content type for a raw body. */
+  contentType?: string
   /** Set to true to skip the auth header (used by login itself). */
   noAuth?: boolean
   /** Expect a binary response instead of JSON. */
   binary?: boolean
+  /** Override the default Accept header. */
+  accept?: string
 }
 
 async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = {
-    Accept: 'application/json',
+    Accept: opts.accept ?? (opts.binary ? '*/*' : 'application/json'),
   }
-  if (opts.body !== undefined) headers['Content-Type'] = 'application/json'
+  if (opts.body !== undefined && opts.rawBody !== undefined) {
+    throw new Error('Use either body or rawBody, not both')
+  }
+  if (opts.body !== undefined) {
+    headers['Content-Type'] = 'application/json'
+  } else if (opts.rawBody !== undefined && opts.contentType) {
+    headers['Content-Type'] = opts.contentType
+  }
   if (!opts.noAuth) {
     const token = getAccessToken()
     if (token) headers.Authorization = `Bearer ${token}`
   }
 
+  const requestBody =
+    opts.rawBody !== undefined
+      ? opts.rawBody
+      : opts.body !== undefined
+        ? JSON.stringify(opts.body)
+        : undefined
+
   const doFetch = (): Promise<Response> =>
     fetch(path.startsWith('http') ? path : `${path.startsWith('/api') || path.startsWith('/auth') ? '' : API_BASE}${path}`, {
       method: opts.method ?? 'GET',
       headers,
-      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      body: requestBody,
     })
 
   let res = await doFetch()
@@ -108,11 +130,11 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     throw new ApiError(res.status, message)
   }
 
+  if (res.status === 204) return undefined as unknown as T
   if (opts.binary) {
     // Caller wants the raw blob.
     return (await res.blob()) as unknown as T
   }
-  if (res.status === 204) return undefined as unknown as T
   return (await res.json()) as T
 }
 
@@ -138,6 +160,31 @@ export async function login(email: string, password: string): Promise<LoginRespo
     noAuth: true,
     body: { email, password },
   })
+}
+
+// ---- Profile ----
+
+export function getProfile(): Promise<Profile> {
+  return request<Profile>('/api/profile')
+}
+
+/** Returns the current user's avatar image bytes. */
+export function getProfileAvatar(): Promise<Blob> {
+  return request<Blob>('/api/profile/avatar', { binary: true, accept: 'image/jpeg, image/png, image/*;q=0.8, */*;q=0.1' })
+}
+
+/** Upload a JPEG or PNG avatar as the raw request body. */
+export function uploadProfileAvatar(file: File): Promise<void> {
+  return request<void>('/api/profile/avatar', {
+    method: 'PUT',
+    rawBody: file,
+    contentType: file.type,
+  })
+}
+
+/** Remove the current user's avatar. */
+export function deleteProfileAvatar(): Promise<void> {
+  return request<void>('/api/profile/avatar', { method: 'DELETE' })
 }
 
 // ---- Admin endpoints ----

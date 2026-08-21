@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../models/user_profile.dart';
 import 'server_config.dart';
 import 'token_storage.dart';
 
@@ -49,6 +51,12 @@ class ApiClient {
   ApiClient._();
 
   static const Duration _timeout = Duration(seconds: 15);
+
+  /// Maximum number of bytes accepted by the profile-avatar endpoint.
+  ///
+  /// Keep this client-side guard aligned with the server limit so an oversized
+  /// selection fails before it consumes a network request.
+  static const int maxProfileAvatarBytes = 5 * 1024 * 1024;
 
   /// Invoked when a session expires and cannot be recovered by refresh.
   ///
@@ -172,6 +180,87 @@ class ApiClient {
     return data as Map<String, dynamic>;
   }
 
+  /// GET /api/profile → the authenticated user's private profile information.
+  ///
+  /// Avatar image data is deliberately fetched separately via
+  /// [getProfileAvatar], rather than as a URL embedded in profile or member
+  /// data. This keeps the image behind the authenticated API request.
+  static Future<UserProfile> getProfile() async {
+    final dynamic data = await _send('GET', _uri('/api/profile'));
+    return UserProfile.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// GET /api/profile/avatar → private avatar image bytes, or null when none is
+  /// set (the endpoint uses 404 for that case).
+  ///
+  /// This uses the same Bearer-token injection and one-time 401 refresh/retry
+  /// path as JSON API calls. The image never needs to be exposed as a public
+  /// URL.
+  static Future<Uint8List?> getProfileAvatar() async {
+    final http.Response response = await _sendResponse(
+      'GET',
+      _uri('/api/profile/avatar'),
+      accept: 'image/jpeg, image/png, application/json',
+    );
+    if (response.statusCode == 404) return null;
+    _ensureSuccess(response);
+
+    final String contentType =
+        (response.headers['content-type'] ?? '').split(';').first.trim();
+    if (contentType != 'image/jpeg' && contentType != 'image/png') {
+      throw const ApiException(
+        0,
+        'The server returned an unsupported profile photo format.',
+      );
+    }
+    if (response.bodyBytes.isEmpty ||
+        response.bodyBytes.length > maxProfileAvatarBytes ||
+        !_matchesAvatarContentType(response.bodyBytes, contentType)) {
+      throw const ApiException(
+          0, 'The profile photo returned by the server is invalid.');
+    }
+    return response.bodyBytes;
+  }
+
+  /// PUT /api/profile/avatar with raw JPEG or PNG bytes.
+  ///
+  /// The endpoint returns 204 No Content on success. Validation is repeated
+  /// here (in addition to the UI) so any future caller cannot accidentally
+  /// upload an unsupported or oversized payload.
+  static Future<void> uploadProfileAvatar({
+    required Uint8List bytes,
+    required String contentType,
+  }) async {
+    final String normalizedType =
+        contentType.toLowerCase().split(';').first.trim();
+    if (bytes.isEmpty) {
+      throw const ApiException(0, 'Choose a JPEG or PNG image to upload.');
+    }
+    if (bytes.length > maxProfileAvatarBytes) {
+      throw const ApiException(0, 'Profile photos must be 5 MB or smaller.');
+    }
+    if (!_matchesAvatarContentType(bytes, normalizedType)) {
+      throw const ApiException(0, 'Profile photos must be JPEG or PNG images.');
+    }
+
+    final http.Response response = await _sendResponse(
+      'PUT',
+      _uri('/api/profile/avatar'),
+      bytes: bytes,
+      contentType: normalizedType,
+    );
+    _ensureSuccess(response);
+  }
+
+  /// DELETE /api/profile/avatar. A missing response body (204) is successful.
+  static Future<void> deleteProfileAvatar() async {
+    final http.Response response = await _sendResponse(
+      'DELETE',
+      _uri('/api/profile/avatar'),
+    );
+    _ensureSuccess(response);
+  }
+
   // ---------------------------------------------------------------------------
   // Generic verbs (for later pieces)
   // ---------------------------------------------------------------------------
@@ -209,14 +298,54 @@ class ApiClient {
     Object? body,
     bool auth = true,
   }) async {
-    final http.Response response =
-        await _rawSend(method, uri, body: body, auth: auth);
+    final http.Response response = await _sendResponse(
+      method,
+      uri,
+      body: body,
+      // Preserve the JSON headers used by the original generic API helpers,
+      // including for bodyless GET requests.
+      contentType: 'application/json',
+      auth: auth,
+    );
+    return _decode(response);
+  }
+
+  /// Sends a request whose response is not necessarily JSON, transparently
+  /// refreshing the access token and retrying once on 401.
+  ///
+  /// Profile-avatar operations use this to upload raw bytes and download image
+  /// data while retaining exactly the authentication behavior of [_send].
+  static Future<http.Response> _sendResponse(
+    String method,
+    Uri uri, {
+    Object? body,
+    Uint8List? bytes,
+    String? contentType,
+    String? accept,
+    bool auth = true,
+  }) async {
+    final http.Response response = await _rawSend(
+      method,
+      uri,
+      body: body,
+      bytes: bytes,
+      contentType: contentType,
+      accept: accept,
+      auth: auth,
+    );
 
     if (response.statusCode == 401 && auth) {
       final bool refreshed = await _tryRefresh();
       if (refreshed) {
-        final http.Response retry =
-            await _rawSend(method, uri, body: body, auth: auth);
+        final http.Response retry = await _rawSend(
+          method,
+          uri,
+          body: body,
+          bytes: bytes,
+          contentType: contentType,
+          accept: accept,
+          auth: auth,
+        );
         if (retry.statusCode == 401) {
           // Refresh succeeded but the retry still 401s: the session is truly
           // dead. Clear the (fresh) tokens and surface the auth failure.
@@ -224,13 +353,13 @@ class ApiClient {
           _notifySessionExpired();
           throw const SessionExpiredException();
         }
-        return _decode(retry);
+        return retry;
       }
       _notifySessionExpired();
       throw const SessionExpiredException();
     }
 
-    return _decode(response);
+    return response;
   }
 
   /// Performs the actual HTTP request with auth headers injected.
@@ -238,6 +367,9 @@ class ApiClient {
     String method,
     Uri uri, {
     Object? body,
+    Uint8List? bytes,
+    String? contentType,
+    String? accept,
     bool auth = true,
   }) async {
     if (ServerConfig.instance.apiBaseUrl.isEmpty) {
@@ -249,9 +381,13 @@ class ApiClient {
     }
 
     final Map<String, String> headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      'Accept': accept ?? 'application/json',
     };
+    if (contentType != null) {
+      headers['Content-Type'] = contentType;
+    } else if (body != null) {
+      headers['Content-Type'] = 'application/json';
+    }
     if (auth) {
       final String? token = await TokenStorage.readAccessToken();
       if (token != null) {
@@ -259,7 +395,7 @@ class ApiClient {
       }
     }
 
-    final String? encoded = body == null ? null : jsonEncode(body);
+    final Object? encoded = bytes ?? (body == null ? null : jsonEncode(body));
 
     try {
       switch (method) {
@@ -273,12 +409,17 @@ class ApiClient {
           return await http
               .patch(uri, headers: headers, body: encoded)
               .timeout(_timeout);
+        case 'PUT':
+          return await http
+              .put(uri, headers: headers, body: encoded)
+              .timeout(_timeout);
         case 'DELETE':
           return await http
               .delete(uri, headers: headers, body: encoded)
               .timeout(_timeout);
         default:
-          throw ArgumentError.value(method, 'method', 'Unsupported HTTP method');
+          throw ArgumentError.value(
+              method, 'method', 'Unsupported HTTP method');
       }
     } on TimeoutException {
       throw const ApiException(0, 'The request timed out. Please try again.');
@@ -417,12 +558,18 @@ class ApiClient {
 
   /// Decodes a response body, throwing [ApiException] on non-2xx statuses.
   static dynamic _decode(http.Response response) {
-    final String body = response.body;
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      final String body = response.body;
       if (body.isEmpty) return null;
       return jsonDecode(body);
     }
 
+    _throwForError(response);
+  }
+
+  /// Throws an [ApiException] using the backend's error JSON when available.
+  static Never _throwForError(http.Response response) {
+    final String body = response.body;
     String message = 'Request failed (${response.statusCode}).';
     try {
       final dynamic decoded = jsonDecode(body);
@@ -433,5 +580,35 @@ class ApiClient {
       // Non-JSON error body; keep the generic message.
     }
     throw ApiException(response.statusCode, message);
+  }
+
+  /// Ensures a raw-response API call succeeded, including 204 No Content.
+  static void _ensureSuccess(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) return;
+    _throwForError(response);
+  }
+
+  /// Verifies that raw image bytes match the content type we are about to put
+  /// on the wire. Server-side decoding remains authoritative, but this avoids
+  /// trusting a filename or picker-provided MIME label alone.
+  static bool _matchesAvatarContentType(Uint8List bytes, String contentType) {
+    if (contentType == 'image/jpeg') {
+      return bytes.length >= 3 &&
+          bytes[0] == 0xff &&
+          bytes[1] == 0xd8 &&
+          bytes[2] == 0xff;
+    }
+    if (contentType == 'image/png') {
+      return bytes.length >= 8 &&
+          bytes[0] == 0x89 &&
+          bytes[1] == 0x50 &&
+          bytes[2] == 0x4e &&
+          bytes[3] == 0x47 &&
+          bytes[4] == 0x0d &&
+          bytes[5] == 0x0a &&
+          bytes[6] == 0x1a &&
+          bytes[7] == 0x0a;
+    }
+    return false;
   }
 }

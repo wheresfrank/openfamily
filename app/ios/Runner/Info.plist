@@ -47,6 +47,8 @@
 	<!-- Motion & fitness (Core Motion) — requested only on supported devices. -->
 	<key>NSMotionUsageDescription</key>
 	<string>Whereabouts uses motion &amp; fitness to detect when you're driving, biking, or walking.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Whereabouts lets you choose a profile photo from your photo library.</string>
 	<!-- Face ID is used only when the user enables biometric app unlock. -->
 	<key>NSFaceIDUsageDescription</key>
 	<string>Whereabouts uses Face ID to unlock your private family location map.</string>
