@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// A pill-shaped switcher at the top of the map that swaps the map's
-/// population between circles (e.g. "Family" vs "Friends"). A trailing `+`
-/// chip opens the "Join a Circle" flow.
+/// A compact circle control at the top of the map.
+///
+/// With one circle it is simply contextual information plus a small join
+/// action; rendering a full segmented control when there is nothing to switch
+/// makes the map header feel oversized and non-functional. If several circles
+/// are available, it grows into a switcher.
 class CircleSwitcher extends StatelessWidget {
   const CircleSwitcher({
     super.key,
@@ -12,16 +15,27 @@ class CircleSwitcher extends StatelessWidget {
     required this.selectedIndex,
     required this.onSelected,
     this.onJoinCircle,
+    this.alignment = Alignment.center,
   });
 
   final List<String> circles;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final VoidCallback? onJoinCircle;
+  final AlignmentGeometry alignment;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    if (circles.length == 1) {
+      return _SingleCircleContext(
+        label: circles.single,
+        onJoinCircle: onJoinCircle,
+        alignment: alignment,
+      );
+    }
+
+    return Align(
+      alignment: alignment,
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
@@ -53,6 +67,109 @@ class CircleSwitcher extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The single-circle state is intentionally not a fake tab. The name tells
+/// the user whose locations they are viewing, while the adjacent circular
+/// affordance keeps joining another circle available without competing with
+/// the map or member drawer.
+class _SingleCircleContext extends StatelessWidget {
+  const _SingleCircleContext({
+    required this.label,
+    required this.alignment,
+    this.onJoinCircle,
+  });
+
+  final String label;
+  final VoidCallback? onJoinCircle;
+  final AlignmentGeometry alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // The map reserves a right-hand rail for layer/location controls.
+        // Let a long circle name shrink inside the remaining width instead of
+        // extending underneath those controls on a narrow screen.
+        final double availableWidth =
+            constraints.maxWidth.isFinite ? constraints.maxWidth : 320;
+        final double fixedWidth = onJoinCircle == null ? 54 : 106;
+        final double labelWidth =
+            (availableWidth - fixedWidth).clamp(64.0, 150.0).toDouble();
+
+        return Align(
+          alignment: alignment,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                label: 'Current circle: $label',
+                child: Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  elevation: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.group_outlined,
+                          size: 19,
+                          color: AppColors.purple,
+                        ),
+                        const SizedBox(width: 7),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: labelWidth),
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              if (onJoinCircle != null) ...[
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Join a circle',
+                  child: Semantics(
+                    button: true,
+                    label: 'Join a circle',
+                    child: Material(
+                      color: Colors.white,
+                      shape: const CircleBorder(),
+                      elevation: 3,
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: onJoinCircle,
+                        child: const SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: Icon(Icons.add, color: AppColors.purple),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
