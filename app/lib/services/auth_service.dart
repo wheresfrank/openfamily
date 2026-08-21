@@ -1,5 +1,6 @@
 import 'api_client.dart';
 import 'background_location_service.dart';
+import 'biometric_service.dart';
 import 'token_storage.dart';
 
 /// Thrown when the backend requires a TOTP code (2FA) to complete login.
@@ -112,6 +113,14 @@ class AuthService {
       password: password,
       totpCode: totpCode,
     );
+    // Biometric opt-in belongs to the previous session/account. Refuse to save
+    // a fresh token pair until the flag is reset, so a failed preference clear
+    // can never silently carry biometric state across users.
+    final bool biometricReset =
+        await BiometricService.instance.setEnabled(false);
+    if (!biometricReset) {
+      throw StateError('Could not initialize local session security.');
+    }
     await TokenStorage.saveTokens(
       access: tokens['access_token'] as String,
       refresh: tokens['refresh_token'] as String,
