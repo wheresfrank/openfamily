@@ -13,7 +13,8 @@ server.
 > panel** (served by the backend at `/admin`) lets a platform admin view a live
 > map of every family and member, browse groups, and download the Android APK.
 > Privacy is first-class: self-hosted, configurable tile URLs, geocoding
-> disabled by default, 90-day retention, and audit logging.
+> disabled by default, optional biometric app locking, 90-day retention, and
+> audit logging.
 
 ## Architecture
 
@@ -230,6 +231,12 @@ Auth (login/sign-up with 2FA), device registration, token storage
 (`flutter_secure_storage`), the live map, member list, places, and geofence
 alerts are all wired to the real backend. The app also reports location in the
 background (see [Background location](#background-location)).
+
+An optional **Biometric unlock** toggle is available under **Settings → Privacy
+& Security**. Once enabled and confirmed, Face ID, Touch ID, or Android
+biometrics are required on cold start and whenever the app returns to the
+foreground. Cancelled or locked-out prompts keep the entire navigator covered;
+the user can retry or log out without exposing the family map.
 
 #### Background location
 
@@ -494,17 +501,20 @@ go build ./...         # re-embeds web/dist/ into the binary
   uses APNs (Apple is the platform vendor, and payloads carry no location).
 - **Background credentials** live in `shared_preferences` (not secure storage) —
   a documented tradeoff so the background isolate can authenticate and refresh
-  tokens. `android:allowBackup="false"` prevents these credentials from being
-  backed up to the cloud.
+  tokens. Biometric unlock protects the interactive UI but does not encrypt
+  these background credentials or stop opted-in background location reporting.
+  `android:allowBackup="false"` prevents the credentials from being backed up
+  to the cloud.
 
 ## Roadmap
 
 Done: auth (Argon2id + JWT + TOTP), families, devices, location ingest,
 WebSocket live streaming, places, geofences, ntfy/APNs push, the Flutter map,
 onboarding, foreground + background location reporting, 90-day retention,
-audit logging, a location history timeline (day detail; synthetic fallback
-until backend history is wired), and the web admin panel (platform-admin live
-map of all families, groups, APK build/download, served at `/admin`).
+audit logging, biometric app unlock on Android/iOS, a location history timeline
+(day detail; synthetic fallback until backend history is wired), and the web
+admin panel (platform-admin live map of all families, groups, APK
+build/download, served at `/admin`).
 
 Pending: app icon, the "Bubble" privacy feature, self-hosted Nominatim
 deployment, a phone field, member join/leave presence, activity recognition

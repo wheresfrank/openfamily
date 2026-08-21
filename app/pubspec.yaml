@@ -11,6 +11,9 @@ dependencies:
     sdk: flutter
   # Secure token storage backed by iOS Keychain / Android Keystore.
   flutter_secure_storage: ^9.2.2
+  # Face ID / Touch ID / Android biometric authentication for app unlock.
+  # 2.3.x supports the project's Dart 3.4 lower bound.
+  local_auth: ^2.3.0
   # HTTP client for the API (used by the login stub later).
   http: ^1.2.2
   # Background location tracking: runs a background isolate so the device keeps

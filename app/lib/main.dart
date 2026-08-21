@@ -5,10 +5,12 @@ import 'screens/map_screen.dart';
 import 'screens/server_config_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'services/api_client.dart';
+import 'services/auth_service.dart';
 import 'services/background_location_service.dart';
 import 'services/server_config.dart';
 import 'services/token_storage.dart';
 import 'theme/app_theme.dart';
+import 'widgets/biometric_app_lock.dart';
 
 /// Global navigator key so non-widget code (e.g. [ApiClient]) can navigate on
 /// session expiry.
@@ -46,6 +48,20 @@ class _WhereaboutsAppState extends State<WhereaboutsApp> {
     );
   }
 
+  Future<void> _handleBiometricLogout() async {
+    // Let failures propagate to BiometricAppLock so protected content stays
+    // covered unless credential deletion was verified.
+    await AuthService.logout();
+    final NavigatorState? navigator = navigatorKey.currentState;
+    if (navigator == null) {
+      throw StateError('The app navigator is unavailable.');
+    }
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -53,6 +69,10 @@ class _WhereaboutsAppState extends State<WhereaboutsApp> {
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
       theme: buildAppTheme(),
+      builder: (context, child) => BiometricAppLock(
+        onLogout: _handleBiometricLogout,
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: const _SessionGate(),
     );
   }
@@ -88,6 +108,12 @@ class _SessionGateState extends State<_SessionGate> {
       // Ignore sync failures; the reporter's 401→refresh path recovers.
     }
     final bool hasSession = await ApiClient.hasValidSession();
+    if (!hasSession) {
+      // Remove an incomplete, malformed, or expired token pair. Besides
+      // keeping startup deterministic, this clears biometric opt-in so it can
+      // never carry over to a future account on the same device.
+      await TokenStorage.clear();
+    }
     // Background location reporting is started by MapScreen once it is shown
     // (and the app is in the foreground), not here — starting a `location`
     // foreground service during startup, before the activity is visible, is

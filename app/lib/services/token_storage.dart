@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'background_credential_store.dart';
+import 'biometric_service.dart';
 import 'server_config.dart';
 
 /// Stores auth tokens in the platform secure store:
@@ -42,16 +43,67 @@ class TokenStorage {
   /// Returns the stored refresh token, or null if none.
   static Future<String?> readRefreshToken() => _storage.read(key: _refreshKey);
 
+  /// Whether any access or refresh credential remains in either token store.
+  ///
+  /// The background store can restore the secure store during startup, so it
+  /// must participate in this check. Treating even a partial pair as a session
+  /// is deliberately conservative: a surviving access token may still work,
+  /// and a refresh token can mint a new pair.
+  static Future<bool> hasStoredSession() async {
+    final List<String?> credentials = <String?>[
+      await readAccessToken(),
+      await readRefreshToken(),
+      await BackgroundCredentialStore.readAccessToken(),
+      await BackgroundCredentialStore.readRefreshToken(),
+    ];
+    return credentials.any(
+      (String? credential) => credential != null && credential.isNotEmpty,
+    );
+  }
+
   /// Removes all stored tokens AND the device id (full session teardown).
   ///
   /// The device id is tied to the authenticated user, so it must be cleared
   /// whenever tokens are cleared — otherwise a later login by a different user
   /// would reuse the previous user's device id.
-  static Future<void> clear() async {
-    await _storage.delete(key: _accessKey);
-    await _storage.delete(key: _refreshKey);
-    await _storage.delete(key: _deviceIdKey);
-    await BackgroundCredentialStore.clear();
+  static Future<bool> clear() async {
+    // Keep the lock enabled until every credential has been deleted and its
+    // absence verified. If deletion fails or the process stops midway, any
+    // surviving session therefore remains protected.
+    Future<void> attempt(Future<void> Function() operation) async {
+      try {
+        await operation();
+      } catch (_) {
+        // Continue clearing the other stores, then verify the final state.
+      }
+    }
+
+    await attempt(() => _storage.delete(key: _accessKey));
+    await attempt(() => _storage.delete(key: _refreshKey));
+    await attempt(() => _storage.delete(key: _deviceIdKey));
+    await attempt(BackgroundCredentialStore.clear);
+
+    try {
+      final List<String?> remaining = <String?>[
+        await readAccessToken(),
+        await readRefreshToken(),
+        await readDeviceId(),
+        await BackgroundCredentialStore.readApiBaseUrl(),
+        await BackgroundCredentialStore.readAccessToken(),
+        await BackgroundCredentialStore.readRefreshToken(),
+        await BackgroundCredentialStore.readDeviceId(),
+      ];
+      if (remaining.any((String? value) => value != null)) {
+        throw StateError('One or more session credentials remain.');
+      }
+    } catch (_) {
+      throw StateError('Could not safely clear and verify the local session.');
+    }
+
+    // A false result is safe (the session is already gone), but callers can
+    // use it diagnostically. Fresh login refuses to persist a new session
+    // until this flag can be reset, preventing cross-account carryover.
+    return BiometricService.instance.setEnabled(false);
   }
 
   /// Persists the backend device id returned by POST /devices.
@@ -77,7 +129,10 @@ class TokenStorage {
   static Future<void> syncFromBackgroundStore() async {
     final String? access = await BackgroundCredentialStore.readAccessToken();
     final String? refresh = await BackgroundCredentialStore.readRefreshToken();
-    if (access == null || access.isEmpty || refresh == null || refresh.isEmpty) {
+    if (access == null ||
+        access.isEmpty ||
+        refresh == null ||
+        refresh.isEmpty) {
       return;
     }
     final String? currentAccess = await readAccessToken();

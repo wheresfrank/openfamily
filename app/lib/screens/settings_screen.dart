@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart' show BiometricType;
 
 import '../services/auth_service.dart';
+import '../services/biometric_service.dart';
 import '../theme/app_theme.dart';
 import 'profile_screen.dart';
 import 'welcome_screen.dart';
@@ -19,6 +21,136 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notifications = true;
   bool _driveDetection = true;
   bool _loggingOut = false;
+  final BiometricService _biometricService = BiometricService.instance;
+  bool _biometricLoading = true;
+  bool _biometricUpdating = false;
+  bool _biometricEnabled = false;
+  BiometricAvailability? _biometricAvailability;
+  String? _biometricError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricSettings();
+  }
+
+  Future<void> _loadBiometricSettings() async {
+    try {
+      final bool enabled = await _biometricService.isEnabled();
+      final BiometricAvailability availability =
+          await _biometricService.getAvailability();
+      if (!mounted) return;
+      setState(() {
+        _biometricEnabled = enabled;
+        _biometricAvailability = availability;
+        _biometricLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _biometricLoading = false;
+        _biometricError =
+            'Could not read biometric settings. Please reopen Settings.';
+      });
+    }
+  }
+
+  Future<void> _setBiometricEnabled(bool enabled) async {
+    if (_biometricUpdating) return;
+    setState(() {
+      _biometricUpdating = true;
+      _biometricError = null;
+    });
+
+    BiometricAvailability availability =
+        await _biometricService.getAvailability();
+    if (!mounted) return;
+    _biometricAvailability = availability;
+
+    if (enabled && !availability.isAvailable) {
+      _finishBiometricUpdateWithError(availability.message);
+      return;
+    }
+
+    // Confirm both opt-in and opt-out while biometrics are available. If the
+    // user removed all enrolled biometrics, still let them turn a now-unusable
+    // lock off from this already-authenticated session.
+    if (enabled || availability.isAvailable) {
+      final BiometricAuthenticationResult result =
+          await _biometricService.authenticate(
+        localizedReason: enabled
+            ? 'Confirm your identity to enable biometric unlock.'
+            : 'Confirm your identity to disable biometric unlock.',
+        requireEnabled: !enabled,
+      );
+      if (!mounted) return;
+      if (!result.authenticated) {
+        _finishBiometricUpdateWithError(
+          result.error?.message ??
+              'Biometric authentication was not completed.',
+        );
+        return;
+      }
+    }
+
+    final bool saved = await _biometricService.setEnabled(enabled);
+    if (!mounted) return;
+    if (!saved) {
+      _finishBiometricUpdateWithError(
+        'Could not save the biometric setting. Please try again.',
+      );
+      return;
+    }
+
+    setState(() {
+      _biometricEnabled = enabled;
+      _biometricUpdating = false;
+      _biometricError = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          enabled ? 'Biometric unlock enabled.' : 'Biometric unlock disabled.',
+        ),
+      ),
+    );
+  }
+
+  void _finishBiometricUpdateWithError(String message) {
+    if (!mounted) return;
+    setState(() {
+      _biometricUpdating = false;
+      _biometricError = message;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  String get _biometricSubtitle {
+    if (_biometricLoading) return 'Checking this device…';
+    if (_biometricUpdating) return 'Waiting for confirmation…';
+    if (_biometricError != null) return _biometricError!;
+    final BiometricAvailability? availability = _biometricAvailability;
+    if (availability == null || !availability.isAvailable) {
+      return availability?.message ??
+          'Biometric authentication is unavailable.';
+    }
+
+    final List<BiometricType> enrolled = availability.enrolledBiometrics;
+    final bool hasFace = enrolled.contains(BiometricType.face);
+    final bool hasFingerprint = enrolled.contains(BiometricType.fingerprint);
+    final String method = hasFace && hasFingerprint
+        ? 'face or fingerprint recognition'
+        : hasFace
+            ? 'face recognition'
+            : hasFingerprint
+                ? 'your fingerprint'
+                : 'your biometrics';
+    return _biometricEnabled
+        ? 'Require $method when opening or returning to the app.'
+        : 'Use $method to protect your private family map.';
+  }
 
   Future<void> _logout() async {
     if (_loggingOut) return;
@@ -26,7 +158,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await AuthService.logout();
     } catch (_) {
-      // Logout is best-effort; always navigate away even if clearing fails.
+      if (!mounted) return;
+      setState(() => _loggingOut = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not log out safely. Please try again.'),
+        ),
+      );
+      return;
     }
     if (!mounted) return;
     // Clear the stack so the back button can't return to the (now logged-out)
@@ -58,15 +197,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: Icon(Icons.chevron_right, color: AppColors.textMuted),
           ),
           const Divider(height: 1),
+          const _SectionHeader('Privacy & Security'),
+          SwitchListTile(
+            secondary: const Icon(
+              Icons.fingerprint,
+              color: AppColors.purple,
+            ),
+            title: const Text('Biometric unlock'),
+            subtitle: Text(
+              _biometricSubtitle,
+              style: _biometricError == null
+                  ? null
+                  : const TextStyle(color: AppColors.statusRed),
+            ),
+            value: _biometricEnabled,
+            onChanged: !_biometricLoading &&
+                    !_biometricUpdating &&
+                    ((_biometricAvailability?.isAvailable ?? false) ||
+                        _biometricEnabled)
+                ? _setBiometricEnabled
+                : null,
+          ),
+          const Divider(height: 1),
           const _SectionHeader('Location'),
           SwitchListTile(
-            secondary: const Icon(Icons.location_on_outlined, color: AppColors.purple),
+            secondary:
+                const Icon(Icons.location_on_outlined, color: AppColors.purple),
             title: const Text('Location sharing'),
             value: _locationSharing,
             onChanged: (v) => setState(() => _locationSharing = v),
           ),
           SwitchListTile(
-            secondary: const Icon(Icons.directions_car_outlined, color: AppColors.purple),
+            secondary: const Icon(Icons.directions_car_outlined,
+                color: AppColors.purple),
             title: const Text('Drive detection'),
             value: _driveDetection,
             onChanged: (v) => setState(() => _driveDetection = v),
@@ -74,7 +237,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Divider(height: 1),
           const _SectionHeader('Notifications'),
           SwitchListTile(
-            secondary: const Icon(Icons.notifications_outlined, color: AppColors.purple),
+            secondary: const Icon(Icons.notifications_outlined,
+                color: AppColors.purple),
             title: const Text('Push notifications'),
             value: _notifications,
             onChanged: (v) => setState(() => _notifications = v),
