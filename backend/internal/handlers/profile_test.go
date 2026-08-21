@@ -1,6 +1,12 @@
 package handlers
 
 import (
+	"bytes"
+	"image"
+	"image/color"
+	"image/jpeg"
+	"image/png"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -20,3 +26,196 @@ func TestNormalizeProfileName(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateAvatarUpload(t *testing.T) {
+	pngAvatar := encodePNG(t, 2, 3)
+	jpegAvatar := encodeJPEG(t, 2, 3)
+	tooWidePNG := encodePNG(t, avatarMaxDimension+1, 1)
+	truncatedPNG := pngAvatar[:33] // Signature plus the complete IHDR chunk.
+	truncatedJPEG := jpegThroughSOS(t, jpegAvatar)
+
+	// These inputs have enough header data for DecodeConfig, but no image data
+	// to decode. They prove validation performs the required full-decode pass
+	// after the dimension checks.
+	assertDecodeConfigSucceeds(t, truncatedPNG)
+	assertDecodeConfigSucceeds(t, truncatedJPEG)
+
+	tests := []struct {
+		name        string
+		avatar      []byte
+		contentType string
+		wantType    string
+		wantErr     error
+	}{
+		{
+			name:        "valid png",
+			avatar:      pngAvatar,
+			contentType: "image/png",
+			wantType:    "image/png",
+		},
+		{
+			name:        "valid jpeg",
+			avatar:      jpegAvatar,
+			contentType: "image/jpeg",
+			wantType:    "image/jpeg",
+		},
+		{
+			name:        "declared type does not match bytes",
+			avatar:      pngAvatar,
+			contentType: "image/jpeg",
+			wantErr:     errAvatarContentTypeMismatch,
+		},
+		{
+			name:        "not an image",
+			avatar:      []byte("not an image"),
+			contentType: "image/png",
+			wantErr:     errAvatarContentTypeMismatch,
+		},
+		{
+			name:        "truncated png after a valid header",
+			avatar:      truncatedPNG,
+			contentType: "image/png",
+			wantErr:     errAvatarInvalidImage,
+		},
+		{
+			name:        "truncated jpeg after a valid header",
+			avatar:      truncatedJPEG,
+			contentType: "image/jpeg",
+			wantErr:     errAvatarInvalidImage,
+		},
+		{
+			name:        "empty image",
+			avatar:      nil,
+			contentType: "image/png",
+			wantErr:     errAvatarInvalidImage,
+		},
+		{
+			name:        "dimension limit",
+			avatar:      tooWidePNG,
+			contentType: "image/png",
+			wantErr:     errAvatarInvalidDimensions,
+		},
+		{
+			name:        "byte limit",
+			avatar:      bytes.Repeat([]byte{0}, avatarMaxBytes+1),
+			contentType: "image/png",
+			wantErr:     errAvatarTooLarge,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotType, err := validateAvatarUpload(tt.avatar, tt.contentType)
+			if err != tt.wantErr {
+				t.Fatalf("validateAvatarUpload() error = %v, want %v", err, tt.wantErr)
+			}
+			if gotType != tt.wantType {
+				t.Fatalf("validateAvatarUpload() content type = %q, want %q", gotType, tt.wantType)
+			}
+		})
+	}
+}
+
+func TestAvatarContentType(t *testing.T) {
+	tests := []struct {
+		header  string
+		want    string
+		wantErr bool
+	}{
+		{header: "image/png", want: "image/png"},
+		{header: "IMAGE/JPEG", want: "image/jpeg"},
+		{header: "image/png; charset=binary", want: "image/png"},
+		{header: "multipart/form-data; boundary=example", wantErr: true},
+		{header: "image/gif", wantErr: true},
+		{header: "", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.header, func(t *testing.T) {
+			got, err := avatarContentType(tt.header)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("avatarContentType(%q) error = %v, wantErr = %v", tt.header, err, tt.wantErr)
+			}
+			if got != tt.want {
+				t.Fatalf("avatarContentType(%q) = %q, want %q", tt.header, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSetPrivateProfileHeaders(t *testing.T) {
+	w := httptest.NewRecorder()
+	setPrivateProfileHeaders(w)
+
+	for header, want := range map[string]string{
+		"Cache-Control":                "private, no-store",
+		"Pragma":                       "no-cache",
+		"X-Content-Type-Options":       "nosniff",
+		"Referrer-Policy":              "no-referrer",
+		"Cross-Origin-Resource-Policy": "same-origin",
+	} {
+		if got := w.Header().Get(header); got != want {
+			t.Errorf("%s = %q, want %q", header, got, want)
+		}
+	}
+}
+
+func encodePNG(t *testing.T, width, height int) []byte {
+	t.Helper()
+	var output bytes.Buffer
+	if err := png.Encode(&output, solidImage{width: width, height: height}); err != nil {
+		t.Fatalf("encode PNG: %v", err)
+	}
+	return output.Bytes()
+}
+
+func encodeJPEG(t *testing.T, width, height int) []byte {
+	t.Helper()
+	var output bytes.Buffer
+	if err := jpeg.Encode(&output, solidImage{width: width, height: height}, nil); err != nil {
+		t.Fatalf("encode JPEG: %v", err)
+	}
+	return output.Bytes()
+}
+
+// jpegThroughSOS returns a valid JPEG prefix through the complete Start Of
+// Scan segment. image.DecodeConfig can read the dimensions from that prefix,
+// while image.Decode correctly rejects it because the scan data is absent.
+func jpegThroughSOS(t *testing.T, jpegBytes []byte) []byte {
+	t.Helper()
+	for i := 0; i+4 <= len(jpegBytes); i++ {
+		if jpegBytes[i] != 0xff || jpegBytes[i+1] != 0xda {
+			continue
+		}
+		segmentLength := int(jpegBytes[i+2])<<8 | int(jpegBytes[i+3])
+		end := i + 2 + segmentLength
+		if segmentLength < 2 || end > len(jpegBytes) {
+			t.Fatalf("invalid JPEG SOS segment")
+		}
+		return jpegBytes[:end]
+	}
+	t.Fatal("JPEG encoder did not produce a Start Of Scan segment")
+	return nil
+}
+
+func assertDecodeConfigSucceeds(t *testing.T, imageBytes []byte) {
+	t.Helper()
+	if _, _, err := image.DecodeConfig(bytes.NewReader(imageBytes)); err != nil {
+		t.Fatalf("expected DecodeConfig to accept image prefix: %v", err)
+	}
+}
+
+// solidImage lets dimension-limit tests encode a large logical image without
+// allocating a full RGBA backing store.
+type solidImage struct {
+	width  int
+	height int
+}
+
+func (source solidImage) ColorModel() color.Model { return color.RGBAModel }
+
+func (source solidImage) Bounds() image.Rectangle {
+	return image.Rect(0, 0, source.width, source.height)
+}
+
+func (solidImage) At(_, _ int) color.Color { return color.RGBA{R: 1, A: 255} }

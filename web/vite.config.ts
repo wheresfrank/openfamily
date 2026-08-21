@@ -24,7 +24,11 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'dist',
+    // The Go server embeds this directory directly. Building here keeps the
+    // browser bundle that ships in Docker/the standalone binary in sync with
+    // the source bundle developers preview locally.
+    outDir: '../backend/web/dist',
+    emptyOutDir: true,
     sourcemap: false,
   },
 })

@@ -98,6 +98,16 @@ class _SessionGateState extends State<_SessionGate> {
     // Load the runtime server URL (shared_preferences → ServerConfig).
     await ServerConfig.instance.load();
 
+    // Remove the path-only local photo pointer used by an older avatar
+    // implementation. Current avatars are private authenticated bytes and are
+    // never persisted as a device file path.
+    try {
+      await TokenStorage.removeLegacyProfilePhotoPath();
+    } catch (_) {
+      // A secure-storage hiccup should not prevent the app from starting; a
+      // later launch or logout will retry this idempotent cleanup.
+    }
+
     if (!ServerConfig.instance.isConfigured) {
       return _GateResult.needsServerConfig;
     }

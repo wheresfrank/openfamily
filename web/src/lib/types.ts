@@ -18,6 +18,16 @@ export interface LoginResponse {
   expires_in: number
 }
 
+/** The authenticated user's account details. */
+export interface Profile {
+  id: string
+  name: string
+  email: string
+  role: Role
+  has_avatar: boolean
+  avatar_updated_at: string | null
+}
+
 export interface Family {
   id: string
   name: string

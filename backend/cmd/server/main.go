@@ -113,6 +113,12 @@ func main() {
 		r.Get("/me", srv.GetMe)
 		r.Patch("/me", srv.UpdateMe)
 
+		// Account profile and avatar are deliberately private to the caller.
+		r.Get("/api/profile", srv.GetProfile)
+		r.Get("/api/profile/avatar", srv.GetProfileAvatar)
+		r.Put("/api/profile/avatar", srv.PutProfileAvatar)
+		r.Delete("/api/profile/avatar", srv.DeleteProfileAvatar)
+
 		r.Post("/families", srv.CreateFamily)
 		r.Get("/family", srv.GetFamily)
 		r.Get("/family/members", srv.ListMembers)
@@ -220,7 +226,7 @@ func cors(allowedOrigin string) func(http.Handler) http.Handler {
 			if allowedOrigin != "" {
 				w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 				w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 			}
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)

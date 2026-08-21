@@ -115,6 +115,10 @@ location/
 | POST | `/auth/refresh` | Rotate refresh token |
 | GET | `/me` | Get the signed-in user's profile |
 | PATCH | `/me` | Update the signed-in user's display name |
+| GET | `/api/profile` | Get your own profile and avatar metadata |
+| GET | `/api/profile/avatar` | Get your private profile image |
+| PUT | `/api/profile/avatar` | Upload a PNG/JPEG profile image (raw body; max 5 MiB) |
+| DELETE | `/api/profile/avatar` | Remove your profile image |
 | POST | `/families` | Create a family (caller becomes admin) |
 | GET | `/family` | Get your family |
 | GET | `/family/members` | List members |
@@ -413,9 +417,9 @@ embedded bundle after changing it:
 ```bash
 cd web
 npm install
-npm run build          # outputs web/dist/
+npm run build          # refreshes backend/web/dist/ (the embedded bundle)
 cd ../backend
-go build ./...         # re-embeds web/dist/ into the binary
+go build ./...         # embeds backend/web/dist/ into the binary
 ```
 
 ## Run on a Synology NAS

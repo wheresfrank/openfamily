@@ -7,8 +7,8 @@ import '../theme/app_theme.dart';
 import 'profile_screen.dart';
 import 'welcome_screen.dart';
 
-/// The Settings screen. A simple list of account, notification, location, and
-/// privacy settings. Values are local toggles for now (no backend).
+/// The Settings screen. Account profile is server-backed; the remaining
+/// location and notification values are local toggles for now.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -186,7 +186,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.person_outline, color: AppColors.purple),
             title: const Text('Profile'),
-            trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+            trailing:
+                const Icon(Icons.chevron_right, color: AppColors.textMuted),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
             ),

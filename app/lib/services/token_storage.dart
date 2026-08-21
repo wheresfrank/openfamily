@@ -17,6 +17,11 @@ class TokenStorage {
   static const String _accessKey = 'access_token';
   static const String _refreshKey = 'refresh_token';
   static const String _deviceIdKey = 'device_id';
+  // Earlier app builds kept a profile-photo *path* locally. Avatars are now
+  // private server data fetched as authenticated bytes, so remove that stale
+  // pointer whenever it is encountered. We intentionally do not delete the
+  // file at the old path: it may be a user-owned gallery photo.
+  static const String _legacyProfilePhotoPathKey = 'profile_photo_path';
 
   /// Persists an access + refresh token pair.
   static Future<void> saveTokens({
@@ -81,6 +86,7 @@ class TokenStorage {
     await attempt(() => _storage.delete(key: _accessKey));
     await attempt(() => _storage.delete(key: _refreshKey));
     await attempt(() => _storage.delete(key: _deviceIdKey));
+    await attempt(removeLegacyProfilePhotoPath);
     await attempt(BackgroundCredentialStore.clear);
 
     try {
@@ -105,6 +111,13 @@ class TokenStorage {
     // until this flag can be reset, preventing cross-account carryover.
     return BiometricService.instance.setEnabled(false);
   }
+
+  /// Deletes the path-only profile-photo value written by pre-avatar builds.
+  ///
+  /// Deletion is idempotent and deliberately leaves any referenced file alone,
+  /// because the app did not own that source image.
+  static Future<void> removeLegacyProfilePhotoPath() =>
+      _storage.delete(key: _legacyProfilePhotoPathKey);
 
   /// Persists the backend device id returned by POST /devices.
   static Future<void> saveDeviceId(String id) async {

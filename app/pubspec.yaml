@@ -29,7 +29,7 @@ dependencies:
   share_plus: ^10.0.0
   # Permissions (location / notifications / motion) for onboarding.
   permission_handler: ^11.3.1
-  # Profile photo picker for sign-up.
+  # Profile photo picker for the authenticated profile screen.
   image_picker: ^1.1.2
   # Current device location (place picker + welcome hero), with graceful
   # fallback when permission is denied or services are off.
