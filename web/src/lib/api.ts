@@ -5,6 +5,7 @@ import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth'
 import type {
   AdminInvite,
   AdminMember,
+  AdminUser,
   ApiResult,
   Family,
   InviteCode,
@@ -234,6 +235,41 @@ export function moveMember(
   return request<{ status: string }>(`/api/admin/members/${encodeURIComponent(memberId)}/family`, {
     method: 'PATCH',
     body: { family_id: familyId, role },
+  })
+}
+
+export function listUsers(): Promise<AdminUser[]> {
+  return request<AdminUser[]>('/api/admin/users')
+}
+
+export function createUser(input: {
+  email: string
+  password: string
+  name: string
+  role: Role
+  family_id?: string
+}): Promise<AdminUser> {
+  return request<AdminUser>('/api/admin/users', { method: 'POST', body: input })
+}
+
+export function assignUser(userId: string, familyId: string | null): Promise<AdminUser> {
+  return request<AdminUser>(`/api/admin/users/${encodeURIComponent(userId)}/family`, {
+    method: 'PATCH',
+    body: { family_id: familyId },
+  })
+}
+
+export function updateUserRole(userId: string, role: Role): Promise<AdminUser> {
+  return request<AdminUser>(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
+    method: 'PATCH',
+    body: { role },
+  })
+}
+
+export function resetUserPassword(userId: string, password: string): Promise<void> {
+  return request<void>(`/api/admin/users/${encodeURIComponent(userId)}/password`, {
+    method: 'PATCH',
+    body: { password },
   })
 }
 

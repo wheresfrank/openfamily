@@ -155,6 +155,11 @@ admin SPA is served at `/admin` and calls these under `/api/admin/*`.
 | GET | `/api/admin/members` | List every member across all families |
 | GET | `/api/admin/members/{id}/avatar` | Get a member's private profile image |
 | PATCH | `/api/admin/members/{id}/family` | Move a member to another family |
+| GET | `/api/admin/users` | List every account (including users with no family) |
+| POST | `/api/admin/users` | Create an account (bypasses invite-gated registration) |
+| PATCH | `/api/admin/users/{id}/family` | Assign a user to a family, or unassign (`family_id: null`) |
+| PATCH | `/api/admin/users/{id}/role` | Change a user's family role |
+| PATCH | `/api/admin/users/{id}/password` | Reset a user's password |
 | GET | `/api/admin/places` | List every saved place (Home/School/Work) across all families |
 | GET | `/api/admin/invites` | List every invite code |
 | POST | `/api/admin/invites` | Create an invite code for any family |
@@ -366,7 +371,9 @@ empty to keep open registration (and disable the admin panel).
    per-member color rings, status dots, movement badges, and Home/School/Work
    place pins), streaming updates over `/api/admin/ws`. The **Families** page
    lists families and members and lets you **move a member to another family**,
-   rename/delete/create families, and generate invite codes; **APK** downloads
+   rename/delete/create families, and generate invite codes; **Users** lists
+   every account (including people with no family), creates accounts, assigns
+   families, changes roles, and resets passwords; **APK** downloads
    the Android APK; **Settings** shows your session token and API endpoints.
 
 ### Invite codes
