@@ -1,22 +1,18 @@
 # Whereabouts
 
-A self-hosted, privacy-first family location tracker you run yourself.
-Your family's location data never leaves your
-server.
+**A self-hosted family location tracker.** You run the server. Your family's
+location never leaves it.
 
-> **Status:** fully functional self-hosted family location tracker. The Go
-> backend implements auth (Argon2id + JWT + TOTP 2FA), families, devices,
-> location ingest, WebSocket live streaming, places, geofences, and push
-> (ntfy/APNs). The Flutter app covers login/signup with 2FA, a live map with
-> member positions, a member list, places with geofence alerts, onboarding with
-> circle invites, and foreground + background location reporting. A **web admin
-> panel** (served by the backend at `/admin`) lets a platform admin view a live
-> map of every family and member, browse groups, and download the Android APK.
-> Privacy is first-class: self-hosted, configurable tile URLs, geocoding
-> disabled by default, optional biometric app locking, 90-day retention, and
-> audit logging.
+[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)](https://flutter.dev/)
+[![OpenStreetMap](https://img.shields.io/badge/Maps-OpenStreetMap-7EBC6F?logo=openstreetmap&logoColor=white)](https://www.openstreetmap.org/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-PostGIS%20%2B%20TimescaleDB-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-## Architecture
+Whereabouts is an open-source alternative to commercial family locators. A
+Flutter app for Android and iOS talks to a Go API you host with Docker — on a
+VPS, a Synology NAS, or a machine on your LAN. There is no vendor cloud, no
+analytics SDK, and no Google Play Services requirement on Android.
 
 ```
 ┌──────────┐   ┌──────────┐   ┌──────────────────────────────┐
@@ -25,275 +21,335 @@ server.
 └──────────┘   └────┬─────┘   └──────────────────────────────┘
                     │
               ┌─────▼─────┐
-              │   ntfy    │  (Android UnifiedPush — no Google)
+              │   ntfy    │  Android UnifiedPush — no Google
               └───────────┘
 ```
 
-Map tiles are an **optional** component: for full privacy, self-host them with
-[tileserver-gl](https://github.com/maptiler/tileserver-gl) (see
-[Self-hosting map tiles](#self-hosting-map-tiles-recommended-for-privacy)) and
-point the app at them via `WHEREABOUTS_TILE_URL`. On iOS, push goes through
-**APNs**, which requires an Apple Developer account and an APNs auth key (see
-[Configuration](#configuration-environment-variables)).
+## Table of contents
 
-| Component | Path | Notes |
-|---|---|---|
-| Go API | `backend/` | REST + WebSocket, Argon2id + JWT + TOTP auth |
-| Flutter app | `app/` | Android + iOS |
-| Web admin panel | `web/` | Vite + React + Leaflet SPA, embedded in the Go binary and served at `/admin` |
-| Docker Compose | `docker-compose.yml` | caddy, api, postgres, ntfy |
-| Migrations | `backend/internal/db/migrations/` | PostGIS + TimescaleDB schema |
+- [Why self-host this](#why-self-host-this)
+- [Features](#features)
+- [Compared to](#compared-to)
+- [Quick start](#quick-start)
+- [Mobile apps](#mobile-apps)
+- [Web admin panel](#web-admin-panel)
+- [Self-hosting map tiles](#self-hosting-map-tiles)
+- [Run on a Synology NAS](#run-on-a-synology-nas)
+- [Configuration](#configuration)
+- [Security](#security)
+- [API reference](#api-reference)
+- [Development](#development)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
 
-## Directory layout
+## Why self-host this
 
-```
-location/
-├── backend/
-│   ├── cmd/server/main.go          # entrypoint + router
-│   ├── internal/
-│   │   ├── auth/                   # Argon2id, JWT, TOTP
-│   │   ├── config/                 # env-based config
-│   │   ├── db/                     # pgx pool + embedded migrations
-│   │   │   └── migrations/         # 000001_init.{up,down}.sql
-│   │   ├── handlers/               # auth, family, device, location, place, geofence, ws
-│   │   ├── middleware/             # JWT auth middleware
-│   │   ├── models/                 # domain types
-│   │   └── push/                   # ntfy + APNs dispatch
-│   ├── Dockerfile
-│   └── go.mod
-├── app/
-│   ├── lib/
-│   │   ├── main.dart
-│   │   ├── models/                 # member, place
-│   │   ├── screens/                # add_locations, check_in, create_circle,
-│   │   │                           #   create_or_join_circle, day_detail,
-│   │   │                           #   help_alert, invite, join_circle,
-│   │   │                           #   login, map, member_profile,
-│   │   │                           #   permissions, place_picker, places,
-│   │   │                           #   safety, settings, sign_up, sos, welcome
-│   │   ├── services/               # api_client, app_config, auth_service,
-│   │   │                           #   background_credential_store,
-│   │   │                           #   background_location_service,
-│   │   │                           #   device_service, family_service,
-│   │   │                           #   geocoding_service, geofence_service,
-│   │   │                           #   history_service, invite_service, join_service,
-│   │   │                           #   location_reporter, location_service,
-│   │   │                           #   member_mapper, permission_service,
-│   │   │                           #   place_service, profile_storage,
-│   │   │                           #   token_storage
-│   │   ├── widgets/                # circle_switcher, map_bottom_bar,
-│   │   │                           #   member_avatar_bubble, member_list_sheet,
-│   │   │                           #   movement_icon, onboarding_step_indicator
-│   │   ├── utils/                  # member_clustering
-│   │   └── theme/                  # app_theme
-│   ├── android/                    # Android platform files
-│   ├── ios/                        # iOS platform files
-│   ├── packages/                   # vendored background_locator_2 (patched:
-│   │                               #   jcenter removed for Gradle 8+)
-│   └── pubspec.yaml
-├── web/                            # Web admin panel (Vite + React + Leaflet)
-│   ├── src/
-│   │   ├── components/             # shell: sidebar, top bar, ⌘K, primitives
-│   │   ├── pages/                  # dashboard, history, groups, builds, settings
-│   │   └── map/                    # live map: bubbles, clustering, places, WS
-│   ├── vite.config.ts
-│   └── package.json
-├── caddy/Caddyfile
-├── docker-compose.yml
-├── .env.example
-├── PLAN.md
-└── README.md
-```
+Commercial family trackers send live coordinates to someone else's cloud and
+monetize the result. Whereabouts is the opposite posture:
 
-## API surface (current)
+- **You own the data.** Locations, places, and history live in your Postgres.
+- **Android push is self-hosted.** [UnifiedPush](https://unifiedpush.org/) via
+  [ntfy](https://ntfy.sh/) — no Firebase, no Google account on the phone.
+- **Maps are OpenStreetMap, not Google.** The app renders OSM tiles with
+  [flutter_map](https://docs.fleaflet.dev/); the admin panel uses
+  [Leaflet](https://leafletjs.com/). There is no Google Maps SDK and no
+  Google Places. Named places live in your Postgres. Address search, when
+  you turn it on, is [Nominatim](https://nominatim.org/) (OSM’s geocoder).
+  Point the app at your own tile server so pan/zoom does not even hit the
+  public OSM or Esri endpoints.
+- **iOS push is honest.** Apple requires APNs. Payloads carry no coordinates;
+  the app fetches the real content from *your* server over TLS.
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/healthz` | Health check |
-| POST | `/auth/register` | Create account |
-| POST | `/auth/login` | Password + optional TOTP → token pair |
-| POST | `/auth/refresh` | Rotate refresh token |
-| GET | `/me` | Get the signed-in user's profile |
-| PATCH | `/me` | Update the signed-in user's display name |
-| GET | `/api/profile` | Get your own profile and avatar metadata |
-| GET | `/api/profile/avatar` | Get your private profile image |
-| PUT | `/api/profile/avatar` | Upload a PNG/JPEG profile image (raw body; max 5 MiB) |
-| DELETE | `/api/profile/avatar` | Remove your profile image |
-| GET | `/family/members/{id}/avatar` | Get a same-family member's private profile image |
-| GET | `/family/members/{id}/history?from&to` | One day of location history (trail + visits) |
-| POST | `/families` | Create a family (caller becomes admin) |
-| GET | `/family` | Get your family |
-| GET | `/family/members` | List members |
-| PATCH | `/family/members/{id}/role` | Change a member's role |
-| POST | `/family/invites` | Create an invite code for your family (admin only) |
-| POST | `/family/join` | Join a family by invite code |
-| GET | `/family/places` | List places |
-| POST | `/family/places` | Create a place |
-| PATCH | `/family/places/{id}` | Update a place |
-| DELETE | `/family/places/{id}` | Delete a place |
-| GET | `/family/geofences` | List geofences |
-| POST | `/family/geofences` | Create a geofence |
-| PATCH | `/family/geofences/{id}` | Update a geofence |
-| DELETE | `/family/geofences/{id}` | Delete a geofence |
-| GET | `/audit` | List recent audit log entries (admin only) |
-| POST | `/devices` | Register a device |
-| GET | `/devices` | List your devices |
-| POST | `/locations` | Ingest a location point |
-| WS | `/ws/stream` | Live position stream (family-scoped) |
+This is a family app, not a fleet tracker. It is built for a handful of people
+who share a home, not for vehicles, tools, or public sharing.
 
-### Platform-admin API (web admin panel)
+## Features
 
-All routes require a platform admin (see `PLATFORM_ADMIN_EMAIL` below). The
-admin SPA is served at `/admin` and calls these under `/api/admin/*`.
+### Live map
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/api/admin/families` | List every family |
-| POST | `/api/admin/families` | Create a family |
-| PATCH | `/api/admin/families/{id}` | Rename a family |
-| DELETE | `/api/admin/families/{id}` | Delete a family |
-| GET | `/api/admin/families/{id}/members` | List one family's members |
-| GET | `/api/admin/members` | List every member across all families |
-| GET | `/api/admin/members/{id}/avatar` | Get a member's private profile image |
-| GET | `/api/admin/members/{id}/history?from&to` | One day of location history for any member |
-| PATCH | `/api/admin/members/{id}/family` | Move a member to another family |
-| GET | `/api/admin/users` | List every account (including users with no family) |
-| POST | `/api/admin/users` | Create an account (bypasses invite-gated registration) |
-| PATCH | `/api/admin/users/{id}/family` | Assign a user to a family, or unassign (`family_id: null`) |
-| PATCH | `/api/admin/users/{id}/role` | Change a user's family role |
-| PATCH | `/api/admin/users/{id}/password` | Reset a user's password |
-| GET | `/api/admin/places` | List every saved place (Home/School/Work) across all families |
-| GET | `/api/admin/invites` | List every invite code |
-| POST | `/api/admin/invites` | Create an invite code for any family |
-| GET | `/api/admin/apk` | Download the Android APK (served from `APK_DIR`) |
-| POST | `/api/admin/apk/build` | Kick off an APK build (optional; requires Flutter on the server) |
-| GET | `/api/admin/apk/status` | Poll APK build status (optional) |
-| WS | `/api/admin/ws` | Live position stream across all families |
+- Full-bleed **OpenStreetMap**, updated over a WebSocket —
+  [flutter_map](https://docs.fleaflet.dev/) on the phone,
+  [Leaflet](https://leafletjs.com/) in the admin panel. No Google Maps, no
+  Mapbox, no Google Places
+- Member bubbles with photo avatars, per-person color rings, battery, and
+  last-seen time
+- Status rings for live, low battery, GPS trouble, stopped, and error
+- Driving and cycling badges on the live map; Home / Work / Gym on the
+  history timeline
+- Zoom-aware clustering with tap-to-fan-out when people overlap
+- Street (OSM) and optional satellite layers
+- Approximate-location zone when GPS accuracy is poor
+- A dedicated **People** roster (live status, invite, tap through to a
+  member profile)
 
-## Run locally
+### Places and geofences
+
+- Named places you save (Home, School, Work, Gym, or custom) — stored on
+  your server, not looked up from Google Places
+- Per-place radius and arrive / leave alerts
+- Server-side geofencing with a 60-second debounce so jitter at the boundary
+  does not spam notifications
+- Role-gated: children can see places, only admins and members can edit them
+- Optional address search via a self-hosted Nominatim instance (off by default)
+
+### Safety
+
+- **SOS** — tap to send, or press-and-hold for a discreet 10-second countdown
+  with slide-to-cancel; practice mode; “I'm safe” follow-up
+- **Help** — a non-emergency ping to the family only (no emergency contacts)
+- **Check in** — “I'm here” with an optional note
+- Emergency contacts who receive SOS even without the app
+- Optional Twilio SMS; in-app push and WebSocket still work without it
+- A public 24-hour share page for an alert (token in the SMS, no login)
+
+### History
+
+- Per-member day view: map trail plus a visit timeline
+- Named place stays, unnamed dwells, and in-transit segments
+- Save an unnamed stop as a family place
+- 90-day retention (TimescaleDB); last-known position is kept so inactive
+  members stay on the map
+
+### Families and accounts
+
+- Create a family or join with an invite code
+- Roles: **admin**, **member**, **child**
+- Invite codes (8-character, Crockford alphabet, default 7-day / single-use)
+- Rename the family, change roles, leave (last admin cannot leave)
+- Profile name, phone, and a private avatar (never a public URL)
+- Location-sharing toggle: this device stops reporting when you turn it off
+- Optional biometric unlock (Face ID / Touch ID / Android biometrics) on
+  cold start and return-to-foreground
+
+### Push and background location
+
+- Android: foreground service with a persistent notification; restarts after
+  reboot; battery-optimization exemption prompt so OEM killers do not stale
+  the fix
+- iOS: `location` background mode
+- Tracking starts after login and stops on logout
+- ntfy / UnifiedPush on Android; APNs on iOS
+- One generic APK for every deployment — first launch asks for the server URL
+
+### Web admin panel
+
+Served by the API at `/admin` (embedded in the Go binary). A **platform
+admin** — distinct from a family admin — can:
+
+- Watch a live map of every family and member
+- Browse per-member day history
+- Create, rename, and delete families; move people between them
+- Manage every account (including people with no family): create users,
+  assign families, change roles, reset passwords
+- Generate invite codes for any family
+- Download the Android APK
+- Jump with a ⌘K command menu
+
+Setting `PLATFORM_ADMIN_EMAIL` also **closes open registration**: new users
+need a valid invite code.
+
+## Compared to
+
+| | Whereabouts | Life360-class apps | [OwnTracks](https://owntracks.org/) | [Traccar](https://www.traccar.org/) | [Dawarich](https://dawarich.app/) |
+|---|---|---|---|---|---|
+| Self-hosted | Yes | No | Yes | Yes | Yes |
+| Family map + SOS | Yes | Yes | No | Weak | No |
+| Geofence UI | Yes | Yes | Limited | Yes (fleet) | No |
+| Location history | 90-day trail | Vendor cloud | Recorder | Yes | Timeline-first |
+| Android without Google | UnifiedPush / ntfy | FCM | MQTT | Optional | N/A |
+| Built for | Families | Families (cloud) | Recorders | Fleets | Personal timeline |
+
+## Quick start
 
 ### Prerequisites
 
-- Docker + Docker Compose
-- Go 1.25+ (only if running the API outside Docker)
-- Flutter 3.x (only for the app)
+- Docker and Docker Compose
+- Go 1.25+ only if you run the API outside Docker
+- Flutter 3.x only if you build the app yourself
 
 ### 1. Start the stack
 
 ```bash
 cp .env.example .env
-# edit .env: set a strong POSTGRES_PASSWORD and JWT_SECRET
+# Set a strong POSTGRES_PASSWORD and JWT_SECRET
 docker compose up -d --build
 ```
 
-The API is reachable at `http://localhost` (via Caddy). Check it:
+The API is at `http://localhost` (via Caddy):
 
 ```bash
 curl http://localhost/healthz
 # {"status":"ok"}
 ```
 
-### 2. Try the API
+### 2. Create an account
 
 ```bash
-# Register
 curl -X POST http://localhost/auth/register \
   -H 'Content-Type: application/json' \
   -d '{"email":"alice@example.com","password":"supersecret1","name":"Alice"}'
 
-# Login (capture the access_token)
 curl -X POST http://localhost/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"alice@example.com","password":"supersecret1"}'
 ```
 
-### 3. Run the API directly (without Docker)
+For a managed server (invite-only registration and the admin panel), set
+`PLATFORM_ADMIN_EMAIL` and `PLATFORM_ADMIN_PASSWORD` in `.env` before the
+first start. See [Web admin panel](#web-admin-panel).
 
-```bash
-cd backend
-go build ./...
-DATABASE_URL="postgres://whereabouts:whereabouts@localhost:5432/whereabouts?sslmode=disable" \
-JWT_SECRET="$(openssl rand -base64 48)" \
-./server
-```
+### 3. Point the app at your server
 
-Migrations run automatically at startup (embedded in the binary).
+Install the APK from the admin panel's **APK** page, or run from source
+(see [Mobile apps](#mobile-apps)). On first launch, enter the server URL
+if it was not baked in at build time.
 
-### 4. Run the Flutter app
+## Mobile apps
 
-The app talks to the Go backend, so you must point it at your API URL with a
-`--dart-define` at build/run time. Without it the app fails loudly with
-"API URL not configured".
+The Flutter app (`app/`) covers Android and iOS: onboarding, the live map,
+places, safety, history, and foreground + background location reporting.
 
 ```bash
 cd app
-flutter create .        # generates any missing platform scaffolding (icons, Xcode project)
+flutter create .        # generates missing platform scaffolding
 flutter pub get
 flutter run --dart-define=WHEREABOUTS_API_URL=http://localhost
 ```
 
-The host depends on where the emulator/simulator runs:
-
 | Target | `WHEREABOUTS_API_URL` |
 |---|---|
-| iOS simulator | `http://localhost` (shares the host network) |
+| iOS simulator | `http://localhost` |
 | Android emulator | `http://10.0.2.2` (host loopback from inside the emulator) |
-| Physical device | `http://<your-machine-LAN-IP>` (e.g. `http://192.168.1.20`) |
+| Physical device | `http://<your-LAN-IP>` (e.g. `http://192.168.1.20`) |
 
-Auth (login/sign-up with 2FA), device registration, token storage
-(`flutter_secure_storage`), the live map, member list, places, and geofence
-alerts are all wired to the real backend. The app also reports location in the
-background (see [Background location](#background-location)).
+A release APK does not need a dart-define. If the URL is unset, the app
+shows a server-config screen and stores the origin you type.
 
-An optional **Biometric unlock** toggle is available under **Settings → Privacy
-& Security**. Once enabled and confirmed, Face ID, Touch ID, or Android
-biometrics are required on cold start and whenever the app returns to the
-foreground. Cancelled or locked-out prompts keep the entire navigator covered;
-the user can retry or log out without exposing the family map.
+### Map tiles
 
-#### Background location
+The map is **OpenStreetMap** throughout. The phone uses
+[flutter_map](https://docs.fleaflet.dev/); the admin panel uses
+[Leaflet](https://leafletjs.com/). Neither Google Maps nor Google Places is
+in the stack.
 
-The app uses [`background_locator_2`](https://pub.dev/packages/background_locator_2)
-for always-on background location tracking:
-
-- **Android:** a foreground service with a persistent notification keeps
-  reporting even when the app is backgrounded or killed, and restarts after a
-  device reboot.
-- **iOS:** the `location` background mode keeps updates flowing while
-  backgrounded.
-- Tracking **starts after login** and **stops on logout**.
-- Credentials are mirrored to `shared_preferences` so the background isolate
-  (which cannot reach `flutter_secure_storage`) can authenticate and refresh
-  tokens itself. See the security note on this tradeoff below.
-
-#### Map tiles (privacy)
-
-By default the map loads tiles from the public OpenStreetMap and Esri ArcGIS
-servers, which receive your family's map viewport (i.e. roughly where they
-are) on every pan/zoom. For a privacy-first deployment, self-host your tiles
-and point the app at them:
+By default the street layer is the public OSM tile server. The optional
+satellite layer defaults to Esri World Imagery (still not Google). Both
+receive the map viewport on every pan/zoom. For a private deployment,
+self-host tiles and pass:
 
 ```bash
 flutter run \
-  --dart-define=WHEREABOUTS_API_URL=http://localhost \
-  --dart-define=WHEREABOUTS_TILE_URL=https://tiles.your.server/{z}/{x}/{y}.png \
-  --dart-define=WHEREABOUTS_SATELLITE_TILE_URL=https://tiles.your.server/sat/{z}/{y}/{x}
+  --dart-define=WHEREABOUTS_API_URL=https://whereabouts.example.com \
+  --dart-define=WHEREABOUTS_TILE_URL=https://tiles.example.com/{z}/{x}/{y}.png \
+  --dart-define=WHEREABOUTS_SATELLITE_TILE_URL=https://tiles.example.com/sat/{z}/{y}/{x}
 ```
 
-`WHEREABOUTS_TILE_URL` is the street layer and
-`WHEREABOUTS_SATELLITE_TILE_URL` the satellite layer; both use `{z}`/`{x}`/`{y}`
-placeholders (note the satellite layer's `{y}`/`{x}` order matches the ArcGIS
-default).
+`WHEREABOUTS_TILE_URL` is the street layer;
+`WHEREABOUTS_SATELLITE_TILE_URL` is satellite. Both use `{z}` / `{x}` / `{y}`
+placeholders (the ArcGIS-style satellite template swaps `{y}` / `{x}`).
 
-#### Self-hosting map tiles (recommended for privacy)
+### Geocoding
 
-For a fully private deployment, host your own tile server. The simplest option is
-[tileserver-gl](https://github.com/maptiler/tileserver-gl), which serves raster
-tiles from an MBTiles file:
+Address search and reverse geocoding in the place picker use
+[Nominatim](https://nominatim.org/) (OpenStreetMap’s geocoder), not Google
+Places, and are **off by default**. Enable them against your own Nominatim:
 
-1. Download an OSM extract for your region from [Geofabrik](https://download.geofabrik.de/)
-   or [Protomaps](https://docs.protomaps.com/).
-2. Add a tileserver service to your `docker-compose.yml`:
+```bash
+flutter run \
+  --dart-define=WHEREABOUTS_API_URL=https://whereabouts.example.com \
+  --dart-define=WHEREABOUTS_NOMINATIM_URL=https://nominatim.example.com
+```
+
+Without that URL the picker still works by tapping the map.
+
+### Background location
+
+Tracking uses a vendored, patched
+[`background_locator_2`](https://pub.dev/packages/background_locator_2)
+(upstream is unmaintained; the copy in `app/packages/` drops jcenter and
+builds on Gradle 8).
+
+- **Android:** a foreground service keeps reporting when the app is
+  backgrounded or killed, and after reboot. Settings → **Background updates**
+  opens the battery-optimization exemption screen — needed on many OEMs.
+- **iOS:** the `location` background mode keeps updates flowing while
+  backgrounded. “Always” authorization is required.
+- Credentials are mirrored to `shared_preferences` so the background isolate
+  (which cannot reach secure storage) can authenticate. See [Security](#security).
+
+### Push
+
+- **Android:** install [ntfy](https://ntfy.sh/) (or another UnifiedPush
+  distributor). The API advertises `NTFY_BASE_URL` on `GET /config` so the
+  generic APK can register without a rebuild.
+- **iOS:** APNs. Requires an Apple Developer account and an auth key — see
+  [Configuration](#configuration). Payloads do not include coordinates.
+
+## Web admin panel
+
+The backend serves the panel at `/admin`. The Vite + React + Leaflet SPA is
+embedded with `go:embed`; no separate web server.
+
+### Grant platform-admin access
+
+Platform admin is a per-user flag (`users.platform_admin`), not family admin.
+There is no self-service signup for it.
+
+1. Set `PLATFORM_ADMIN_EMAIL` and `PLATFORM_ADMIN_PASSWORD` in `.env`.
+2. Start the API. On startup it creates that account if needed, marks it
+   `platform_admin`, and creates a family for it. If the account already
+   exists, it is promoted (idempotent — safe to leave set).
+
+Setting `PLATFORM_ADMIN_EMAIL` **closes open registration**.
+
+### Use it
+
+1. `docker compose up -d --build` and open `https://<your-host>/admin`.
+2. Log in with the platform-admin account (same `/auth/login` flow, including
+   TOTP if enabled on the account).
+3. **Dashboard** — live map of every family (color rings, status dots,
+   movement badges, Home / School / Work pins) over `/api/admin/ws`.
+   **History** — one day's trail and visits for any member.
+   **Families** — create / rename / delete, move members, invite codes.
+   **Users** — every account, including people with no family; create,
+   assign, change role, reset password.
+   **APK** — download the Android APK.
+   **Settings** — session and API endpoints.
+
+### Invite codes
+
+When registration is closed, a new user must present a valid invite. Each
+code is bound to a family and role (admin / member / child), default 7-day
+expiry, single use.
+
+Codes are 8-character strings from a Crockford-style alphabet (ambiguous
+`0`/`O` and `1`/`I`/`L` removed). They are case-insensitive and tolerate
+spaces and dashes (`ab12-cd34` matches `AB12CD34`).
+
+- Family admins generate codes in the app (`POST /family/invites`).
+- Platform admins generate codes for any family from **Families**.
+- Register with `invite_code`, or join later with `POST /family/join`.
+
+### APK builds
+
+The server does **not** build APKs. CI
+([`.github/workflows/apk.yml`](.github/workflows/apk.yml)) builds a release
+APK on merge to `master` and commits `apk/whereabouts-release.apk`. Compose
+mounts `./apk/` as `APK_DIR`; the admin **Download** button serves
+`GET /api/admin/apk`.
+
+One generic APK works for every deployment because of the runtime server URL
+screen.
+
+## Self-hosting map tiles
+
+For a fully private map, host your own tiles. The simplest option is
+[tileserver-gl](https://github.com/maptiler/tileserver-gl):
+
+1. Download an OSM extract for your region from
+   [Geofabrik](https://download.geofabrik.de/) or
+   [Protomaps](https://docs.protomaps.com/).
+2. Add a tileserver service:
 
    ```yaml
    tiles:
@@ -305,7 +361,7 @@ tiles from an MBTiles file:
        - "80"
    ```
 
-3. Add a Caddy reverse proxy for TLS:
+3. Reverse-proxy it with Caddy:
 
    ```
    tiles.example.com {
@@ -313,154 +369,34 @@ tiles from an MBTiles file:
    }
    ```
 
-4. Point the app at your tile server:
-
-   ```bash
-   flutter run \
-     --dart-define=WHEREABOUTS_API_URL=https://whereabouts.example.com \
-     --dart-define=WHEREABOUTS_TILE_URL=https://tiles.example.com/{z}/{x}/{y}.png
-   ```
-
-#### Geocoding (privacy)
-
-Address search and reverse geocoding (in the place picker) are **disabled by
-default** so the app never sends a family member's coordinates or address
-queries to the public OSM Nominatim endpoint. To enable them against your own
-Nominatim instance:
-
-```bash
-flutter run \
-  --dart-define=WHEREABOUTS_API_URL=http://localhost \
-  --dart-define=WHEREABOUTS_NOMINATIM_URL=https://nominatim.your.server
-```
-
-Without `WHEREABOUTS_NOMINATIM_URL`, the place picker still works by tapping
-the map; only address search and auto-fill are unavailable.
-
-## Web admin panel
-
-The backend serves a web admin panel at `/admin` (the SPA is embedded in the Go
-binary via `go:embed`, so no separate web server is needed). It lets a
-**platform admin** — a user who can see *all* families, not just their own —
-view a live map of every group and member, browse groups, and download the
-Android APK.
-
-### Grant platform-admin access
-
-Platform admin is a per-user flag (`users.platform_admin`, migration `000013`),
-distinct from family admin. There is no self-service signup for it; the only way
-to grant it is to bootstrap the first admin via environment variables:
-
-1. Set `PLATFORM_ADMIN_EMAIL=admin@example.com` and
-   `PLATFORM_ADMIN_PASSWORD=<a strong password>` in `.env`.
-2. Start the API. On startup it **auto-creates** that account (if it doesn't
-   already exist), marks it `platform_admin = true`, and creates a family for
-   it — so the admin is the **first user to log in**. If the account already
-   exists, it is simply promoted (idempotent — safe to leave set across
-   restarts).
-
-Setting `PLATFORM_ADMIN_EMAIL` also **closes open registration**: new users must
-register with a valid invite code (see [Invite codes](#invite-codes)). Leave it
-empty to keep open registration (and disable the admin panel).
-
-### Use it
-
-1. Start the stack (`docker compose up -d --build`) and open
-   `https://<your-host>/admin`.
-2. Log in with the platform-admin account (the panel reuses the normal
-   `/auth/login` flow, including TOTP 2FA if enabled).
-3. The **Dashboard** shows a live map of every family's members (with
-   per-member color rings, status dots, movement badges, and Home/School/Work
-   place pins), streaming updates over `/api/admin/ws`. The **Families** page
-   lists families and members and lets you **move a member to another family**,
-   rename/delete/create families, and generate invite codes; **Users** lists
-   every account (including people with no family), creates accounts, assigns
-   families, changes roles, and resets passwords; **APK** downloads
-   the Android APK; **Settings** shows your session token and API endpoints.
-
-### Invite codes
-
-When `PLATFORM_ADMIN_EMAIL` is set, registration is closed: a new user must
-present a valid invite code to register. Each code is bound to a family and
-assigns the joining user that family and role (admin/member/child), with a
-default 7-day expiry and single use.
-
-Codes are 8-character alphanumeric strings drawn from a Crockford-style
-alphabet (digits and letters, with the ambiguous `0`/`O` and `1`/`I`/`L`
-removed) — about 40 bits of entropy. They are case-insensitive and tolerate
-spaces/dashes on input (e.g. `ab12-cd34` matches `AB12CD34`).
-
-- **Family admins** generate codes from the app (the "Invite" flow calls
-  `POST /family/invites`).
-- **Platform admins** generate codes for any family from the web panel's
-  **Families** page (`POST /api/admin/invites`).
-- A new user registers with the code (`POST /auth/register` with
-  `invite_code`), or an already-registered user joins a family with
-  `POST /family/join`.
-
-### Terminology
-
-The shared-location group is called a **family** everywhere (backend, web
-admin, and app). Earlier builds used "group" and "circle" interchangeably for
-the same concept; those have been standardized to "family".
-
-### APK builds (CI)
-
-The server does **not** build APKs itself — that would require a multi-GB
-Flutter/Android toolchain in the server image. Instead, the APK is built in CI
-and the admin panel's **APK** page just serves it.
-
-1. Merge a PR to `master`. The
-   [`.github/workflows/apk.yml`](.github/workflows/apk.yml) workflow builds the
-   release APK and commits it to `apk/whereabouts-release.apk`.
-2. Any server that pulls `master` receives the APK with the code. Its compose
-   mounts `./apk/` as `APK_DIR` (default `/data/apk`), so the **APK** page's
-   **Download** button serves it via `GET /api/admin/apk` with no manual copy.
-
-The app has a runtime server-config screen, so one generic APK works for any
-deployment — no per-deployment rebuild is needed.
-
-### Build the web panel (development)
-
-The panel is a Vite + React + TypeScript + Leaflet app in `web/`. To rebuild the
-embedded bundle after changing it:
-
-```bash
-cd web
-npm install
-npm run build          # refreshes backend/web/dist/ (the embedded bundle)
-cd ../backend
-go build ./...         # embeds backend/web/dist/ into the binary
-```
+4. Point the app at it with `WHEREABOUTS_TILE_URL` as above.
 
 ## Run on a Synology NAS
 
 1. **Requirements:** an x86_64 model with **Container Manager** (Docker) and
    **4 GB+ RAM** (Postgres + TimescaleDB is the main consumer).
-2. Copy this repo to the NAS (e.g. via `git clone` or a shared folder).
-3. In Container Manager → **Project**, create a new project pointing at the
-   `docker-compose.yml`, or use SSH:
+2. Copy this repo to the NAS (`git clone` or a shared folder).
+3. In Container Manager → **Project**, point at `docker-compose.yml`, or SSH:
 
    ```bash
-   cd /path/to/location
+   cd /path/to/whereabouts
    cp .env.example .env   # set strong secrets
    docker compose up -d --build
    ```
 
-4. **Storage:** the `pgdata` volume holds all data. Put it on a NAS volume with
-   snapshots enabled, and back it up (e.g. `pg_dump` on a schedule).
-5. **Remote access (recommended):** do **not** expose ports publicly. Use
-   **Tailscale** or **WireGuard** to reach the NAS, then set
+4. **Storage:** the `pgdata` volume holds all data. Put it on a volume with
+   snapshots, and schedule `pg_dump`.
+5. **Remote access:** do **not** expose ports publicly if you can avoid it.
+   Use Tailscale or WireGuard, then set
    `SITE_ADDRESS=whereabouts.<your-tailnet>.ts.net` so Caddy gets a real
    certificate. For a public domain, set `SITE_ADDRESS=whereabouts.example.com`
-   and open ports 80/443.
-6. **ntfy / UnifiedPush:** set `PUSH_ADDRESS=push.example.com` (or a Tailscale
-   name) and `NTFY_BASE_URL=https://push.example.com` so Android push works
-   over TLS without Google. Note that `PUSH_ADDRESS` alone does not enable TLS —
-   you must also add a Caddy site block for ntfy (see the commented example in
-   `caddy/Caddyfile`).
+   and open 80/443.
+6. **ntfy / UnifiedPush:** set `PUSH_ADDRESS` and `NTFY_BASE_URL` so Android
+   push works over TLS. `PUSH_ADDRESS` alone does not enable TLS — add a
+   Caddy site block for ntfy (commented example in `caddy/Caddyfile`).
+   Install the [ntfy Android app](https://ntfy.sh/) on family devices.
 
-## Configuration (environment variables)
+## Configuration
 
 ### Backend
 
@@ -468,71 +404,224 @@ go build ./...         # embeds backend/web/dist/ into the binary
 |---|---|---|
 | `HTTP_ADDR` | `:8080` | API listen address |
 | `DATABASE_URL` | local dev URL | PostgreSQL connection string |
-| `JWT_SECRET` | `change-me-in-production` | JWT signing secret (set this!) |
+| `JWT_SECRET` | `change-me-in-production` | JWT signing secret (**set this**) |
 | `ACCESS_TOKEN_TTL` | `15m` | Access token lifetime |
 | `REFRESH_TOKEN_TTL` | `720h` | Refresh token lifetime |
 | `ALLOWED_ORIGIN` | *(empty)* | CORS origin |
-| `APP_ENV` | `development` | `development` or `production` (production fails fast on insecure defaults) |
-| `TLS_CERT_FILE` / `TLS_KEY_FILE` | *(empty)* | Direct HTTPS cert/key (optional; Caddy is the recommended path) |
-| `TLS_BEHIND_PROXY` | `false` | Set `true` when a reverse proxy terminates TLS |
-| `INSECURE_HTTP` | `false` | Explicit opt-out of TLS (trusted private networks only) |
-| `VERBOSE_PUSH` | `false` | Include the user's name in push payloads (default omits it) |
-| `PLATFORM_ADMIN_EMAIL` | *(empty)* | Email of the first platform admin. On startup the matching user is promoted to `platform_admin = true`; if no such user exists, the account is auto-created (see `PLATFORM_ADMIN_PASSWORD`). Setting it also closes open registration (invite codes required). |
-| `PLATFORM_ADMIN_PASSWORD` | *(empty)* | Password for the auto-created first admin account (only used when `PLATFORM_ADMIN_EMAIL` is set and the account does not exist yet). |
-| `APNS_KEY_FILE` | *(empty)* | Path to the APNs `.p8` auth key (empty disables APNs) |
-| `APNS_KEY_ID` | *(empty)* | APNs key ID |
-| `APNS_TEAM_ID` | *(empty)* | Apple Developer team ID |
-| `APNS_TOPIC` | *(empty)* | App bundle ID |
+| `APP_ENV` | `development` | `production` fails fast on insecure defaults |
+| `TLS_CERT_FILE` / `TLS_KEY_FILE` | *(empty)* | Direct HTTPS (Caddy is the usual path) |
+| `TLS_BEHIND_PROXY` | `false` | `true` when a reverse proxy terminates TLS |
+| `INSECURE_HTTP` | `false` | Opt-out of TLS (trusted private networks only) |
+| `VERBOSE_PUSH` | `false` | Include the user's name in push payloads |
+| `NTFY_BASE_URL` | *(empty)* | Public ntfy origin advertised on `GET /config` |
+| `PLATFORM_ADMIN_EMAIL` | *(empty)* | First platform admin; also closes open registration |
+| `PLATFORM_ADMIN_PASSWORD` | *(empty)* | Password for the auto-created admin account |
+| `APNS_KEY_FILE` | *(empty)* | APNs `.p8` key (empty disables APNs) |
+| `APNS_KEY_ID` / `APNS_TEAM_ID` / `APNS_TOPIC` | *(empty)* | APNs identifiers |
 | `APNS_PRODUCTION` | `false` | Use the APNs production endpoint |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM` | *(empty)* | Optional SMS; empty keeps alerts in-app |
+| `PUBLIC_BASE_URL` | *(empty)* | HTTPS origin for SMS share links |
+| `APK_DIR` | `/data/apk` | Directory the admin panel serves the APK from |
 
-### Flutter app (build-time `--dart-define`)
+### Flutter app (`--dart-define`)
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `WHEREABOUTS_API_URL` | *(empty)* | Backend base URL (required; app fails loudly if unset) |
-| `WHEREABOUTS_TILE_URL` | OSM public tiles | Street tile URL template (`{z}`/`{x}`/`{y}`) |
+| `WHEREABOUTS_API_URL` | *(empty)* | Backend base URL (runtime screen if unset) |
+| `WHEREABOUTS_TILE_URL` | OSM public tiles | Street tile URL template |
 | `WHEREABOUTS_SATELLITE_TILE_URL` | ArcGIS public tiles | Satellite tile URL template |
-| `WHEREABOUTS_NOMINATIM_URL` | *(empty)* | Self-hosted Nominatim base URL (geocoding disabled when empty) |
+| `WHEREABOUTS_NOMINATIM_URL` | *(empty)* | Nominatim base URL (geocoding off when empty) |
 
-## Security notes
+## Security
 
-- Passwords are hashed with **Argon2id**; TOTP 2FA is verified at login when
+- Passwords are hashed with **Argon2id**. TOTP is verified at login when
   enabled on the account.
 - Access tokens are short-lived; refresh tokens rotate via `/auth/refresh`.
-- Set a strong `JWT_SECRET` and `POSTGRES_PASSWORD` before exposing anything.
-- The `JWT_SECRET` default is intentionally insecure — it exists only so the
-  stack boots out of the box.
-- **Encryption at rest is a deployment responsibility** — the app does **not**
-  encrypt data at rest itself. The operator must enable PostgreSQL TDE or
-  full-disk encryption (e.g. LUKS) on the host so location data is not readable
-  from a stolen disk.
-- **90-day location retention** — TimescaleDB auto-purges location history older
-  than 90 days; the last-known position per member is preserved in a separate
-  `member_positions` table so inactive members remain visible on the map.
-- **Audit logging** — sensitive operations (auth, role changes, location ingest,
-  place/geofence management) are recorded.
-- **No third-party location data** — self-hosted tiles and self-hosted push
-  (ntfy) keep map viewports and notifications off third-party servers; iOS push
-  uses APNs (Apple is the platform vendor, and payloads carry no location).
-- **Background credentials** live in `shared_preferences` (not secure storage) —
-  a documented tradeoff so the background isolate can authenticate and refresh
-  tokens. Biometric unlock protects the interactive UI but does not encrypt
-  these background credentials or stop opted-in background location reporting.
-  `android:allowBackup="false"` prevents the credentials from being backed up
-  to the cloud.
+- Production (`APP_ENV=production`) refuses to boot on a default `JWT_SECRET`
+  or an insecure `DATABASE_URL`.
+- **Encryption at rest is yours to provide.** The app does not encrypt the
+  database. Enable host disk encryption (LUKS, FileVault, Synology volume
+  encryption) or PostgreSQL TDE so a stolen disk is not readable location
+  data.
+- **90-day location retention.** TimescaleDB drops history older than 90
+  days; `member_positions` keeps the last-known point.
+- **Audit log** of auth, role changes, location ingest, and place / geofence
+  management (`GET /audit`, family admins).
+- **No third-party location pipeline.** Self-hosted tiles and ntfy keep
+  viewports and notifications off vendor servers. APNs is the iOS exception
+  (platform vendor; no coordinates in the payload).
+- **SMS is optional.** Twilio sees destination numbers and a short-lived
+  share URL on *your* server — not live coordinates, unless
+  `PUBLIC_BASE_URL` is missing or not public HTTPS, in which case the
+  message falls back to lat/lon. Leave Twilio unset to keep alerts on push
+  and WebSocket only.
+- **Background credentials** live in `shared_preferences` so the background
+  isolate can refresh tokens. Biometric unlock covers the interactive UI; it
+  does not encrypt those credentials or stop opted-in background reporting.
+  `android:allowBackup="false"` keeps them off cloud backup.
+- **No end-to-end encryption of location.** The server must read coordinates
+  to evaluate geofences, build history, and fan out the live map. That is a
+  deliberate tradeoff, not an oversight.
+
+## API reference
+
+<details>
+<summary>Family API</summary>
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/healthz` | Health check |
+| GET | `/config` | Public ntfy base URL and whether APNs is configured |
+| POST | `/auth/register` | Create account |
+| POST | `/auth/login` | Password + optional TOTP → token pair |
+| POST | `/auth/refresh` | Rotate refresh token |
+| GET | `/me` | Signed-in profile |
+| PATCH | `/me` | Update display name and/or phone |
+| GET | `/me/contacts` | List emergency contacts |
+| POST | `/me/contacts` | Add an emergency contact |
+| DELETE | `/me/contacts/{id}` | Remove an emergency contact |
+| GET | `/api/profile` | Own profile and avatar metadata |
+| GET | `/api/profile/avatar` | Private profile image |
+| PUT | `/api/profile/avatar` | Upload PNG/JPEG (raw body, max 5 MiB) |
+| DELETE | `/api/profile/avatar` | Remove profile image |
+| GET | `/family/members/{id}/avatar` | Same-family member's private image |
+| GET | `/family/members/{id}/history?from&to` | One day of trail + visits |
+| POST | `/families` | Create a family (caller becomes admin) |
+| GET | `/family` | Get your family |
+| PATCH | `/family` | Rename (admin) |
+| POST | `/family/leave` | Leave (last admin cannot) |
+| GET | `/family/members` | List members |
+| PATCH | `/family/members/{id}/role` | Change a member's role |
+| POST | `/family/invites` | Create an invite code (admin) |
+| POST | `/family/join` | Join by invite code |
+| GET / POST | `/family/places` | List / create places |
+| PATCH / DELETE | `/family/places/{id}` | Update / delete a place |
+| GET / POST | `/family/geofences` | List / create geofences |
+| PATCH / DELETE | `/family/geofences/{id}` | Update / delete a geofence |
+| GET | `/audit` | Recent audit entries (admin) |
+| POST | `/devices` | Register a device |
+| GET | `/devices` | List your devices |
+| PATCH | `/devices/{id}` | Attach or clear push / UnifiedPush endpoint |
+| POST | `/locations` | Ingest a location point |
+| POST | `/alerts/check-in` | Check in (WS + push + optional SMS) |
+| POST | `/alerts/help` | Help alert (family only) |
+| POST | `/alerts/sos` | SOS to family plus emergency contacts |
+| POST | `/alerts/{id}/resolve` | I'm-safe follow-up (sender only) |
+| GET | `/alerts/share/{token}` | Public 24h share page (no auth) |
+| WS | `/ws/stream` | Live position stream (family-scoped) |
+
+</details>
+
+<details>
+<summary>Platform-admin API</summary>
+
+All routes require a platform admin. The SPA at `/admin` calls these under
+`/api/admin/*`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET / POST | `/api/admin/families` | List / create families |
+| PATCH / DELETE | `/api/admin/families/{id}` | Rename / delete a family |
+| GET | `/api/admin/families/{id}/members` | List one family's members |
+| GET | `/api/admin/members` | List every member |
+| GET | `/api/admin/members/{id}/avatar` | Member's private image |
+| GET | `/api/admin/members/{id}/history?from&to` | One day of history |
+| PATCH | `/api/admin/members/{id}/family` | Move a member to another family |
+| GET / POST | `/api/admin/users` | List / create accounts |
+| PATCH | `/api/admin/users/{id}/family` | Assign or unassign a family |
+| PATCH | `/api/admin/users/{id}/role` | Change family role |
+| PATCH | `/api/admin/users/{id}/password` | Reset password |
+| GET | `/api/admin/places` | Every saved place |
+| GET / POST | `/api/admin/invites` | List / create invite codes |
+| GET | `/api/admin/apk` | Download the Android APK |
+| POST | `/api/admin/apk/build` | Optional on-server build (needs Flutter) |
+| GET | `/api/admin/apk/status` | Poll that build |
+| WS | `/api/admin/ws` | Live positions across all families |
+
+</details>
+
+## Development
+
+### Layout
+
+```
+├── backend/          Go API (REST + WebSocket, embedded admin SPA)
+├── app/              Flutter app (Android + iOS)
+├── web/              Admin panel source (Vite + React + Leaflet)
+├── caddy/            Caddyfile
+├── apk/              CI-built release APK
+└── docker-compose.yml
+```
+
+Migrations live in `backend/internal/db/migrations/` and run automatically
+at API startup.
+
+### Run the API without Docker
+
+```bash
+cd backend
+go build -o server ./cmd/server
+DATABASE_URL="postgres://whereabouts:whereabouts@localhost:5432/whereabouts?sslmode=disable" \
+JWT_SECRET="$(openssl rand -base64 48)" \
+./server
+```
+
+### Rebuild the admin panel
+
+```bash
+cd web
+npm install
+npm run build          # writes backend/web/dist/
+cd ../backend
+go build ./...         # embeds dist/ into the binary
+```
+
+The shared-location group is called a **family** everywhere. Earlier builds
+used “group” and “circle” for the same idea; those are gone.
 
 ## Roadmap
 
-Done: auth (Argon2id + JWT + TOTP), families, devices, location ingest,
-WebSocket live streaming, places, geofences, ntfy/APNs push, the Flutter map,
-onboarding, foreground + background location reporting, 90-day retention,
-audit logging, biometric app unlock on Android/iOS, location history (per-day
-map trail + visit timeline on the app and the web admin panel, including
-unnamed dwells and save-as-family-place), and the web admin panel
-(platform-admin live map of all families, groups, APK build/download, served
-at `/admin`).
+Shipped: auth, families, devices, live map, places, geofences, ntfy / APNs,
+SOS / Help / Check in, emergency contacts, history, avatars, biometric
+unlock, 90-day retention, audit log, invite-gated registration, and the
+web admin panel.
 
-Pending: app icon, the "Bubble" privacy feature, self-hosted Nominatim
-deployment, a phone field, member join/leave presence, activity recognition
-(`motion_state`), and adaptive battery-aware tracking.
-See `PLAN.md` for the full plan.
+Not in this release (ideas, not promises):
+
+- Adaptive, battery-aware tracking driven by activity recognition
+- Driving reports / trip summaries (the Settings toggle is a stub)
+- Self-hosted Nominatim as part of Compose
+- Passkeys (WebAuthn)
+- End-to-end encryption of location (conflicts with server-side geofences)
+- Crash detection
+
+iOS background tracking is limited by Apple; Android OEM battery managers
+can still kill the service despite a correct foreground service. Those are
+platform constraints, not bugs we can fully paper over.
+
+## Contributing
+
+Issues and pull requests are welcome. Please:
+
+1. Keep location data on the user's server — no analytics, crash reporters,
+   or third-party SDKs that exfiltrate coordinates.
+2. Match the existing Go / Flutter / TypeScript style in the tree you touch.
+3. Do not commit secrets, `.env`, or APNs keys.
+
+A `LICENSE` file has not been published yet. If you need a license to
+package or redistribute Whereabouts, open an issue.
+
+## Acknowledgments
+
+- [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors for
+  the map data (© ODbL)
+- [flutter_map](https://docs.fleaflet.dev/) and [Leaflet](https://leafletjs.com/)
+  for rendering it, and [Nominatim](https://nominatim.org/) for optional
+  address search
+- [ntfy](https://ntfy.sh/) and [UnifiedPush](https://unifiedpush.org/) for
+  Google-free Android notifications
+- [TimescaleDB](https://www.timescale.com/) and [PostGIS](https://postgis.net/)
+  for history and geofences
+- [tileserver-gl](https://github.com/maptiler/tileserver-gl) for private maps
+- [background_locator_2](https://pub.dev/packages/background_locator_2) for
+  the background location isolate we vendor and patch
