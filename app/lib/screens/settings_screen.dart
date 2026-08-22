@@ -4,6 +4,7 @@ import 'package:local_auth/local_auth.dart' show BiometricType;
 import '../services/auth_service.dart';
 import '../services/battery_optimization_service.dart';
 import '../services/biometric_service.dart';
+import '../services/location_sharing_service.dart';
 import '../theme/app_theme.dart';
 import 'profile_screen.dart';
 import 'families_screen.dart';
@@ -20,6 +21,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _locationSharing = true;
+  bool _locationSharingLoading = true;
   bool _notifications = true;
   bool _driveDetection = true;
   bool _loggingOut = false;
@@ -34,6 +36,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadBiometricSettings();
+    _loadLocationSharing();
+  }
+
+  Future<void> _loadLocationSharing() async {
+    final bool enabled = await LocationSharingService.load();
+    if (!mounted) return;
+    setState(() {
+      _locationSharing = enabled;
+      _locationSharingLoading = false;
+    });
+  }
+
+  Future<void> _setLocationSharing(bool enabled) async {
+    setState(() => _locationSharing = enabled);
+    await LocationSharingService.setEnabled(enabled);
   }
 
   Future<void> _loadBiometricSettings() async {
@@ -231,8 +248,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             secondary:
                 const Icon(Icons.location_on_outlined, color: AppColors.purple),
             title: const Text('Location sharing'),
+            subtitle: const Text(
+              'When off, this device stops reporting your position.',
+            ),
             value: _locationSharing,
-            onChanged: (v) => setState(() => _locationSharing = v),
+            onChanged: _locationSharingLoading ? null : _setLocationSharing,
           ),
           if (BatteryOptimizationService.isSupported)
             ListTile(
