@@ -119,6 +119,7 @@ type profileOut struct {
 	Email           string      `json:"email"`
 	Role            models.Role `json:"role"`
 	HasAvatar       bool        `json:"has_avatar"`
+	AvatarVersion   int64       `json:"avatar_version"`
 	AvatarUpdatedAt *time.Time  `json:"avatar_updated_at"`
 }
 
@@ -135,7 +136,7 @@ func (s *Server) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	var profile profileOut
 	err := s.Pool.QueryRow(r.Context(), `
-		SELECT id, name, email, role, avatar_data IS NOT NULL, avatar_updated_at
+		SELECT id, name, email, role, avatar_data IS NOT NULL, avatar_version, avatar_updated_at
 		FROM users
 		WHERE id = $1`, claims.UserID,
 	).Scan(
@@ -144,6 +145,7 @@ func (s *Server) GetProfile(w http.ResponseWriter, r *http.Request) {
 		&profile.Email,
 		&profile.Role,
 		&profile.HasAvatar,
+		&profile.AvatarVersion,
 		&profile.AvatarUpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -182,18 +184,7 @@ func (s *Server) GetProfileAvatar(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to load profile avatar")
 		return
 	}
-	// The migration constrains this column, but keep this defense at the trust
-	// boundary so an out-of-band database change cannot make this endpoint send
-	// arbitrary content with a browser-interpretable MIME type.
-	if contentType != "image/jpeg" && contentType != "image/png" {
-		writeError(w, http.StatusInternalServerError, "stored profile avatar has an invalid content type")
-		return
-	}
-
-	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Content-Length", strconv.Itoa(len(avatar)))
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(avatar)
+	writePrivateAvatar(w, avatar, contentType)
 }
 
 // PutProfileAvatar stores a PNG or JPEG avatar for the authenticated user.
@@ -234,16 +225,21 @@ func (s *Server) PutProfileAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var familyID *string
+	var (
+		familyID        *string
+		avatarVersion   int64
+		avatarUpdatedAt time.Time
+	)
 	err = s.Pool.QueryRow(r.Context(), `
 		UPDATE users
 		SET avatar_data = $1,
 		    avatar_content_type = $2,
 		    avatar_updated_at = now(),
+		    avatar_version = avatar_version + 1,
 		    updated_at = now()
 		WHERE id = $3
-		RETURNING family_id`, avatar, contentType, claims.UserID,
-	).Scan(&familyID)
+		RETURNING family_id, avatar_version, avatar_updated_at`, avatar, contentType, claims.UserID,
+	).Scan(&familyID, &avatarVersion, &avatarUpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "profile not found")
 		return
@@ -254,6 +250,7 @@ func (s *Server) PutProfileAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.logAudit(r.Context(), claims.UserID, stringValue(familyID), "profile.avatar_uploaded", "uploaded profile avatar", clientIP(r))
+	s.broadcastAvatarUpdate(familyID, claims.UserID, true, avatarVersion, &avatarUpdatedAt)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -267,16 +264,20 @@ func (s *Server) DeleteProfileAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var familyID *string
+	var (
+		familyID      *string
+		avatarVersion int64
+	)
 	err := s.Pool.QueryRow(r.Context(), `
 		UPDATE users
 		SET avatar_data = NULL,
 		    avatar_content_type = NULL,
 		    avatar_updated_at = NULL,
+		    avatar_version = avatar_version + 1,
 		    updated_at = now()
 		WHERE id = $1
-		RETURNING family_id`, claims.UserID,
-	).Scan(&familyID)
+		RETURNING family_id, avatar_version`, claims.UserID,
+	).Scan(&familyID, &avatarVersion)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "profile not found")
 		return
@@ -287,6 +288,7 @@ func (s *Server) DeleteProfileAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.logAudit(r.Context(), claims.UserID, stringValue(familyID), "profile.avatar_deleted", "deleted profile avatar", clientIP(r))
+	s.broadcastAvatarUpdate(familyID, claims.UserID, false, avatarVersion, nil)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -363,6 +365,22 @@ func setPrivateProfileHeaders(w http.ResponseWriter) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
+}
+
+// writePrivateAvatar writes image data returned from any authenticated avatar
+// endpoint. The database constraint is not treated as the only defense: an
+// out-of-band data change cannot make this endpoint send arbitrary content with
+// a browser-interpretable MIME type.
+func writePrivateAvatar(w http.ResponseWriter, avatar []byte, contentType string) {
+	if contentType != "image/jpeg" && contentType != "image/png" {
+		writeError(w, http.StatusInternalServerError, "stored profile avatar has an invalid content type")
+		return
+	}
+
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(avatar)))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(avatar)
 }
 
 func stringValue(value *string) string {

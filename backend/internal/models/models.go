@@ -23,24 +23,24 @@ func (r Role) Valid() bool {
 
 // Family groups users, devices, places, and geofences.
 type Family struct {
-	ID        string          `json:"id"`
-	Name      string          `json:"name"`
-	Settings  map[string]any  `json:"settings"`
-	CreatedAt time.Time       `json:"created_at"`
+	ID        string         `json:"id"`
+	Name      string         `json:"name"`
+	Settings  map[string]any `json:"settings"`
+	CreatedAt time.Time      `json:"created_at"`
 }
 
 // User is an account. A user belongs to at most one family.
 type User struct {
-	ID           string     `json:"id"`
-	FamilyID     *string    `json:"family_id,omitempty"`
-	Email        string     `json:"email"`
-	Name         string     `json:"name"`
-	Role         Role       `json:"role"`
-	PasswordHash string     `json:"-"`
-	TOTPSecret   string     `json:"-"`
-	TOTPEnabled  bool       `json:"totp_enabled"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	ID           string    `json:"id"`
+	FamilyID     *string   `json:"family_id,omitempty"`
+	Email        string    `json:"email"`
+	Name         string    `json:"name"`
+	Role         Role      `json:"role"`
+	PasswordHash string    `json:"-"`
+	TOTPSecret   string    `json:"-"`
+	TOTPEnabled  bool      `json:"totp_enabled"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // MemberWithLocation is a family member joined to their latest location (if
@@ -48,13 +48,20 @@ type User struct {
 // fields; a member who has never reported a location has null lat/lon/ts.
 type MemberWithLocation struct {
 	User
-	Lat            *float64   `json:"lat,omitempty"`
-	Lon            *float64   `json:"lon,omitempty"`
-	TS             *time.Time `json:"ts,omitempty"`
-	BatteryPct     *float64   `json:"battery_pct,omitempty"`
-	SpeedMPS       *float64   `json:"speed_mps,omitempty"`
-	MotionState    *string    `json:"motion_state,omitempty"`
-	AccuracyMeters *float64   `json:"accuracy_meters,omitempty"`
+	// Avatar metadata is intentionally separate from the bytes. Authenticated
+	// family/admin clients use it to decide whether to request the protected
+	// member-avatar endpoint instead of rendering initials. AvatarVersion is a
+	// durable cache key that changes on both upload and removal.
+	HasAvatar       bool       `json:"has_avatar"`
+	AvatarVersion   int64      `json:"avatar_version"`
+	AvatarUpdatedAt *time.Time `json:"avatar_updated_at,omitempty"`
+	Lat             *float64   `json:"lat,omitempty"`
+	Lon             *float64   `json:"lon,omitempty"`
+	TS              *time.Time `json:"ts,omitempty"`
+	BatteryPct      *float64   `json:"battery_pct,omitempty"`
+	SpeedMPS        *float64   `json:"speed_mps,omitempty"`
+	MotionState     *string    `json:"motion_state,omitempty"`
+	AccuracyMeters  *float64   `json:"accuracy_meters,omitempty"`
 }
 
 // InviteCode gates registration: a new user presents a valid, unexpired,
@@ -73,15 +80,15 @@ type InviteCode struct {
 
 // Device is a phone/tablet that reports location for a user.
 type Device struct {
-	ID                 string     `json:"id"`
-	UserID             string     `json:"user_id"`
-	Platform           string     `json:"platform"` // ios | android | web
-	Name               string     `json:"name"`
-	PushToken          string     `json:"-"`
-	UnifiedPushEndpoint string    `json:"-"`
-	LastSeen           *time.Time `json:"last_seen,omitempty"`
-	AppVersion         string     `json:"app_version,omitempty"`
-	CreatedAt          time.Time  `json:"created_at"`
+	ID                  string     `json:"id"`
+	UserID              string     `json:"user_id"`
+	Platform            string     `json:"platform"` // ios | android | web
+	Name                string     `json:"name"`
+	PushToken           string     `json:"-"`
+	UnifiedPushEndpoint string     `json:"-"`
+	LastSeen            *time.Time `json:"last_seen,omitempty"`
+	AppVersion          string     `json:"app_version,omitempty"`
+	CreatedAt           time.Time  `json:"created_at"`
 }
 
 // Location is a single reported position point.
@@ -101,13 +108,13 @@ type Location struct {
 
 // Place is a named point of interest (home, school, work, custom).
 type Place struct {
-	ID           string  `json:"id"`
-	FamilyID     string  `json:"family_id"`
-	Name         string  `json:"name"`
-	Type         string  `json:"type"`
-	Lat          float64 `json:"lat"`
-	Lon          float64 `json:"lon"`
-	RadiusMeters *float64 `json:"radius_meters,omitempty"`
+	ID           string    `json:"id"`
+	FamilyID     string    `json:"family_id"`
+	Name         string    `json:"name"`
+	Type         string    `json:"type"`
+	Lat          float64   `json:"lat"`
+	Lon          float64   `json:"lon"`
+	RadiusMeters *float64  `json:"radius_meters,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 

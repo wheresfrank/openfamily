@@ -153,6 +153,7 @@ func (s *Server) ListMembers(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := s.Pool.Query(r.Context(), `
 		SELECT u.id, u.email, u.name, u.role, u.totp_enabled, u.created_at, u.updated_at,
+		       u.avatar_data IS NOT NULL, u.avatar_version, u.avatar_updated_at,
 		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters
 		FROM users u
 		LEFT JOIN member_positions mp ON mp.user_id = u.id
@@ -168,6 +169,7 @@ func (s *Server) ListMembers(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var m models.MemberWithLocation
 		if err := rows.Scan(&m.ID, &m.Email, &m.Name, &m.Role, &m.TOTPEnabled, &m.CreatedAt, &m.UpdatedAt,
+			&m.HasAvatar, &m.AvatarVersion, &m.AvatarUpdatedAt,
 			&m.Lat, &m.Lon, &m.TS, &m.BatteryPct, &m.SpeedMPS, &m.MotionState, &m.AccuracyMeters); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to scan member")
 			return
@@ -182,6 +184,48 @@ func (s *Server) ListMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, members)
+}
+
+// GetFamilyMemberAvatar returns a member's avatar only when the caller and
+// member currently belong to the same family. The image itself stays behind an
+// authenticated request; list and WebSocket responses carry metadata only.
+func (s *Server) GetFamilyMemberAvatar(w http.ResponseWriter, r *http.Request) {
+	setPrivateProfileHeaders(w)
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+
+	memberID := chi.URLParam(r, "id")
+	if memberID == "" {
+		writeError(w, http.StatusBadRequest, "member id is required")
+		return
+	}
+
+	var avatar []byte
+	var contentType string
+	err := s.Pool.QueryRow(r.Context(), `
+		SELECT member.avatar_data, member.avatar_content_type
+		FROM users AS caller
+		JOIN users AS member
+		  ON member.id = $2
+		 AND member.family_id = caller.family_id
+		WHERE caller.id = $1
+		  AND caller.family_id IS NOT NULL
+		  AND member.avatar_data IS NOT NULL`, claims.UserID, memberID,
+	).Scan(&avatar, &contentType)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// Deliberately use the same response for a missing photo and a member in
+		// another family, so this endpoint does not disclose membership.
+		writeError(w, http.StatusNotFound, "member avatar not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load member avatar")
+		return
+	}
+	writePrivateAvatar(w, avatar, contentType)
 }
 
 // UpdateMemberRole changes a member's role (admin only).

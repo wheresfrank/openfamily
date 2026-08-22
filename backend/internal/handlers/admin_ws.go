@@ -137,6 +137,7 @@ func (s *Server) AdminStream(w http.ResponseWriter, r *http.Request) {
 func (s *Server) adminMembersSnapshot(ctx context.Context) ([]adminWsMember, error) {
 	rows, err := s.Pool.Query(ctx, `
 		SELECT u.id, u.email, u.name, u.role,
+		       u.avatar_data IS NOT NULL, u.avatar_version, u.avatar_updated_at,
 		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters,
 		       u.family_id, f.name
 		FROM users u
@@ -153,6 +154,9 @@ func (s *Server) adminMembersSnapshot(ctx context.Context) ([]adminWsMember, err
 		var (
 			id, email, name string
 			role            models.Role
+			hasAvatar       bool
+			avatarVersion   int64
+			avatarUpdatedAt *time.Time
 			lat, lon        *float64
 			ts              *time.Time
 			battery, speed  *float64
@@ -161,22 +165,26 @@ func (s *Server) adminMembersSnapshot(ctx context.Context) ([]adminWsMember, err
 			familyID        *string
 			familyName      *string
 		)
-		if err := rows.Scan(&id, &email, &name, &role, &lat, &lon, &ts, &battery, &speed, &motion, &accuracy, &familyID, &familyName); err != nil {
+		if err := rows.Scan(&id, &email, &name, &role, &hasAvatar, &avatarVersion, &avatarUpdatedAt,
+			&lat, &lon, &ts, &battery, &speed, &motion, &accuracy, &familyID, &familyName); err != nil {
 			return nil, err
 		}
 		m := adminWsMember{
 			wsMember: wsMember{
-				ID:             id,
-				Name:           name,
-				Email:          &email, // platform admin sees all emails
-				Role:           role,
-				Lat:            lat,
-				Lon:            lon,
-				TS:             ts,
-				BatteryPct:     battery,
-				SpeedMPS:       speed,
-				MotionState:    motion,
-				AccuracyMeters: accuracy,
+				ID:              id,
+				Name:            name,
+				Email:           &email, // platform admin sees all emails
+				Role:            role,
+				HasAvatar:       hasAvatar,
+				AvatarVersion:   avatarVersion,
+				AvatarUpdatedAt: avatarUpdatedAt,
+				Lat:             lat,
+				Lon:             lon,
+				TS:              ts,
+				BatteryPct:      battery,
+				SpeedMPS:        speed,
+				MotionState:     motion,
+				AccuracyMeters:  accuracy,
 			},
 			FamilyID:   familyID,
 			FamilyName: familyName,

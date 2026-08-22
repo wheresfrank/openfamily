@@ -6,6 +6,7 @@ import {
   createFamily,
   createInvite,
   deleteFamily,
+  getAdminMemberAvatar,
   listFamilyMembers,
   listFamilies,
   listInvites,
@@ -31,12 +32,134 @@ import {
   formatSpeed,
   initialsOf,
 } from '../lib/format'
+import { getAccessToken } from '../lib/auth'
 import type { AdminInvite, Family, Member, Role } from '../lib/types'
+import { useMemberAvatarUrls } from '../lib/useMemberAvatarUrls'
 import './pages.css'
 import './FamiliesPage.css'
 
+interface AvatarUpdate {
+  userId: string
+  hasAvatar: boolean
+  avatarUpdatedAt: string | null
+  avatarVersion: number
+}
+
+function avatarVersion(value: unknown): number | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : null
+}
+
+function memberAvatarVersion(member: Member): number {
+  return avatarVersion(member.avatar_version) ?? 0
+}
+
+function adminWebSocketUrl(): string {
+  const url = new URL('/api/admin/ws', window.location.origin)
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+  return url.toString()
+}
+
+/**
+ * One live admin stream for the whole Families page. Family rows consume the
+ * resulting metadata rather than creating a socket per expanded table.
+ */
+function useAdminAvatarUpdates(): ReadonlyMap<string, AvatarUpdate> {
+  const token = getAccessToken()
+  const [updates, setUpdates] = React.useState<ReadonlyMap<string, AvatarUpdate>>(
+    () => new Map(),
+  )
+
+  React.useEffect(() => {
+    // Do not carry avatar metadata from a prior authenticated session into a
+    // new one. The member API remains authoritative after a login change.
+    setUpdates(new Map())
+    if (!token || typeof window === 'undefined') return
+
+    let stopped = false
+    let socket: WebSocket | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let retries = 0
+
+    const scheduleReconnect = () => {
+      if (stopped || reconnectTimer != null) return
+      const delay = Math.min(1000 * 2 ** retries, 30000)
+      retries = Math.min(retries + 1, 5)
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null
+        connect()
+      }, delay)
+    }
+
+    const connect = () => {
+      if (stopped) return
+      try {
+        socket = new WebSocket(adminWebSocketUrl(), token)
+      } catch {
+        scheduleReconnect()
+        return
+      }
+
+      socket.onopen = () => {
+        retries = 0
+      }
+      socket.onmessage = (event) => {
+        let frame: Record<string, unknown>
+        try {
+          const parsed: unknown = JSON.parse(event.data as string)
+          if (parsed == null || typeof parsed !== 'object') return
+          frame = parsed as Record<string, unknown>
+        } catch {
+          return
+        }
+        if (frame.type !== 'avatar' ||
+            typeof frame.user_id !== 'string' ||
+            frame.user_id.length === 0 ||
+            typeof frame.has_avatar !== 'boolean') {
+          return
+        }
+        const version = avatarVersion(frame.avatar_version)
+        // An unversioned frame cannot be ordered safely, so never let it
+        // displace a snapshot or a newer live update.
+        if (version == null) return
+        const update: AvatarUpdate = {
+          userId: frame.user_id,
+          hasAvatar: frame.has_avatar,
+          avatarUpdatedAt:
+              typeof frame.avatar_updated_at === 'string'
+                  ? frame.avatar_updated_at
+                  : null,
+          avatarVersion: version,
+        }
+        setUpdates((previous) => {
+          const known = previous.get(update.userId)
+          if (known != null && update.avatarVersion <= known.avatarVersion) {
+            return previous
+          }
+          const next = new Map(previous)
+          next.set(update.userId, update)
+          return next
+        })
+      }
+      socket.onclose = scheduleReconnect
+      socket.onerror = () => socket?.close()
+    }
+
+    connect()
+    return () => {
+      stopped = true
+      if (reconnectTimer != null) clearTimeout(reconnectTimer)
+      socket?.close()
+    }
+  }, [token])
+
+  return updates
+}
+
 export function FamiliesPage() {
   const families = useAsync(listFamilies, [])
+  const avatarUpdates = useAdminAvatarUpdates()
   const [creating, setCreating] = React.useState(false)
   const [newName, setNewName] = React.useState('')
   const [busy, setBusy] = React.useState(false)
@@ -140,7 +263,13 @@ export function FamiliesPage() {
       ) : (
         <div className="wb-groups-list">
           {list.map((f) => (
-            <FamilyRow key={f.id} family={f} families={list} onChanged={families.refetch} />
+            <FamilyRow
+              key={f.id}
+              family={f}
+              families={list}
+              avatarUpdates={avatarUpdates}
+              onChanged={families.refetch}
+            />
           ))}
         </div>
       )}
@@ -151,10 +280,12 @@ export function FamiliesPage() {
 function FamilyRow({
   family,
   families,
+  avatarUpdates,
   onChanged,
 }: {
   family: Family
   families: Family[]
+  avatarUpdates: ReadonlyMap<string, AvatarUpdate>
   onChanged: () => void
 }) {
   const [open, setOpen] = React.useState(false)
@@ -172,6 +303,40 @@ function FamilyRow({
   const [inviteCode, setInviteCode] = React.useState<string | null>(null)
   const [actionError, setActionError] = React.useState<string | null>(null)
   const [busy, setBusy] = React.useState(false)
+
+  // A REST member row is still the source of all non-avatar details. Overlay
+  // only a strictly newer avatar event so an old event cannot undo a later
+  // snapshot (or a later photo removal).
+  const displayedMembers = React.useMemo(
+    () =>
+      (members.data ?? []).map((member) => {
+        const update = avatarUpdates.get(member.id)
+        if (update == null || update.avatarVersion <= memberAvatarVersion(member)) {
+          return member
+        }
+        return {
+          ...member,
+          has_avatar: update.hasAvatar,
+          avatar_updated_at: update.hasAvatar ? update.avatarUpdatedAt : null,
+          avatar_version: update.avatarVersion,
+        }
+      }),
+    [avatarUpdates, members.data],
+  )
+
+  const memberAvatarSources = React.useMemo(
+    () =>
+      displayedMembers.map((member) => ({
+        id: member.id,
+        hasAvatar: member.has_avatar,
+        avatarUpdatedAt: member.avatar_updated_at,
+        avatarVersion: member.avatar_version,
+      })),
+    [displayedMembers],
+  )
+  const memberAvatarUrls = useMemberAvatarUrls(memberAvatarSources, getAdminMemberAvatar, {
+    enabled: open,
+  })
 
   const familyInvites = (invites.data ?? []).filter((i) => i.family_id === family.id)
   const otherFamilies = families.filter((f) => f.id !== family.id)
@@ -341,12 +506,16 @@ function FamilyRow({
                   </tr>
                 </thead>
                 <tbody>
-                  {(members.data ?? []).map((m) => (
+                  {displayedMembers.map((m) => (
                     <tr key={m.id}>
                       <td>
                         <div className="wb-member-cell">
                           <span className="wb-member-dot" aria-hidden="true">
-                            {initialsOf(m.name)}
+                            {memberAvatarUrls[m.id] ? (
+                              <img src={memberAvatarUrls[m.id]} alt="" />
+                            ) : (
+                              initialsOf(m.name)
+                            )}
                           </span>
                           <span>
                             <div className="wb-member-name">{m.name}</div>

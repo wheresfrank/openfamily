@@ -479,7 +479,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 6),
                       const Text(
                         'Your photo is stored privately on your Whereabouts server '
-                        'and is requested only with your signed-in session.',
+                        'and shared only with authenticated family members and '
+                        'platform administrators.',
                         style: TextStyle(
                           color: AppColors.textMuted,
                           height: 1.35,

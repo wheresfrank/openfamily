@@ -16,9 +16,14 @@ Member memberFromJson(Map<String, dynamic> json) {
   final num? speedMps = json['speed_mps'] as num?;
   final String? motion = json['motion_state'] as String?;
   final num? accuracy = json['accuracy_meters'] as num?;
+  final bool hasAvatar = json['has_avatar'] == true;
+  final DateTime? avatarUpdatedAt =
+      hasAvatar ? _parseTs(json['avatar_updated_at']) : null;
+  final int avatarVersion = _parseAvatarVersion(json['avatar_version']) ?? 0;
 
-  final LatLng? position =
-      (lat != null && lon != null) ? LatLng(lat.toDouble(), lon.toDouble()) : null;
+  final LatLng? position = (lat != null && lon != null)
+      ? LatLng(lat.toDouble(), lon.toDouble())
+      : null;
   final DateTime? timestamp = _parseTs(ts);
   final MovementType movement = _movementFrom(motion);
 
@@ -38,10 +43,34 @@ Member memberFromJson(Map<String, dynamic> json) {
       timestamp: timestamp,
       movement: movement,
     ),
+    hasAvatar: hasAvatar,
+    avatarUpdatedAt: avatarUpdatedAt,
+    avatarVersion: avatarVersion,
     movement: movement,
     speedMph: speedMps != null ? (speedMps * 2.23694).round() : null,
     lastSeen: timestamp,
     accuracyMeters: accuracy?.toDouble(),
+  );
+}
+
+/// Applies a WebSocket `avatar` frame to [existing].
+///
+/// Avatar frames carry metadata only — the actual bytes are fetched from the
+/// authenticated member-avatar endpoint. Ignore malformed frames rather than
+/// accidentally dropping a currently visible avatar.
+Member memberFromAvatarUpdate(Member existing, Map<String, dynamic> json) {
+  final dynamic rawHasAvatar = json['has_avatar'];
+  final int? avatarVersion = _parseAvatarVersion(json['avatar_version']);
+  if (rawHasAvatar is! bool ||
+      avatarVersion == null ||
+      avatarVersion <= existing.avatarVersion) {
+    return existing;
+  }
+
+  return existing.copyWithAvatar(
+    hasAvatar: rawHasAvatar,
+    avatarUpdatedAt: rawHasAvatar ? _parseTs(json['avatar_updated_at']) : null,
+    avatarVersion: avatarVersion,
   );
 }
 
@@ -60,8 +89,9 @@ Member memberFromLocationUpdate(Member existing, Map<String, dynamic> json) {
   final String? motion = json['motion_state'] as String?;
   final num? accuracy = json['accuracy_meters'] as num?;
 
-  final LatLng? position =
-      (lat != null && lon != null) ? LatLng(lat.toDouble(), lon.toDouble()) : existing.position;
+  final LatLng? position = (lat != null && lon != null)
+      ? LatLng(lat.toDouble(), lon.toDouble())
+      : existing.position;
   // A `location` frame may omit `ts`; fall back to the member's last-seen time
   // so a missing timestamp does not spuriously flip them to "stopped".
   final DateTime? timestamp = _parseTs(ts) ?? existing.lastSeen;
@@ -76,8 +106,8 @@ Member memberFromLocationUpdate(Member existing, Map<String, dynamic> json) {
   // the frame omits it, so a member at 10% does not flip to "normal" (the
   // default 100) on a frame that carries only a position. A member who has
   // never reported battery (0) stays null so _statusFrom defaults to 100.
-  final num? effectiveBattery =
-      batteryPct ?? (existing.batteryPercent > 0 ? existing.batteryPercent : null);
+  final num? effectiveBattery = batteryPct ??
+      (existing.batteryPercent > 0 ? existing.batteryPercent : null);
 
   return existing.copyWith(
     position: position,
@@ -87,14 +117,16 @@ Member memberFromLocationUpdate(Member existing, Map<String, dynamic> json) {
       batteryPct: effectiveBattery,
       accuracy: accuracy,
     ),
-    batteryPercent: batteryPct != null ? batteryPct.round() : existing.batteryPercent,
+    batteryPercent:
+        batteryPct != null ? batteryPct.round() : existing.batteryPercent,
     address: _addressFrom(
       position: position,
       timestamp: timestamp,
       movement: movement,
     ),
     movement: movement,
-    speedMph: speedMps != null ? (speedMps * 2.23694).round() : existing.speedMph,
+    speedMph:
+        speedMps != null ? (speedMps * 2.23694).round() : existing.speedMph,
     lastSeen: timestamp,
     accuracyMeters: accuracy?.toDouble() ?? existing.accuracyMeters,
   );
@@ -172,6 +204,20 @@ DateTime? _parseTs(dynamic ts) {
   }
   if (ts is String) {
     return DateTime.tryParse(ts)?.toUtc();
+  }
+  return null;
+}
+
+/// Parses the durable, monotonically increasing backend avatar revision.
+///
+/// Snapshot rows created before the migration may omit it, in which case their
+/// caller uses revision zero. Live avatar frames must carry a valid revision
+/// so an unorderable frame cannot replace newer metadata.
+int? _parseAvatarVersion(dynamic value) {
+  if (value is int) return value >= 0 ? value : null;
+  if (value is num && value.isFinite) {
+    final int parsed = value.toInt();
+    return value == parsed && parsed >= 0 ? parsed : null;
   }
   return null;
 }

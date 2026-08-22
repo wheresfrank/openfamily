@@ -6,6 +6,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../models/member.dart';
 import 'api_client.dart';
+import 'member_avatar_cache.dart';
 import 'member_mapper.dart';
 import 'server_config.dart';
 import 'token_storage.dart';
@@ -27,8 +28,8 @@ class FamilyInfo {
   final String userId;
 }
 
-/// Fetches the family + members over REST and streams live location updates
-/// over the `/ws/stream` WebSocket.
+/// Fetches the family + members over REST and streams live location and avatar
+/// metadata updates over the `/ws/stream` WebSocket.
 ///
 /// Usage:
 /// ```dart
@@ -100,8 +101,7 @@ class FamilyService {
     final List<Member> mapped = list
         .map((dynamic e) => memberFromJson(e as Map<String, dynamic>))
         .toList();
-    _members = mapped;
-    return mapped;
+    return _replaceMembers(mapped);
   }
 
   /// Opens the WebSocket and begins streaming live updates.
@@ -119,8 +119,7 @@ class FamilyService {
     _stalenessTimer?.cancel();
     _stalenessTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (_disposed || _members.isEmpty) return;
-      final List<Member> refreshed =
-          _members.map(refreshStaleness).toList();
+      final List<Member> refreshed = _members.map(refreshStaleness).toList();
       var changed = false;
       for (int i = 0; i < _members.length; i++) {
         if (!identical(refreshed[i], _members[i])) {
@@ -174,15 +173,20 @@ class FamilyService {
         }
         break;
       case 'members':
-        final List<dynamic> list = (map['members'] as List<dynamic>?) ?? const [];
-        _members = list
+        final List<dynamic> list =
+            (map['members'] as List<dynamic>?) ?? const [];
+        final List<Member> mapped = list
             .map((dynamic e) => memberFromJson(e as Map<String, dynamic>))
             .toList();
+        _replaceMembers(mapped);
         _attempt = 0; // Successful connection — reset reconnect backoff.
         onMembersChanged?.call(_members);
         break;
       case 'location':
         _applyLocation(map);
+        break;
+      case 'avatar':
+        _applyAvatar(map);
         break;
     }
   }
@@ -194,6 +198,74 @@ class FamilyService {
     if (index < 0) return;
     _members[index] = memberFromLocationUpdate(_members[index], map);
     onMembersChanged?.call(_members);
+  }
+
+  /// Applies an `avatar` metadata frame and clears the old private image bytes
+  /// so visible avatar widgets fetch the replacement immediately.
+  void _applyAvatar(Map<String, dynamic> map) {
+    final String? id = map['user_id'] as String?;
+    if (id == null) return;
+    final int index = _members.indexWhere((Member m) => m.id == id);
+    if (index < 0) return;
+
+    final Member updated = memberFromAvatarUpdate(_members[index], map);
+    if (identical(updated, _members[index])) return;
+
+    MemberAvatarCache.instance.invalidate(id);
+    _members[index] = updated;
+    onMembersChanged?.call(_members);
+  }
+
+  /// Replaces the member snapshot while releasing private image bytes for
+  /// changed or removed avatar metadata.
+  ///
+  /// A REST response or `members` WebSocket snapshot can arrive after a newer
+  /// avatar frame. Preserve the highest known durable revision in that case so
+  /// an older snapshot never makes a fresh photo disappear or reappear.
+  List<Member> _replaceMembers(List<Member> incoming) {
+    final Map<String, Member> previousById = <String, Member>{
+      for (final Member member in _members) member.id: member,
+    };
+    final Set<String> incomingIds = incoming
+        .map((Member member) => member.id)
+        .where((String id) => id.isNotEmpty)
+        .toSet();
+
+    for (final Member previous in _members) {
+      if (previous.id.isNotEmpty && !incomingIds.contains(previous.id)) {
+        MemberAvatarCache.instance.invalidate(previous.id);
+      }
+    }
+
+    final List<Member> reconciled = incoming.map((Member candidate) {
+      final Member? previous = previousById[candidate.id];
+      if (previous == null) return candidate;
+
+      // The version changes atomically with every avatar upload/removal. A
+      // snapshot at the same or a lower revision cannot authoritatively change
+      // avatar metadata, so retain the newest metadata already observed.
+      final Member next = candidate.avatarVersion <= previous.avatarVersion
+          ? candidate.copyWithAvatar(
+              hasAvatar: previous.hasAvatar,
+              avatarUpdatedAt: previous.avatarUpdatedAt,
+              avatarVersion: previous.avatarVersion,
+            )
+          : candidate;
+
+      if (_avatarMetadataChanged(previous, next) && previous.id.isNotEmpty) {
+        MemberAvatarCache.instance.invalidate(previous.id);
+      }
+      return next;
+    }).toList();
+
+    _members = reconciled;
+    return _members;
+  }
+
+  bool _avatarMetadataChanged(Member before, Member after) {
+    return before.hasAvatar != after.hasAvatar ||
+        before.avatarVersion != after.avatarVersion ||
+        before.avatarUpdatedAt != after.avatarUpdatedAt;
   }
 
   /// Schedules a reconnect with exponential backoff, re-fetching members first
@@ -208,7 +280,7 @@ class FamilyService {
     _reconnectTimer = Timer(_backoff(), () async {
       if (_disposed) return;
       try {
-        _members = await fetchMembers();
+        await fetchMembers();
         onMembersChanged?.call(_members);
       } catch (_) {
         // Keep the previous members; the next reconnect will retry the fetch.
@@ -240,5 +312,6 @@ class FamilyService {
     _stalenessTimer?.cancel();
     _subscription?.cancel();
     _channel?.sink.close();
+    MemberAvatarCache.instance.clear();
   }
 }

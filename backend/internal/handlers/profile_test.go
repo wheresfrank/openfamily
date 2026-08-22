@@ -160,6 +160,35 @@ func TestSetPrivateProfileHeaders(t *testing.T) {
 	}
 }
 
+func TestWritePrivateAvatar(t *testing.T) {
+	t.Run("writes supported image data", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		writePrivateAvatar(w, []byte{1, 2, 3}, "image/png")
+
+		if w.Code != 200 {
+			t.Fatalf("status = %d, want %d", w.Code, 200)
+		}
+		if got := w.Header().Get("Content-Type"); got != "image/png" {
+			t.Errorf("Content-Type = %q, want image/png", got)
+		}
+		if got := w.Header().Get("Content-Length"); got != "3" {
+			t.Errorf("Content-Length = %q, want 3", got)
+		}
+		if got := w.Body.Bytes(); !bytes.Equal(got, []byte{1, 2, 3}) {
+			t.Errorf("body = %v, want [1 2 3]", got)
+		}
+	})
+
+	t.Run("rejects unexpected stored content type", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		writePrivateAvatar(w, []byte{1}, "text/html")
+
+		if w.Code != 500 {
+			t.Fatalf("status = %d, want %d", w.Code, 500)
+		}
+	})
+}
+
 func encodePNG(t *testing.T, width, height int) []byte {
 	t.Helper()
 	var output bytes.Buffer

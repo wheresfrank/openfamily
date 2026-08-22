@@ -97,6 +97,13 @@
   background: var(--surface-soft-2);
   flex: 0 0 auto;
 }
+.wb-member-dot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
 .wb-member-name { font-weight: 600; color: var(--text); }
 .wb-member-email { font-size: var(--font-xs); color: var(--text-muted); }
 

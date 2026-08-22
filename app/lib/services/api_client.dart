@@ -203,23 +203,28 @@ class ApiClient {
       accept: 'image/jpeg, image/png, application/json',
     );
     if (response.statusCode == 404) return null;
-    _ensureSuccess(response);
+    return _avatarBytesFromResponse(response, label: 'profile photo');
+  }
 
-    final String contentType =
-        (response.headers['content-type'] ?? '').split(';').first.trim();
-    if (contentType != 'image/jpeg' && contentType != 'image/png') {
-      throw const ApiException(
-        0,
-        'The server returned an unsupported profile photo format.',
-      );
+  /// GET /family/members/{id}/avatar → private avatar image bytes, or null
+  /// when the member has no photo (404).
+  ///
+  /// The response is deliberately fetched with the same Bearer-token flow as
+  /// every other protected API call. Callers receive image bytes for
+  /// [Image.memory], never a public avatar URL.
+  static Future<Uint8List?> getFamilyMemberAvatar(String memberId) async {
+    final String normalizedId = memberId.trim();
+    if (normalizedId.isEmpty) {
+      throw ArgumentError.value(memberId, 'memberId', 'must not be empty');
     }
-    if (response.bodyBytes.isEmpty ||
-        response.bodyBytes.length > maxProfileAvatarBytes ||
-        !_matchesAvatarContentType(response.bodyBytes, contentType)) {
-      throw const ApiException(
-          0, 'The profile photo returned by the server is invalid.');
-    }
-    return response.bodyBytes;
+
+    final http.Response response = await _sendResponse(
+      'GET',
+      _uri('/family/members/${Uri.encodeComponent(normalizedId)}/avatar'),
+      accept: 'image/jpeg, image/png, application/json',
+    );
+    if (response.statusCode == 404) return null;
+    return _avatarBytesFromResponse(response, label: 'family member photo');
   }
 
   /// PUT /api/profile/avatar with raw JPEG or PNG bytes.
@@ -586,6 +591,27 @@ class ApiClient {
   static void _ensureSuccess(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) return;
     _throwForError(response);
+  }
+
+  /// Validates and returns image bytes from a successful avatar response.
+  static Uint8List _avatarBytesFromResponse(
+    http.Response response, {
+    required String label,
+  }) {
+    _ensureSuccess(response);
+
+    final String contentType =
+        (response.headers['content-type'] ?? '').split(';').first.trim();
+    if (contentType != 'image/jpeg' && contentType != 'image/png') {
+      throw ApiException(
+          0, 'The server returned an unsupported $label format.');
+    }
+    if (response.bodyBytes.isEmpty ||
+        response.bodyBytes.length > maxProfileAvatarBytes ||
+        !_matchesAvatarContentType(response.bodyBytes, contentType)) {
+      throw ApiException(0, 'The $label returned by the server is invalid.');
+    }
+    return response.bodyBytes;
   }
 
   /// Verifies that raw image bytes match the content type we are about to put

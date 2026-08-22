@@ -53,6 +53,17 @@ export function parseTs(ts: LocationFields["ts"]): number | null {
 }
 
 /**
+ * Parses the durable avatar revision. Invalid or legacy snapshot values map
+ * to zero; live avatar frames with version zero are ignored by their caller
+ * because they cannot supersede any known revision.
+ */
+export function avatarVersionFrom(value: unknown): number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : 0;
+}
+
+/**
  * Maps the backend's free-form `motion_state` string to a MovementType.
  * Ports `_movementFrom` exactly: only driving and cycling map to a movement;
  * still / walking / running / on_foot / unknown / null all collapse to none.
@@ -189,6 +200,9 @@ export function deriveMember(
     speedMph: speedMps != null ? Math.round(speedMps * MPS_TO_MPH) : null,
     lastSeen: ts,
     address: addressFrom(position, ts, movement, nowMs),
+    hasAvatar: raw.has_avatar === true,
+    avatarUpdatedAt: raw.avatar_updated_at ?? null,
+    avatarVersion: avatarVersionFrom(raw.avatar_version),
     avatarUrl: raw.avatar_url ?? undefined,
   };
 }

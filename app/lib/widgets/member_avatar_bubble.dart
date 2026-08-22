@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../models/member.dart';
+import '../services/member_avatar_cache.dart';
 import '../theme/app_theme.dart';
 import 'movement_icon.dart';
 
@@ -81,32 +84,65 @@ class MemberAvatarBubble extends StatelessWidget {
 /// fill behind it, so the ring stays visible even when a photo is present.
 /// The red "location error" state additionally shows a red exclamation-mark
 /// badge (not a filled disc) so the error is unmistakable.
-class StatusAvatar extends StatelessWidget {
+class StatusAvatar extends StatefulWidget {
   const StatusAvatar({super.key, required this.member, this.size = 44});
 
   final Member member;
   final double size;
 
   @override
+  State<StatusAvatar> createState() => _StatusAvatarState();
+}
+
+class _StatusAvatarState extends State<StatusAvatar> {
+  Future<Uint8List?>? _avatarFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvatar();
+  }
+
+  @override
+  void didUpdateWidget(covariant StatusAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_avatarMetadataChanged(oldWidget.member, widget.member)) {
+      _loadAvatar();
+    }
+  }
+
+  void _loadAvatar() {
+    _avatarFuture = widget.member.hasAvatar
+        ? MemberAvatarCache.instance.load(widget.member)
+        : null;
+  }
+
+  bool _avatarMetadataChanged(Member before, Member after) {
+    return before.id != after.id ||
+        before.hasAvatar != after.hasAvatar ||
+        before.avatarVersion != after.avatarVersion;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final Color statusColor = member.status.color;
-    final bool isError = member.status == MemberStatus.error;
-    final double ringWidth = _ringWidth(size);
+    final Color statusColor = widget.member.status.color;
+    final bool isError = widget.member.status == MemberStatus.error;
+    final double ringWidth = _ringWidth(widget.size);
 
     return SizedBox(
-      width: size,
-      height: size,
+      width: widget.size,
+      height: widget.size,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
           // The avatar itself: photo or initials, at full size.
           Container(
-            width: size,
-            height: size,
+            width: widget.size,
+            height: widget.size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: member.avatarColor,
+              color: widget.member.avatarColor,
               boxShadow: [
                 BoxShadow(
                   color: statusColor.withValues(alpha: 0.35),
@@ -116,19 +152,13 @@ class StatusAvatar extends StatelessWidget {
               ],
             ),
             child: ClipOval(
-              child: member.avatarUrl != null
-                  ? Image.network(
-                      member.avatarUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _initials(),
-                    )
-                  : _initials(),
+              child: _avatarOrInitials(),
             ),
           ),
           // Status ring drawn on top, around the avatar (never behind it).
           Container(
-            width: size,
-            height: size,
+            width: widget.size,
+            height: widget.size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: statusColor, width: ringWidth),
@@ -139,21 +169,42 @@ class StatusAvatar extends StatelessWidget {
             Positioned(
               top: -ringWidth,
               right: -ringWidth,
-              child: _ErrorBadge(size: size),
+              child: _ErrorBadge(size: widget.size),
             ),
         ],
       ),
     );
   }
 
+  /// Loads only authenticated image bytes. Until that request completes (or
+  /// if it fails), preserve the familiar initials fallback.
+  Widget _avatarOrInitials() {
+    final Future<Uint8List?>? avatarFuture = _avatarFuture;
+    if (avatarFuture == null) return _initials();
+
+    return FutureBuilder<Uint8List?>(
+      future: avatarFuture,
+      builder: (BuildContext context, AsyncSnapshot<Uint8List?> snapshot) {
+        final Uint8List? bytes = snapshot.data;
+        if (bytes == null) return _initials();
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+          errorBuilder: (_, __, ___) => _initials(),
+        );
+      },
+    );
+  }
+
   Widget _initials() {
     return Center(
       child: Text(
-        member.initials,
+        widget.member.initials,
         style: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w800,
-          fontSize: size * 0.4,
+          fontSize: widget.size * 0.4,
         ),
       ),
     );
