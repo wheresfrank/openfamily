@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../services/api_client.dart';
+import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 
 /// The Check In flow, reached from the map's `+` action sheet.
-///
-/// Lets the user share their current location with their family, with an
-/// optional note. On confirm it shows a success state (a real screen, not a
-/// snackbar no-op).
 class CheckInScreen extends StatefulWidget {
   const CheckInScreen({super.key});
 
@@ -17,6 +15,17 @@ class CheckInScreen extends StatefulWidget {
 class _CheckInScreenState extends State<CheckInScreen> {
   final TextEditingController _note = TextEditingController();
   bool _sent = false;
+  bool _sending = false;
+  String? _error;
+  String _locationLabel = 'Finding your location…';
+  double? _lat;
+  double? _lon;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocation();
+  }
 
   @override
   void dispose() {
@@ -24,8 +33,56 @@ class _CheckInScreenState extends State<CheckInScreen> {
     super.dispose();
   }
 
-  void _checkIn() {
-    setState(() => _sent = true);
+  Future<void> _loadLocation() async {
+    final position = await LocationService.currentPosition();
+    if (!mounted) return;
+    if (position == null) {
+      setState(() => _locationLabel = 'Last reported location will be used.');
+      return;
+    }
+    setState(() {
+      _lat = position.latitude;
+      _lon = position.longitude;
+      _locationLabel =
+          '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+    });
+  }
+
+  Future<void> _checkIn() async {
+    if (_sending) return;
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
+    try {
+      final Map<String, dynamic> body = <String, dynamic>{
+        'note': _note.text.trim(),
+      };
+      if (_lat != null && _lon != null) {
+        body['lat'] = _lat;
+        body['lon'] = _lon;
+      }
+      await ApiClient.post('/alerts/check-in', body: body);
+      if (!mounted) return;
+      setState(() {
+        _sent = true;
+        _sending = false;
+      });
+    } on SessionExpiredException {
+      return;
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        _error = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _sending = false;
+        _error = 'Couldn\'t check in. Please try again.';
+      });
+    }
   }
 
   @override
@@ -55,7 +112,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
           style: TextStyle(fontSize: 14, color: AppColors.textMuted),
         ),
         const SizedBox(height: 20),
-        // Current location card (mock — a later phase reads the live position).
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
@@ -63,22 +119,25 @@ class _CheckInScreenState extends State<CheckInScreen> {
             color: AppColors.surfaceTint,
             borderRadius: BorderRadius.circular(14),
           ),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.my_location, color: AppColors.purple, size: 24),
-              SizedBox(width: 12),
+              const Icon(Icons.my_location, color: AppColors.purple, size: 24),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'You',
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
-                      'Home · 123 Maple St',
-                      style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                      _locationLabel,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -90,18 +149,32 @@ class _CheckInScreenState extends State<CheckInScreen> {
         TextField(
           controller: _note,
           maxLines: 3,
+          enabled: !_sending,
           decoration: const InputDecoration(
             labelText: 'Add a note (optional)',
             hintText: 'e.g. "Picked up the kids"',
             border: OutlineInputBorder(),
           ),
         ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          Text(_error!, style: const TextStyle(color: AppColors.sosRed)),
+        ],
         const Spacer(),
         SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: _checkIn,
-            child: const Text('Check In'),
+            onPressed: _sending ? null : _checkIn,
+            child: _sending
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('Check In'),
           ),
         ),
       ],

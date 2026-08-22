@@ -102,6 +102,7 @@ func main() {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 	r.Get("/config", srv.GetConfig)
+	r.Get("/alerts/share/{token}", srv.ShareAlert)
 
 	// Auth (unauthenticated).
 	r.Post("/auth/register", srv.Register)
@@ -161,6 +162,7 @@ func main() {
 		r.Patch("/devices/{id}", srv.UpdateDevice)
 
 		r.Post("/locations", srv.IngestLocation)
+		r.Post("/alerts/check-in", srv.PostCheckIn)
 	})
 
 	// Platform admin API, namespaced under /api/admin/* so it never collides
