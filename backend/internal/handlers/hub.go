@@ -16,10 +16,12 @@ const clientSendBuffer = 64
 // on send and written by a dedicated goroutine so a slow consumer cannot block
 // location ingest.
 type wsClient struct {
-	conn *websocket.Conn
-	send chan []byte
-	done chan struct{}
-	once sync.Once
+	conn     *websocket.Conn
+	send     chan []byte
+	done     chan struct{}
+	once     sync.Once
+	userID   string
+	familyID string
 }
 
 // close signals the writer goroutine to stop and closes the connection. It is
@@ -27,7 +29,9 @@ type wsClient struct {
 func (c *wsClient) close() {
 	c.once.Do(func() {
 		close(c.done)
-		_ = c.conn.CloseNow()
+		if c.conn != nil {
+			_ = c.conn.CloseNow()
+		}
 	})
 }
 
@@ -68,41 +72,92 @@ func (c *wsClient) writeLoop(ctx context.Context) {
 // hub tracks connected WebSocket clients per family, plus the set of platform
 // admin clients that receive live updates across ALL families.
 type hub struct {
-	mu       sync.Mutex
-	families map[string]map[*wsClient]struct{}
-	admins   map[*wsClient]struct{}
+	mu          sync.Mutex
+	families    map[string]map[*wsClient]struct{}
+	familyUsers map[string]map[*wsClient]struct{}
+	admins      map[*wsClient]struct{}
 }
 
 func newHub() *hub {
 	return &hub{
-		families: make(map[string]map[*wsClient]struct{}),
-		admins:   make(map[*wsClient]struct{}),
+		families:    make(map[string]map[*wsClient]struct{}),
+		familyUsers: make(map[string]map[*wsClient]struct{}),
+		admins:      make(map[*wsClient]struct{}),
 	}
 }
 
-// register adds a client to a family.
-func (h *hub) register(familyID string, c *wsClient) {
+// register adds a family-scoped client and records the authenticated user it
+// belongs to. Admin clients use the separate registerAdmin path and are never
+// included in familyUsers.
+func (h *hub) register(familyID, userID string, c *wsClient) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	c.familyID = familyID
+	c.userID = userID
 	m := h.families[familyID]
 	if m == nil {
 		m = make(map[*wsClient]struct{})
 		h.families[familyID] = m
 	}
 	m[c] = struct{}{}
+	if userID == "" {
+		return
+	}
+	userClients := h.familyUsers[userID]
+	if userClients == nil {
+		userClients = make(map[*wsClient]struct{})
+		h.familyUsers[userID] = userClients
+	}
+	userClients[c] = struct{}{}
 }
 
 // unregister removes a client from a family.
 func (h *hub) unregister(familyID string, c *wsClient) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	h.unregisterFamilyClientLocked(familyID, c)
+}
+
+func (h *hub) unregisterFamilyClientLocked(familyID string, c *wsClient) {
 	m := h.families[familyID]
-	if m == nil {
+	if m != nil {
+		delete(m, c)
+		if len(m) == 0 {
+			delete(h.families, familyID)
+		}
+	}
+	if c.userID == "" {
 		return
 	}
-	delete(m, c)
-	if len(m) == 0 {
-		delete(h.families, familyID)
+	userClients := h.familyUsers[c.userID]
+	if userClients == nil {
+		return
+	}
+	delete(userClients, c)
+	if len(userClients) == 0 {
+		delete(h.familyUsers, c.userID)
+	}
+}
+
+// disconnectFamilyUser closes every family-scoped socket for userID. It
+// intentionally leaves platform-admin sockets alone: those streams are global
+// and remain valid when the admin moves between families. Removing clients
+// from the hub before closing them prevents a just-moved user from receiving
+// another old-family broadcast while the close unblocks its read loop.
+func (h *hub) disconnectFamilyUser(userID string) {
+	h.mu.Lock()
+	userClients := h.familyUsers[userID]
+	clients := make([]*wsClient, 0, len(userClients))
+	for c := range userClients {
+		clients = append(clients, c)
+	}
+	for _, c := range clients {
+		h.unregisterFamilyClientLocked(c.familyID, c)
+	}
+	h.mu.Unlock()
+
+	for _, c := range clients {
+		c.close()
 	}
 }
 

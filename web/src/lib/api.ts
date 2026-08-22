@@ -201,6 +201,14 @@ export function listAllMembers(): Promise<AdminMember[]> {
   return request<AdminMember[]>('/api/admin/members')
 }
 
+/** Returns a member's avatar bytes through the authenticated admin endpoint. */
+export function getAdminMemberAvatar(memberId: string): Promise<Blob> {
+  return request<Blob>(`/api/admin/members/${encodeURIComponent(memberId)}/avatar`, {
+    binary: true,
+    accept: 'image/jpeg, image/png, image/*;q=0.8, */*;q=0.1',
+  })
+}
+
 export function createFamily(name: string): Promise<Family> {
   return request<Family>('/api/admin/families', { method: 'POST', body: { name } })
 }

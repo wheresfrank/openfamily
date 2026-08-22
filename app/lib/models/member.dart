@@ -89,7 +89,9 @@ class Member {
     required this.status,
     required this.batteryPercent,
     required this.address,
-    this.avatarUrl,
+    this.hasAvatar = false,
+    this.avatarUpdatedAt,
+    this.avatarVersion = 0,
     this.avatarColor = AppColors.purple,
     this.movement = MovementType.none,
     this.speedMph,
@@ -117,8 +119,22 @@ class Member {
   /// Human-readable current address / place label.
   final String address;
 
-  /// Optional remote avatar image; falls back to initials.
-  final String? avatarUrl;
+  /// Whether this member has uploaded a profile photo.
+  ///
+  /// Avatar bytes are always loaded through the authenticated family-avatar
+  /// endpoint; the member payload deliberately never carries a public URL.
+  final bool hasAvatar;
+
+  /// Server timestamp for the current avatar. This is retained for display
+  /// compatibility; [avatarVersion] is the durable cache and ordering value.
+  final DateTime? avatarUpdatedAt;
+
+  /// Monotonically increasing server-side revision for the member's avatar.
+  ///
+  /// Both uploads and removals increment this value. It is intentionally used
+  /// instead of a timestamp to order WebSocket frames, so rapid changes cannot
+  /// be mistaken for one another when timestamps have the same resolution.
+  final int avatarVersion;
 
   /// Fill color for the initials fallback avatar.
   final Color avatarColor;
@@ -157,7 +173,7 @@ class Member {
       speedMph != null &&
       speedMph! >= kSpeedingMph;
 
-  /// Initials used when [avatarUrl] is null.
+  /// Initials used while no avatar is available.
   String get initials {
     final List<String> parts = name.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty || parts.first.isEmpty) return '?';
@@ -191,7 +207,9 @@ class Member {
       status: status ?? this.status,
       batteryPercent: batteryPercent ?? this.batteryPercent,
       address: address ?? this.address,
-      avatarUrl: avatarUrl,
+      hasAvatar: hasAvatar,
+      avatarUpdatedAt: avatarUpdatedAt,
+      avatarVersion: avatarVersion,
       avatarColor: avatarColor,
       movement: movement ?? this.movement,
       speedMph: speedMph ?? this.speedMph,
@@ -200,6 +218,36 @@ class Member {
       history: history,
       lastSeen: lastSeen ?? this.lastSeen,
       accuracyMeters: accuracyMeters ?? this.accuracyMeters,
+    );
+  }
+
+  /// Returns a copy with only the family-avatar metadata changed.
+  ///
+  /// Unlike [copyWith], this method permits clearing [avatarUpdatedAt] when a
+  /// member removes their photo.
+  Member copyWithAvatar({
+    required bool hasAvatar,
+    required int avatarVersion,
+    DateTime? avatarUpdatedAt,
+  }) {
+    return Member(
+      id: id,
+      name: name,
+      position: position,
+      status: status,
+      batteryPercent: batteryPercent,
+      address: address,
+      hasAvatar: hasAvatar,
+      avatarUpdatedAt: hasAvatar ? avatarUpdatedAt : null,
+      avatarVersion: avatarVersion,
+      avatarColor: avatarColor,
+      movement: movement,
+      speedMph: speedMph,
+      eta: eta,
+      waypoints: waypoints,
+      history: history,
+      lastSeen: lastSeen,
+      accuracyMeters: accuracyMeters,
     );
   }
 }

@@ -119,6 +119,7 @@ location/
 | GET | `/api/profile/avatar` | Get your private profile image |
 | PUT | `/api/profile/avatar` | Upload a PNG/JPEG profile image (raw body; max 5 MiB) |
 | DELETE | `/api/profile/avatar` | Remove your profile image |
+| GET | `/family/members/{id}/avatar` | Get a same-family member's private profile image |
 | POST | `/families` | Create a family (caller becomes admin) |
 | GET | `/family` | Get your family |
 | GET | `/family/members` | List members |
@@ -152,6 +153,7 @@ admin SPA is served at `/admin` and calls these under `/api/admin/*`.
 | DELETE | `/api/admin/families/{id}` | Delete a family |
 | GET | `/api/admin/families/{id}/members` | List one family's members |
 | GET | `/api/admin/members` | List every member across all families |
+| GET | `/api/admin/members/{id}/avatar` | Get a member's private profile image |
 | PATCH | `/api/admin/members/{id}/family` | Move a member to another family |
 | GET | `/api/admin/places` | List every saved place (Home/School/Work) across all families |
 | GET | `/api/admin/invites` | List every invite code |

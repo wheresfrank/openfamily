@@ -32,8 +32,11 @@ import { clusterBubbleIcon, memberBubbleIcon } from "./memberBubble";
 import { GroupSwitcher } from "./groupSwitcher";
 import { MemberCard } from "./MemberCard";
 import { MemberList } from "./memberList";
+import { getAdminMemberAvatar } from "../lib/api";
+import { useMemberAvatarUrls } from "../lib/useMemberAvatarUrls";
 import {
   applyLocationUpdate,
+  avatarVersionFrom,
   deriveMember,
   refreshStaleness,
 } from "./status";
@@ -162,6 +165,16 @@ function resolveBase(apiBase?: string): string {
   return "http://localhost:8080";
 }
 
+/** Whether this map is running against the portal's own API origin. */
+function isSameOriginApi(apiBase?: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return new URL(resolveBase(apiBase), window.location.origin).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 /** Converts an http(s) base URL to its ws(s) counterpart. */
 function toWsBase(base: string): string {
   return base.replace(/^http/, "ws");
@@ -173,6 +186,18 @@ async function fetchJson<T>(url: string, token?: string): Promise<T> {
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
   return (await res.json()) as T;
+}
+
+/** Fetches private avatar bytes with the Authorization header, never in a URL. */
+async function fetchBlob(url: string, token: string): Promise<Blob> {
+  const res = await fetch(url, {
+    headers: {
+      Accept: "image/jpeg, image/png, image/*;q=0.8, */*;q=0.1",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+  return res.blob();
 }
 
 export function MapView(props: MapViewProps): JSX.Element {
@@ -200,7 +225,42 @@ export function MapView(props: MapViewProps): JSX.Element {
   const [reloadKey, setReloadKey] = useState(0);
 
   const groups = groupsProp ?? fetchedGroups;
-  const members = membersProp ?? fetchedMembers;
+  const avatarSources = useMemo(
+    () =>
+      fetchedMembers.map((member) => ({
+        id: member.id,
+        hasAvatar: member.hasAvatar,
+        avatarUpdatedAt: member.avatarUpdatedAt,
+        avatarVersion: member.avatarVersion,
+      })),
+    [fetchedMembers],
+  );
+  const loadMemberAvatar = useCallback(
+    (memberId: string) => {
+      // The portal's normal same-origin route goes through the shared API
+      // client, preserving its one-time 401 refresh/replay behavior. A custom
+      // API base remains supported for embedded/standalone map consumers.
+      if (isSameOriginApi(apiBase)) return getAdminMemberAvatar(memberId);
+      if (!token) return Promise.reject(new Error("Missing access token"));
+      const base = resolveBase(apiBase);
+      return fetchBlob(`${base}/api/admin/members/${encodeURIComponent(memberId)}/avatar`, token);
+    },
+    [apiBase, token],
+  );
+  const fetchedAvatarUrls = useMemberAvatarUrls(avatarSources, loadMemberAvatar, {
+    enabled: selfManaged && Boolean(token),
+    // Do not retain a browser object URL across a changed login or API origin.
+    cacheKey: `${resolveBase(apiBase)}\u0000${token ?? ""}`,
+  });
+  const members = useMemo(() => {
+    if (!selfManaged) return membersProp ?? [];
+    // Snapshot `avatar_url` values are intentionally ignored in self-managed
+    // mode: member photos only come from the authenticated byte endpoint.
+    return fetchedMembers.map((member) => ({
+      ...member,
+      avatarUrl: fetchedAvatarUrls[member.id] ?? undefined,
+    }));
+  }, [fetchedAvatarUrls, fetchedMembers, membersProp, selfManaged]);
 
   // --- group color map (and a ref so WS handlers see the latest) ---
   const colorsById = useMemo(() => assignGroupColors(groups), [groups]);
@@ -285,6 +345,21 @@ export function MapView(props: MapViewProps): JSX.Element {
           const f = frame as Extract<StreamFrame, { type: "location" }>;
           setFetchedMembers((prev) =>
             prev.map((m) => (m.id === f.user_id ? applyLocationUpdate(m, f, now) : m)),
+          );
+        } else if (frame.type === "avatar") {
+          const f = frame as Extract<StreamFrame, { type: "avatar" }>;
+          const avatarVersion = avatarVersionFrom(f.avatar_version);
+          setFetchedMembers((prev) =>
+            prev.map((member) =>
+              member.id === f.user_id && avatarVersion > member.avatarVersion
+                ? {
+                    ...member,
+                    hasAvatar: f.has_avatar,
+                    avatarUpdatedAt: f.avatar_updated_at ?? null,
+                    avatarVersion,
+                  }
+                : member,
+            ),
           );
         }
       };

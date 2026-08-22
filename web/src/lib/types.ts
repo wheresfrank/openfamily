@@ -26,6 +26,7 @@ export interface Profile {
   role: Role
   has_avatar: boolean
   avatar_updated_at: string | null
+  avatar_version: number
 }
 
 export interface Family {
@@ -47,6 +48,12 @@ export interface Member {
   speed_mps: number | null
   motion_state: MotionState | null
   accuracy_meters: number | null
+  /** Whether the member has an avatar available from the private admin endpoint. */
+  has_avatar?: boolean
+  /** Timestamp retained for display compatibility. */
+  avatar_updated_at?: string | null
+  /** Durable revision that changes on every avatar upload or removal. */
+  avatar_version?: number
 }
 
 /** Member as returned by GET /api/admin/members — tagged with its family. */

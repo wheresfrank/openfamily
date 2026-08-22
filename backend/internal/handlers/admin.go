@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"unicode"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/whereabouts/whereabouts/backend/internal/auth"
 	"github.com/whereabouts/whereabouts/backend/internal/middleware"
 	"github.com/whereabouts/whereabouts/backend/internal/models"
@@ -79,6 +81,7 @@ func (s *Server) AdminListFamilyMembers(w http.ResponseWriter, r *http.Request) 
 
 	rows, err := s.Pool.Query(r.Context(), `
 		SELECT u.id, u.email, u.name, u.role, u.totp_enabled, u.created_at, u.updated_at,
+		       u.avatar_data IS NOT NULL, u.avatar_version, u.avatar_updated_at,
 		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters
 		FROM users u
 		LEFT JOIN member_positions mp ON mp.user_id = u.id
@@ -94,6 +97,7 @@ func (s *Server) AdminListFamilyMembers(w http.ResponseWriter, r *http.Request) 
 	for rows.Next() {
 		var m models.MemberWithLocation
 		if err := rows.Scan(&m.ID, &m.Email, &m.Name, &m.Role, &m.TOTPEnabled, &m.CreatedAt, &m.UpdatedAt,
+			&m.HasAvatar, &m.AvatarVersion, &m.AvatarUpdatedAt,
 			&m.Lat, &m.Lon, &m.TS, &m.BatteryPct, &m.SpeedMPS, &m.MotionState, &m.AccuracyMeters); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to scan member")
 			return
@@ -139,6 +143,7 @@ func (s *Server) AdminListMembers(w http.ResponseWriter, r *http.Request) {
 	}
 	rows, err := s.Pool.Query(r.Context(), `
 		SELECT u.id, u.email, u.name, u.role, u.totp_enabled, u.created_at, u.updated_at,
+		       u.avatar_data IS NOT NULL, u.avatar_version, u.avatar_updated_at,
 		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters,
 		       u.family_id, f.name
 		FROM users u
@@ -156,6 +161,7 @@ func (s *Server) AdminListMembers(w http.ResponseWriter, r *http.Request) {
 		var m adminMember
 		var familyName *string
 		if err := rows.Scan(&m.ID, &m.Email, &m.Name, &m.Role, &m.TOTPEnabled, &m.CreatedAt, &m.UpdatedAt,
+			&m.HasAvatar, &m.AvatarVersion, &m.AvatarUpdatedAt,
 			&m.Lat, &m.Lon, &m.TS, &m.BatteryPct, &m.SpeedMPS, &m.MotionState, &m.AccuracyMeters,
 			&m.FamilyID, &familyName); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to scan member")
@@ -169,6 +175,40 @@ func (s *Server) AdminListMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, members)
+}
+
+// GetAdminMemberAvatar returns any user's avatar to an authenticated platform
+// administrator. The route itself is protected by RequirePlatformAdmin; this
+// handler deliberately returns no public image URL.
+func (s *Server) GetAdminMemberAvatar(w http.ResponseWriter, r *http.Request) {
+	setPrivateProfileHeaders(w)
+	if middleware.ClaimsFromContext(r.Context()) == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+
+	memberID := chi.URLParam(r, "id")
+	if memberID == "" {
+		writeError(w, http.StatusBadRequest, "member id is required")
+		return
+	}
+
+	var avatar []byte
+	var contentType string
+	err := s.Pool.QueryRow(r.Context(), `
+		SELECT avatar_data, avatar_content_type
+		FROM users
+		WHERE id = $1 AND avatar_data IS NOT NULL`, memberID,
+	).Scan(&avatar, &contentType)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "member avatar not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load member avatar")
+		return
+	}
+	writePrivateAvatar(w, avatar, contentType)
 }
 
 // BootstrapPlatformAdmin makes the configured email a platform admin. If a user
@@ -414,5 +454,10 @@ func (s *Server) AdminMoveMember(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logAudit(r.Context(), claims.UserID, req.FamilyID, "admin.member_moved",
 		"moved user "+userID+" to family "+req.FamilyID+" as "+string(role), clientIP(r))
+	// A family WebSocket resolves its family only during its initial handshake.
+	// Drop the moved user's family-scoped connections so their normal reconnect
+	// starts a stream for the newly assigned family. Platform-admin streams are
+	// deliberately not in this index and remain connected.
+	s.hub.disconnectFamilyUser(userID)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

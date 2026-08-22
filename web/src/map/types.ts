@@ -72,6 +72,11 @@ export interface RawMember extends LocationFields {
   name?: string;
   family_id?: string;
   family_name?: string;
+  /** Avatar metadata; image bytes remain available only through an authenticated request. */
+  has_avatar?: boolean;
+  avatar_updated_at?: string | null;
+  /** Durable revision that changes on every avatar upload or removal. */
+  avatar_version?: number;
   avatar_url?: string | null;
 }
 
@@ -127,6 +132,12 @@ export interface Member {
   lastSeen: number | null;
   /** Human-readable current place / activity label. */
   address: string;
+  /** Avatar metadata from the member snapshot or live avatar frame. */
+  hasAvatar?: boolean;
+  avatarUpdatedAt?: string | null;
+  /** Durable server-side avatar revision used for ordering and cache keys. */
+  avatarVersion: number;
+  /** A short-lived object URL created from an authenticated avatar response. */
   avatarUrl?: string | null;
 }
 
@@ -134,4 +145,11 @@ export interface Member {
 export type StreamFrame =
   | { type: "members"; members: RawMember[] }
   | ({ type: "location"; user_id: string } & LocationFields)
+  | {
+      type: "avatar";
+      user_id: string;
+      has_avatar: boolean;
+      avatar_updated_at?: string | null;
+      avatar_version?: number;
+    }
   | { type: string; [k: string]: unknown };

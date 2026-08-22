@@ -71,6 +71,7 @@ function makeMembers(): Member[] {
     speedMph: null,
     lastSeen: NOW - 1 * MIN,
     address: "Moving",
+    avatarVersion: 0,
     ...opts,
   });
 

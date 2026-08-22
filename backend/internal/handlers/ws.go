@@ -16,17 +16,20 @@ import (
 // wsMember is a family member in the members snapshot, joined to their latest
 // location (if any).
 type wsMember struct {
-	ID             string      `json:"id"`
-	Name           string      `json:"name"`
-	Email          *string     `json:"email"`
-	Role           models.Role `json:"role"`
-	Lat            *float64    `json:"lat"`
-	Lon            *float64    `json:"lon"`
-	TS             *time.Time  `json:"ts"`
-	BatteryPct     *float64    `json:"battery_pct"`
-	SpeedMPS       *float64    `json:"speed_mps"`
-	MotionState    *string     `json:"motion_state"`
-	AccuracyMeters *float64    `json:"accuracy_meters"`
+	ID              string      `json:"id"`
+	Name            string      `json:"name"`
+	Email           *string     `json:"email"`
+	Role            models.Role `json:"role"`
+	HasAvatar       bool        `json:"has_avatar"`
+	AvatarVersion   int64       `json:"avatar_version"`
+	AvatarUpdatedAt *time.Time  `json:"avatar_updated_at"`
+	Lat             *float64    `json:"lat"`
+	Lon             *float64    `json:"lon"`
+	TS              *time.Time  `json:"ts"`
+	BatteryPct      *float64    `json:"battery_pct"`
+	SpeedMPS        *float64    `json:"speed_mps"`
+	MotionState     *string     `json:"motion_state"`
+	AccuracyMeters  *float64    `json:"accuracy_meters"`
 }
 
 // wsLocation is a live location update broadcast to a family.
@@ -40,6 +43,16 @@ type wsLocation struct {
 	SpeedMPS       *float64  `json:"speed_mps"`
 	MotionState    *string   `json:"motion_state"`
 	AccuracyMeters *float64  `json:"accuracy_meters"`
+}
+
+// wsAvatarUpdate tells already-connected clients to fetch or clear a changed
+// member photo. The bytes are deliberately not embedded in WebSocket frames.
+type wsAvatarUpdate struct {
+	Type            string     `json:"type"`
+	UserID          string     `json:"user_id"`
+	HasAvatar       bool       `json:"has_avatar"`
+	AvatarVersion   int64      `json:"avatar_version"`
+	AvatarUpdatedAt *time.Time `json:"avatar_updated_at"`
 }
 
 // Stream serves the live WebSocket stream at /ws/stream. It authenticates the
@@ -98,7 +111,7 @@ func (s *Server) Stream(w http.ResponseWriter, r *http.Request) {
 		send: make(chan []byte, clientSendBuffer),
 		done: make(chan struct{}),
 	}
-	s.hub.register(familyID, c)
+	s.hub.register(familyID, claims.UserID, c)
 	defer func() {
 		s.hub.unregister(familyID, c)
 		c.close()
@@ -157,6 +170,7 @@ func (s *Server) familyMembersSnapshot(ctx context.Context, familyID, callerID s
 
 	rows, err := s.Pool.Query(ctx, `
 		SELECT u.id, u.email, u.name, u.role,
+		       u.avatar_data IS NOT NULL, u.avatar_version, u.avatar_updated_at,
 		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters
 		FROM users u
 		LEFT JOIN member_positions mp ON mp.user_id = u.id
@@ -172,26 +186,33 @@ func (s *Server) familyMembersSnapshot(ctx context.Context, familyID, callerID s
 		var (
 			id, email, name string
 			role            models.Role
+			hasAvatar       bool
+			avatarVersion   int64
+			avatarUpdatedAt *time.Time
 			lat, lon        *float64
 			ts              *time.Time
 			battery, speed  *float64
 			motion          *string
 			accuracy        *float64
 		)
-		if err := rows.Scan(&id, &email, &name, &role, &lat, &lon, &ts, &battery, &speed, &motion, &accuracy); err != nil {
+		if err := rows.Scan(&id, &email, &name, &role, &hasAvatar, &avatarVersion, &avatarUpdatedAt,
+			&lat, &lon, &ts, &battery, &speed, &motion, &accuracy); err != nil {
 			return nil, err
 		}
 		m := wsMember{
-			ID:             id,
-			Name:           name,
-			Role:           role,
-			Lat:            lat,
-			Lon:            lon,
-			TS:             ts,
-			BatteryPct:     battery,
-			SpeedMPS:       speed,
-			MotionState:    motion,
-			AccuracyMeters: accuracy,
+			ID:              id,
+			Name:            name,
+			Role:            role,
+			HasAvatar:       hasAvatar,
+			AvatarVersion:   avatarVersion,
+			AvatarUpdatedAt: avatarUpdatedAt,
+			Lat:             lat,
+			Lon:             lon,
+			TS:              ts,
+			BatteryPct:      battery,
+			SpeedMPS:        speed,
+			MotionState:     motion,
+			AccuracyMeters:  accuracy,
 		}
 		// Redact email for non-manager (child) viewers, matching ListMembers.
 		if canManage {
@@ -233,6 +254,30 @@ func (s *Server) broadcastLocation(ownerID string, loc wsLocation) {
 		s.hub.broadcast(familyID, msg)
 	}
 	// Platform admin clients see every live update regardless of family.
+	s.hub.broadcastAdmin(msg)
+}
+
+// broadcastAvatarUpdate fans out profile-photo metadata to the photo owner's
+// family and to platform admins. Each recipient fetches protected bytes via an
+// authenticated HTTP endpoint; no image bytes or URLs travel over the stream.
+func (s *Server) broadcastAvatarUpdate(familyID *string, userID string, hasAvatar bool, avatarVersion int64, avatarUpdatedAt *time.Time) {
+	if !s.hub.hasAny() && !s.hub.hasAdminClients() {
+		return
+	}
+	msg, err := json.Marshal(wsAvatarUpdate{
+		Type:            "avatar",
+		UserID:          userID,
+		HasAvatar:       hasAvatar,
+		AvatarVersion:   avatarVersion,
+		AvatarUpdatedAt: avatarUpdatedAt,
+	})
+	if err != nil {
+		slog.Warn("avatar broadcast: marshal failed", "err", err, "user_id", userID)
+		return
+	}
+	if familyID != nil && *familyID != "" {
+		s.hub.broadcast(*familyID, msg)
+	}
 	s.hub.broadcastAdmin(msg)
 }
 
