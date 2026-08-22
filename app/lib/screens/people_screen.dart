@@ -10,7 +10,7 @@ import 'member_profile_screen.dart';
 /// The dedicated, full-screen home for a circle's family members.
 ///
 /// This is the replacement for the old map drawer: a proper [Scaffold] with an
-/// app bar (mirroring Places / Keys / Safety), reached from the map's bottom
+/// app bar (mirroring Places / Safety), reached from the map's bottom
 /// action bar. It shows the live member roster — the same rich `MemberTile`
 /// rows the drawer used — plus an Invite action and a tap-through to each
 /// member's profile.

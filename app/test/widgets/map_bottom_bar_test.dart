@@ -11,7 +11,6 @@ Widget _bar(Map<String, VoidCallback> spies) {
         onSos: spies['sos'],
         onPeople: spies['people'],
         onPlaces: spies['places'],
-        onKeys: spies['keys'],
         onSafety: spies['safety'],
         onSettings: spies['settings'],
       ),
@@ -29,7 +28,6 @@ void main() {
         'sos',
         'people',
         'places',
-        'keys',
         'safety',
         'settings'
       ])
@@ -42,7 +40,7 @@ void main() {
     expect(find.byIcon(Icons.people_alt_outlined), findsOneWidget);
     expect(find.byTooltip('People'), findsOneWidget);
     expect(find.byIcon(Icons.place_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.key_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.key_outlined), findsNothing);
     expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
     expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
     expect(find.text('SOS'), findsOneWidget);
@@ -53,7 +51,7 @@ void main() {
     expect(calls['people'], 1);
     expect(calls['sos'], isNull);
 
-    // No runtime overflow with all five secondary controls + SOS in the bar.
+    // No runtime overflow with SOS plus People / Places / Safety / Settings.
     expect(tester.takeException(), isNull);
   });
 
