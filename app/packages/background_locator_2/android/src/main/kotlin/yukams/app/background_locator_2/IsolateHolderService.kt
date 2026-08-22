@@ -23,6 +23,11 @@ import yukams.app.background_locator_2.provider.*
 import java.util.HashMap
 import androidx.core.app.ActivityCompat
 
+// How long a single background location delivery may hold the partial wake
+// lock so the Dart callback can complete its HTTP POST (http timeout is 15s).
+// Kept below the 60s location interval so the CPU can sleep between updates.
+private const val UPDATE_WAKE_LOCK_MS = 30_000L
+
 class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateListener, Service() {
     companion object {
         @JvmStatic
@@ -68,8 +73,8 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         "Background location is on to keep the app up-tp-date with your location. This is required for main features to work properly when the app is not running."
     private var notificationIconColor = 0
     private var icon = 0
-    private var wakeLockTime = 60 * 60 * 1000L // 1 hour default wake lock time
     private var locatorClient: BLLocationProvider? = null
+    private var wakeLock: PowerManager.WakeLock? = null
     internal lateinit var backgroundChannel: MethodChannel
     internal var context: Context? = null
     private var pluggables: ArrayList<Pluggable> = ArrayList()
@@ -85,13 +90,6 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
     }
 
     private fun start() {
-        (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
-            newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKELOCK_TAG).apply {
-                setReferenceCounted(false)
-                acquire(wakeLockTime)
-            }
-        }
-
         // Starting Service as foreground with a notification prevent service from closing
         val notification = getNotification()
         startForeground(notificationId, notification)
@@ -99,6 +97,24 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         pluggables.forEach {
             context?.let { it1 -> it.onServiceStart(it1) }
         }
+    }
+
+    // This is a foreground *location* service, so the OS already lets it run
+    // in the background. Holding a PARTIAL_WAKE_LOCK for the whole configured
+    // wakeLockTime window (default 60 min) would keep the CPU awake
+    // needlessly and drain the battery. Instead we hold a short-lived wake
+    // lock only while a location is being delivered to the background isolate,
+    // so its HTTP POST (15s timeout) is not interrupted, then release it. When
+    // the user is stationary no updates arrive and the lock is not held at all.
+    private fun holdWakeLockForUpdate() {
+        val lock = wakeLock
+            ?: (getSystemService(Context.POWER_SERVICE) as PowerManager)
+                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKELOCK_TAG)
+                .apply { setReferenceCounted(false) }
+                .also { wakeLock = it }
+        // acquire(timeout) auto-releases after the timeout; a subsequent update
+        // simply renews it, so the CPU is never pinned for longer than needed.
+        lock.acquire(UPDATE_WAKE_LOCK_MS)
     }
 
     private fun getNotification(): Notification {
@@ -193,7 +209,6 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         icon = resources.getIdentifier(iconName, "mipmap", packageName)
         notificationIconColor =
             intent.getLongExtra(Keys.SETTINGS_ANDROID_NOTIFICATION_ICON_COLOR, 0).toInt()
-        wakeLockTime = intent.getIntExtra(Keys.SETTINGS_ANDROID_WAKE_LOCK_TIME, 60) * 60 * 1000L
 
         locatorClient = context?.let { getLocationClient(it) }
         locatorClient?.requestLocationUpdates(getLocationRequest(intent))
@@ -212,13 +227,8 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
 
     private fun shutdownHolderService() {
         Log.e("IsolateHolderService", "shutdownHolderService")
-        (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
-            newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKELOCK_TAG).apply {
-                if (isHeld) {
-                    release()
-                }
-            }
-        }
+        wakeLock?.takeIf { it.isHeld }?.release()
+        wakeLock = null
 
         locatorClient?.removeLocationUpdates()
         stopForeground(true)
@@ -320,6 +330,7 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
                         Keys.ARG_LOCATION to location
                     )
 
+                holdWakeLockForUpdate()
                 sendLocationEvent(result)
             }
         } catch (e: Exception) {

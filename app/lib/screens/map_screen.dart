@@ -8,6 +8,7 @@ import '../models/member.dart';
 import '../services/api_client.dart';
 import '../services/app_config.dart';
 import '../services/background_location_service.dart';
+import '../services/battery_optimization_service.dart';
 import '../services/family_service.dart';
 import '../services/location_reporter.dart';
 import '../services/location_service.dart';
@@ -128,6 +129,9 @@ class _MapScreenState extends State<MapScreen>
     // startup (before the app is in the foreground) is rejected on Android 15+.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       BackgroundLocationService.start();
+      // One-time Android battery-optimization guidance (keeps background
+      // updates alive when the app is closed). No-op elsewhere.
+      _suggestBatteryOptimization();
     });
   }
 
@@ -185,6 +189,51 @@ class _MapScreenState extends State<MapScreen>
     if (!mounted) return;
     if (state != PermissionState.granted) {
       setState(() => _locationOff = true);
+    }
+  }
+
+  /// One-time Android guidance: when background location is on, ask the user
+  /// to exempt Whereabouts from battery optimization so Doze/OEM managers
+  /// don't pause or kill the background service. Fires at most once and only
+  /// when "Always" permission is granted; a no-op on iOS/web/desktop.
+  Future<void> _suggestBatteryOptimization() async {
+    if (!mounted) return;
+    if (!BatteryOptimizationService.isSupported) return;
+    final PermissionState location = await PermissionService.current(
+      OnboardingPermission.location,
+    );
+    if (location != PermissionState.granted) return;
+    if (!await BatteryOptimizationService.shouldSuggest()) return;
+    if (!mounted) return;
+
+    // Mark it shown up front so a prompt that is dismissed or errors out never
+    // nags again.
+    await BatteryOptimizationService.markSuggested();
+
+    final bool? open = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Keep background updates reliable'),
+        content: const Text(
+          'To keep your location fresh when Whereabouts is closed, Android '
+          'may need Whereabouts exempted from battery optimization. Otherwise '
+          'the system can pause background location to save battery.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Open settings'),
+          ),
+        ],
+      ),
+    );
+
+    if (open == true && mounted) {
+      await BatteryOptimizationService.openSettings();
     }
   }
 

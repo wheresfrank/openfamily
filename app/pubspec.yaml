@@ -39,6 +39,10 @@ dependencies:
   # Detects Google Play Services availability on Android so motion & fitness
   # is only requested on devices that actually support activity recognition.
   google_api_availability: ^5.0.1
+  # Opens Android system settings deep links (battery-optimization exemption)
+  # so background location keeps running when the app is closed. Android only;
+  # iOS needs no equivalent.
+  android_intent_plus: ^5.1.0
   # WebSocket client for the live location stream (/ws/stream). Web-safe
   # (no dart:io) and carries the access token as the subprotocol.
   web_socket_channel: ^3.0.0
