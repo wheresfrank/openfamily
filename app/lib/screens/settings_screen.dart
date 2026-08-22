@@ -195,7 +195,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const ListTile(
             leading: Icon(Icons.group_outlined, color: AppColors.purple),
-            title: Text('Circles'),
+            title: Text('Family'),
             trailing: Icon(Icons.chevron_right, color: AppColors.textMuted),
           ),
           const Divider(height: 1),

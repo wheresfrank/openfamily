@@ -11,7 +11,7 @@ import 'map_screen.dart';
 import 'place_picker_screen.dart';
 
 /// Onboarding step: add home/work/school places to the map (shared with all
-/// Circle members), then land on the map.
+/// family members), then land on the map.
 ///
 /// Each place opens a real map picker that captures a lat/lon, address, and
 /// radius — producing actual [Place] data, not a decorative toggle.
@@ -319,7 +319,7 @@ class _AddLocationsScreenState extends State<AddLocationsScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Places are shared with all Circle members, so everyone '
+                    'Places are shared with all family members, so everyone '
                     'gets arrival and departure alerts.',
                     style: TextStyle(fontSize: 14, color: AppColors.textMuted),
                   ),

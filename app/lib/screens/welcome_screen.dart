@@ -92,7 +92,7 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Self-hosted. No ads. Your location stays in your circle.',
+                    'Self-hosted. No ads. Your location stays in your family.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 13, color: AppColors.textMuted),
                   ),

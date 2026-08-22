@@ -37,7 +37,7 @@ const double kApproxZoneRadiusMeters = 300.0;
 /// The map-first home screen.
 ///
 /// A full-bleed live map is the background — it extends behind *everything*.
-/// A Circle switcher floats at the top, and member avatar bubbles are pinned to
+/// A family name chip floats at the top, and member avatar bubbles are pinned to
 /// their locations (clustered and fanned out when near each other).
 ///
 /// The bottom control bar — a large, dominant SOS button plus the Places /
@@ -384,7 +384,7 @@ class _MapScreenState extends State<MapScreen>
     _expandedClusters.retainAll(validIds);
   }
 
-  /// Frames all members of the current circle.
+  /// Frames all members of the current family.
   void _fitToMembers() {
     final List<Member> members =
         _liveMembers().where((Member m) => m.position != null).toList();
@@ -483,7 +483,7 @@ class _MapScreenState extends State<MapScreen>
                 color: AppColors.purple,
               ),
               title: const Text('Check In'),
-              subtitle: const Text('Share your location with your Circle'),
+              subtitle: const Text('Share your location with your family'),
               onTap: () {
                 Navigator.of(context).pop();
                 _openCheckIn();
@@ -495,7 +495,7 @@ class _MapScreenState extends State<MapScreen>
                 color: AppColors.purple,
               ),
               title: const Text('Help Alert'),
-              subtitle: const Text('Ask your Circle for help'),
+              subtitle: const Text('Ask your family for help'),
               onTap: () {
                 Navigator.of(context).pop();
                 _openHelpAlert();
@@ -508,7 +508,7 @@ class _MapScreenState extends State<MapScreen>
               ),
               title: const Text('Invite'),
               subtitle: const Text(
-                'Send Code to invite someone to your circle',
+                'Send a code to invite someone to your family',
               ),
               onTap: () {
                 Navigator.of(context).pop();
@@ -611,7 +611,7 @@ class _MapScreenState extends State<MapScreen>
               child: _LoadErrorCard(message: _error!, onRetry: _load),
             ),
 
-          // Top: Circle switcher, with a location-off re-prompt banner below it
+          // Top: family name, with a location-off re-prompt banner below it
           // when the user skipped location during onboarding.
           Positioned(
             top: 0,

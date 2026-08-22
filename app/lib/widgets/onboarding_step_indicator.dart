@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 /// A compact "Step X of Y" progress indicator shown across the whole
-/// onboarding journey (sign-up → permissions → circle → invite → locations),
+/// onboarding journey (sign-up → permissions → family → invite → locations),
 /// not just inside the permissions step.
 ///
 /// Use it as an [AppBar.bottom] so it sits consistently at the top of every

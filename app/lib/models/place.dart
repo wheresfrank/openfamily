@@ -8,7 +8,7 @@ const double kMinPlaceRadiusMeters = 76.2;
 const double kMaxPlaceRadiusMeters = 3218.69;
 
 /// A saved Place (geofence): a named location with a map position, an address
-/// label, and an arrive/leave radius. Shared with all Circle members.
+/// label, and an arrive/leave radius. Shared with all family members.
 ///
 /// This is the real data model produced by the onboarding "Add locations" step
 /// (via [PlacePickerScreen]) — a lat/lon + radius, not a decorative toggle.

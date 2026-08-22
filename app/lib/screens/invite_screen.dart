@@ -101,7 +101,7 @@ class _InviteScreenState extends State<InviteScreen> {
   }
 
   Widget _buildInvite() {
-    final String circle = widget.circleName ?? 'your circle';
+    final String circle = widget.circleName ?? 'your family';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
