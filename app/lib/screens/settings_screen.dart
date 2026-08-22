@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/battery_optimization_service.dart';
 import '../services/biometric_service.dart';
 import '../services/location_sharing_service.dart';
+import '../services/push_service.dart';
 import '../theme/app_theme.dart';
 import 'profile_screen.dart';
 import 'families_screen.dart';
@@ -23,6 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _locationSharing = true;
   bool _locationSharingLoading = true;
   bool _notifications = true;
+  bool _notificationsLoading = true;
   bool _driveDetection = true;
   bool _loggingOut = false;
   final BiometricService _biometricService = BiometricService.instance;
@@ -37,6 +39,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _loadBiometricSettings();
     _loadLocationSharing();
+    _loadPushNotifications();
+  }
+
+  Future<void> _loadPushNotifications() async {
+    final bool enabled = await PushService.load();
+    if (!mounted) return;
+    setState(() {
+      _notifications = enabled;
+      _notificationsLoading = false;
+    });
+  }
+
+  Future<void> _setPushNotifications(bool enabled) async {
+    setState(() => _notifications = enabled);
+    await PushService.setEnabled(enabled);
   }
 
   Future<void> _loadLocationSharing() async {
@@ -282,8 +299,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             secondary: const Icon(Icons.notifications_outlined,
                 color: AppColors.purple),
             title: const Text('Push notifications'),
+            subtitle: const Text(
+              'ntfy on Android, APNs on iOS. Off unregisters this device.',
+            ),
             value: _notifications,
-            onChanged: (v) => setState(() => _notifications = v),
+            onChanged: _notificationsLoading ? null : _setPushNotifications,
           ),
           const Divider(height: 1),
           const _SectionHeader('About'),

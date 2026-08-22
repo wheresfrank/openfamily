@@ -213,6 +213,34 @@ class ApiClient {
     return data as Map<String, dynamic>;
   }
 
+  /// GET /config → public ntfy/APNs settings for the generic APK.
+  static Future<Map<String, dynamic>> getPushConfig() async {
+    final dynamic data = await _send('GET', _uri('/config'), auth: false);
+    return data as Map<String, dynamic>;
+  }
+
+  /// PATCH /devices/{id} with push credentials. Empty strings clear them.
+  static Future<void> updateDevicePush({
+    required String deviceId,
+    String? pushToken,
+    String? unifiedpushEndpoint,
+  }) async {
+    final String id = deviceId.trim();
+    if (id.isEmpty) {
+      throw ArgumentError.value(deviceId, 'deviceId', 'must not be empty');
+    }
+    final Map<String, dynamic> body = <String, dynamic>{};
+    if (pushToken != null) body['push_token'] = pushToken;
+    if (unifiedpushEndpoint != null) {
+      body['unifiedpush_endpoint'] = unifiedpushEndpoint;
+    }
+    await _send(
+      'PATCH',
+      _uri('/devices/${Uri.encodeComponent(id)}'),
+      body: body,
+    );
+  }
+
   /// GET /api/profile → the authenticated user's private profile information.
   ///
   /// Avatar image data is deliberately fetched separately via

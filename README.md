@@ -139,8 +139,10 @@ location/
 | PATCH | `/family/geofences/{id}` | Update a geofence |
 | DELETE | `/family/geofences/{id}` | Delete a geofence |
 | GET | `/audit` | List recent audit log entries (admin only) |
+| GET | `/config` | Public ntfy base URL and whether APNs is configured |
 | POST | `/devices` | Register a device |
 | GET | `/devices` | List your devices |
+| PATCH | `/devices/{id}` | Attach or clear this device's push token / UnifiedPush endpoint |
 | POST | `/locations` | Ingest a location point |
 | WS | `/ws/stream` | Live position stream (family-scoped) |
 
@@ -459,9 +461,11 @@ go build ./...         # embeds backend/web/dist/ into the binary
    and open ports 80/443.
 6. **ntfy / UnifiedPush:** set `PUSH_ADDRESS=push.example.com` (or a Tailscale
    name) and `NTFY_BASE_URL=https://push.example.com` so Android push works
-   over TLS without Google. Note that `PUSH_ADDRESS` alone does not enable TLS —
-   you must also add a Caddy site block for ntfy (see the commented example in
-   `caddy/Caddyfile`).
+   over TLS without Google. The API advertises that origin on `GET /config`.
+   Install the [ntfy Android app](https://ntfy.sh/) (or another UnifiedPush
+   distributor) on family devices so Whereabouts can register an endpoint.
+   Note that `PUSH_ADDRESS` alone does not enable TLS — you must also add a
+   Caddy site block for ntfy (see the commented example in `caddy/Caddyfile`).
 
 ## Configuration (environment variables)
 
@@ -480,6 +484,7 @@ go build ./...         # embeds backend/web/dist/ into the binary
 | `TLS_BEHIND_PROXY` | `false` | Set `true` when a reverse proxy terminates TLS |
 | `INSECURE_HTTP` | `false` | Explicit opt-out of TLS (trusted private networks only) |
 | `VERBOSE_PUSH` | `false` | Include the user's name in push payloads (default omits it) |
+| `NTFY_BASE_URL` | *(empty)* | Public ntfy origin advertised on `GET /config` so the generic APK can register UnifiedPush |
 | `PLATFORM_ADMIN_EMAIL` | *(empty)* | Email of the first platform admin. On startup the matching user is promoted to `platform_admin = true`; if no such user exists, the account is auto-created (see `PLATFORM_ADMIN_PASSWORD`). Setting it also closes open registration (invite codes required). |
 | `PLATFORM_ADMIN_PASSWORD` | *(empty)* | Password for the auto-created first admin account (only used when `PLATFORM_ADMIN_EMAIL` is set and the account does not exist yet). |
 | `APNS_KEY_FILE` | *(empty)* | Path to the APNs `.p8` auth key (empty disables APNs) |

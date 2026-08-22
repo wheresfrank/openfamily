@@ -14,6 +14,7 @@ import '../services/location_reporter.dart';
 import '../services/location_service.dart';
 import '../services/location_sharing_service.dart';
 import '../services/permission_service.dart';
+import '../services/push_service.dart';
 import '../services/token_storage.dart';
 import '../theme/app_theme.dart';
 import '../utils/member_clustering.dart';
@@ -112,6 +113,7 @@ class _MapScreenState extends State<MapScreen>
     _load();
     _checkLocation();
     _initLocationSharing();
+    PushService.sync();
     // One-time Android battery-optimization guidance (keeps background
     // updates alive when the app is closed). No-op elsewhere. Runs after the
     // first frame so the activity is visible.

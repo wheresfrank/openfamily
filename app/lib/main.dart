@@ -7,6 +7,7 @@ import 'screens/welcome_screen.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/background_location_service.dart';
+import 'services/push_service.dart';
 import 'services/server_config.dart';
 import 'services/token_storage.dart';
 import 'theme/app_theme.dart';
@@ -17,6 +18,10 @@ import 'widgets/biometric_app_lock.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Plugin callbacks must be registered before the first frame so a
+  // UnifiedPush/APNs token arriving at launch is not dropped.
+  PushService.initialize();
   runApp(const WhereaboutsApp());
 }
 
