@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -124,6 +125,133 @@ func (s *Server) GetFamily(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, familyOut{Family: family, Role: role, UserID: claims.UserID})
+}
+
+// RenameFamily changes the caller's family name (family admin only).
+func (s *Server) RenameFamily(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	familyID, err := s.familyIDForUser(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load family")
+		return
+	}
+	if familyID == "" {
+		writeError(w, http.StatusNotFound, "no family")
+		return
+	}
+	isAdmin, err := s.userIsAdmin(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load role")
+		return
+	}
+	if !isAdmin {
+		writeError(w, http.StatusForbidden, "admin only")
+		return
+	}
+
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+
+	tag, err := s.Pool.Exec(r.Context(), `UPDATE families SET name = $1 WHERE id = $2`, name, familyID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to rename family")
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		writeError(w, http.StatusNotFound, "family not found")
+		return
+	}
+	s.logAudit(r.Context(), claims.UserID, familyID, "family.renamed",
+		"renamed family to "+name, clientIP(r))
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "name": name})
+}
+
+// leaveFamilyBlocked reports whether the caller is the last admin and therefore
+// cannot leave (they must promote someone else first).
+func leaveFamilyBlocked(role models.Role, adminCount int) bool {
+	return role == models.RoleAdmin && adminCount <= 1
+}
+
+// LeaveFamily removes the caller from their family. The last admin cannot
+// leave until they promote another member.
+func (s *Server) LeaveFamily(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+
+	tx, err := s.Pool.Begin(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to begin transaction")
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	var familyID *string
+	var role models.Role
+	if err := tx.QueryRow(r.Context(), `
+		SELECT family_id, role FROM users WHERE id = $1 FOR UPDATE`, claims.UserID,
+	).Scan(&familyID, &role); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, http.StatusUnauthorized, "unauthenticated")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
+	if familyID == nil {
+		writeError(w, http.StatusNotFound, "no family")
+		return
+	}
+
+	var lockedFamily string
+	if err := tx.QueryRow(r.Context(), `
+		SELECT id FROM families WHERE id = $1 FOR UPDATE`, *familyID).Scan(&lockedFamily); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to lock family")
+		return
+	}
+
+	var adminCount int
+	if err := tx.QueryRow(r.Context(), `
+		SELECT COUNT(*) FROM users WHERE family_id = $1 AND role = 'admin'`,
+		*familyID).Scan(&adminCount); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to count admins")
+		return
+	}
+	if leaveFamilyBlocked(role, adminCount) {
+		writeError(w, http.StatusConflict, "cannot leave as the last admin")
+		return
+	}
+
+	if _, err := tx.Exec(r.Context(), `
+		UPDATE users SET family_id = NULL, role = 'member', updated_at = now()
+		WHERE id = $1`, claims.UserID); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to leave family")
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to commit")
+		return
+	}
+	s.logAudit(r.Context(), claims.UserID, *familyID, "family.left",
+		"left family", clientIP(r))
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 // ListMembers returns all users in the caller's family with their last-known

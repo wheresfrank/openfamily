@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../services/api_client.dart';
+import '../services/family_service.dart';
 import '../services/permission_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
 import 'create_or_join_circle_screen.dart';
+import 'map_screen.dart';
 
 /// Walks the user through the onboarding permissions — location ("Always
 /// Allow" for background tracking), notifications, and (on supported devices)
@@ -169,12 +172,36 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     );
   }
 
-  void _finish() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => const CreateOrJoinCircleScreen(),
-      ),
-    );
+  Future<void> _finish() async {
+    try {
+      await FamilyService().fetchFamily();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const MapScreen()),
+        (route) => false,
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.status == 404) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => const CreateOrJoinCircleScreen(),
+          ),
+        );
+        return;
+      }
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const MapScreen()),
+        (route) => false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => const CreateOrJoinCircleScreen(),
+        ),
+      );
+    }
   }
 
   /// Whether the current step needs the user to open system Settings to grant
