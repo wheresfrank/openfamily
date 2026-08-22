@@ -4,24 +4,23 @@ import '../theme/app_theme.dart';
 
 /// The fixed bottom control bar, pinned to the very bottom of the map screen.
 ///
-/// It is *always* visible — the Family member panel sits directly above this
-/// bar and stops *above* it, so the controls are never covered. Layout, left
-/// to right:
+/// It is *always* visible. Layout, left to right:
 ///
 /// * a large, prominent **SOS** button (emergency red but flat at rest,
 ///   escalating to intense red only during an active SOS countdown),
-/// * **Places** and **Keys** as small circular icon buttons,
-/// * **Safety** as a labeled *tab* (icon + text, not a bare circle),
+/// * a **People** destination opening the full-screen family member roster,
+/// * **Places**, **Keys**, and **Safety** as small circular icon buttons,
 /// * a **Settings** gear pinned to the bottom-right corner as a distinct
 ///   corner element.
 ///
 /// The widget is transparent — it renders only the controls — so the map stays
-/// full-bleed behind it. The `+` add action lives inside the Family panel's
-/// header, above this bar.
+/// full-bleed behind it. Family members live on the dedicated People screen,
+/// no longer in a drawer overlapping these controls.
 class MapBottomBar extends StatelessWidget {
   const MapBottomBar({
     super.key,
     this.onSos,
+    this.onPeople,
     this.onPlaces,
     this.onKeys,
     this.onSafety,
@@ -30,6 +29,7 @@ class MapBottomBar extends StatelessWidget {
   });
 
   final VoidCallback? onSos;
+  final VoidCallback? onPeople;
   final VoidCallback? onPlaces;
   final VoidCallback? onKeys;
   final VoidCallback? onSafety;
@@ -45,8 +45,8 @@ class MapBottomBar extends StatelessWidget {
   static const double sosHeight = 72;
 
   /// Total height of the bar (SOS button + 8px vertical padding on each side).
-  /// Exposed so the map screen can reserve space and anchor the Family panel
-  /// above it.
+  /// Exposed so the map screen can reserve space and dock controls (e.g. the
+  /// `+` FAB) clear of the bar.
   static const double height = sosHeight + 16;
 
   @override
@@ -54,34 +54,58 @@ class MapBottomBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Large, dominant SOS button — clearly bigger than the other controls.
-          _SosButton(onTap: onSos, intense: sosIntense),
-          const SizedBox(width: 12),
-          // Places.
-          _FloatingIconButton(
-            icon: Icons.place_outlined,
-            label: 'Places',
-            onTap: onPlaces,
-          ),
-          const SizedBox(width: 8),
-          // Keys / Tile.
-          _FloatingIconButton(
-            icon: Icons.key_outlined,
-            label: 'Keys',
-            onTap: onKeys,
-          ),
-          const SizedBox(width: 8),
-          // Safety — a white circular icon button, matching Places / Keys.
-          _FloatingIconButton(
-            icon: Icons.shield_outlined,
-            label: 'Safety',
-            onTap: onSafety,
+          // Primary cluster: SOS plus the circle destinations (People, Places,
+          // Keys, Safety). Wrapped in a FittedBox(scaleDown) so this row of
+          // controls never overflows off-screen on unusually narrow / landscape
+          // viewports — the circles scale down fractionally instead of
+          // overflowing, staying tappable.
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Large, dominant SOS button — clearly bigger than the other
+                  // controls.
+                  _SosButton(onTap: onSos, intense: sosIntense),
+                  const SizedBox(width: 12),
+                  // People — the dedicated family-member roster.
+                  _FloatingIconButton(
+                    icon: Icons.people_alt_outlined,
+                    label: 'People',
+                    onTap: onPeople,
+                  ),
+                  const SizedBox(width: 6),
+                  // Places.
+                  _FloatingIconButton(
+                    icon: Icons.place_outlined,
+                    label: 'Places',
+                    onTap: onPlaces,
+                  ),
+                  const SizedBox(width: 6),
+                  // Keys / Tile.
+                  _FloatingIconButton(
+                    icon: Icons.key_outlined,
+                    label: 'Keys',
+                    onTap: onKeys,
+                  ),
+                  const SizedBox(width: 6),
+                  // Safety — a white circular icon button, matching the others.
+                  _FloatingIconButton(
+                    icon: Icons.shield_outlined,
+                    label: 'Safety',
+                    onTap: onSafety,
+                  ),
+                ],
+              ),
+            ),
           ),
           const Spacer(),
-          // Settings — a white circular icon button, matching Places / Keys,
-          // pinned to the bottom-right corner.
+          // Settings — a white circular icon button, pinned to the bottom-right
+          // corner as a distinct corner element.
           _FloatingIconButton(
             icon: Icons.settings_outlined,
             label: 'Settings',
