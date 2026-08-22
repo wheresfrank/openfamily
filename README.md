@@ -116,6 +116,9 @@ location/
 | POST | `/auth/refresh` | Rotate refresh token |
 | GET | `/me` | Get the signed-in user's profile |
 | PATCH | `/me` | Update the signed-in user's display name and/or phone |
+| GET | `/me/contacts` | List your emergency contacts |
+| POST | `/me/contacts` | Add an emergency contact (admin/member) |
+| DELETE | `/me/contacts/{id}` | Remove an emergency contact (admin/member) |
 | GET | `/api/profile` | Get your own profile and avatar metadata |
 | GET | `/api/profile/avatar` | Get your private profile image |
 | PUT | `/api/profile/avatar` | Upload a PNG/JPEG profile image (raw body; max 5 MiB) |
