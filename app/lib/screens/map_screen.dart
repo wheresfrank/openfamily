@@ -19,13 +19,13 @@ import '../utils/member_clustering.dart';
 import '../widgets/circle_switcher.dart';
 import '../widgets/map_bottom_bar.dart';
 import '../widgets/member_avatar_bubble.dart';
-import '../widgets/member_list_sheet.dart';
 import 'check_in_screen.dart';
 import 'help_alert_screen.dart';
 import 'invite_screen.dart';
 import 'join_circle_screen.dart';
 import 'keys_screen.dart';
 import 'member_profile_screen.dart';
+import 'people_screen.dart';
 import 'places_screen.dart';
 import 'safety_screen.dart';
 import 'settings_screen.dart';
@@ -38,16 +38,15 @@ const double kApproxZoneRadiusMeters = 300.0;
 /// The map-first home screen.
 ///
 /// A full-bleed live map is the background — it extends behind *everything*.
-/// A Circle switcher floats at the top, member avatar bubbles are pinned to
-/// their locations (clustered and fanned out when near each other), and a
-/// compact People rail opens into a draggable member drawer.
+/// A Circle switcher floats at the top, and member avatar bubbles are pinned to
+/// their locations (clustered and fanned out when near each other).
 ///
-/// The bottom control bar — a large, dominant SOS button plus Places / Keys /
-/// a labeled Safety tab and a Settings gear pinned bottom-right — is FIXED and
-/// pinned to the very bottom of the screen, always visible. The member sheet
-/// slides up over the *map* and its maximum extent stops *above* the control
-/// bar, so the controls (and SOS) are never covered. A `+` FAB sits above the
-/// compact rail and fades away as the member drawer opens.
+/// The bottom control bar — a large, dominant SOS button plus the Places /
+/// Keys / Safety / People destinations and a Settings gear pinned bottom-right
+/// — is FIXED and pinned to the very bottom of the screen, always visible.
+/// The family member roster lives on a dedicated full-screen People destination
+/// (no drawer overlapping these controls). A `+` FAB floats above the bar and
+/// offers the Check In / Help Alert / Invite quick actions.
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -57,14 +56,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  // The collapsed People rail is deliberately compact, leaving the map as the
-  // dominant surface. Its fractional extent is calculated from a minimum
-  // physical height so it remains fully tappable in landscape, too.
-  static const double _baseMinSheetSize = 0.13;
-  static const double _midSheetSize = 0.48;
-  static const double _maxSheetSize = 0.86;
-
-  /// Zoom the camera animates to when a cluster is expanded.
+  // Zoom the camera animates to when a cluster is expanded.
   static const double _expandZoom = 16.0;
 
   final MapController _mapController = MapController();
@@ -78,6 +70,11 @@ class _MapScreenState extends State<MapScreen>
   // Live family data from the backend.
   final FamilyService _familyService = FamilyService();
   List<Member> _members = <Member>[];
+
+  /// Live roster exposed to the pushed People screen so its status chips stay
+  /// live off the map's single WebSocket subscription (no second connection).
+  final ValueNotifier<List<Member>> _membersListenable =
+      ValueNotifier<List<Member>>(const <Member>[]);
 
   // Foreground location reporter: POSTs the device's GPS position to the
   // backend while this screen (the base of the nav stack) is alive.
@@ -105,18 +102,10 @@ class _MapScreenState extends State<MapScreen>
   // Camera animation controller for smooth recentering.
   AnimationController? _cameraAnim;
 
-  // Drives the draggable sheet so the `+` FAB can track its top edge.
-  final DraggableScrollableController _sheetController =
-      DraggableScrollableController();
-
-  /// Whether the member drawer has left its compact People-rail state.
-  bool _memberSheetExpanded = false;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _sheetController.addListener(_onMemberSheetExtentChanged);
     _familyService.onMembersChanged = _onMembersChanged;
     _familyService.onUserId = _onUserId;
     _load();
@@ -139,6 +128,7 @@ class _MapScreenState extends State<MapScreen>
     if (!mounted) return;
     setState(() {
       _members = members;
+      _membersListenable.value = members;
       // Re-collapse expanded clusters whose members have moved apart.
       _pruneExpandedClusters();
     });
@@ -162,6 +152,7 @@ class _MapScreenState extends State<MapScreen>
       setState(() {
         _familyName = name;
         _members = members;
+        _membersListenable.value = members;
         _loading = false;
       });
       if (_mapReady) _fitToMembers();
@@ -256,8 +247,7 @@ class _MapScreenState extends State<MapScreen>
     _reporter.stop();
     _familyService.dispose();
     _cameraAnim?.dispose();
-    _sheetController.removeListener(_onMemberSheetExtentChanged);
-    _sheetController.dispose();
+    _membersListenable.dispose();
     super.dispose();
   }
 
@@ -335,85 +325,6 @@ class _MapScreenState extends State<MapScreen>
       _mapController.move(latLng.value, zoomAnim.value);
     });
     controller.forward();
-  }
-
-  /// Recenters the map on a single member (used by the sheet's name tap).
-  /// Returns false when that member has not shared a location yet.
-  bool _recenterOn(Member member) {
-    final LatLng? position = member.position;
-    if (position == null) return false;
-    _animateTo(position, 15);
-    return true;
-  }
-
-  /// Tracks just the compact/expanded boundary rather than rebuilding the map
-  /// on every pixel of a drag. The state drives the drawer's explicit
-  /// expand/collapse affordance and the visibility of the floating add action.
-  void _onMemberSheetExtentChanged() {
-    if (!mounted) return;
-    final bool expanded =
-        _sheetController.size > _minSheetSizeFor(context) + 0.02;
-    if (expanded == _memberSheetExpanded) return;
-    setState(() => _memberSheetExpanded = expanded);
-  }
-
-  /// Makes the People rail work for everyone: a tap toggles the drawer between
-  /// its compact state and its mid-height roster, while a drag can still reach
-  /// the maximum extent.
-  void _toggleMemberSheet() {
-    _sheetController.animateTo(
-      _memberSheetExpanded
-          ? _minSheetSizeFor(context)
-          : _midSheetSizeFor(context),
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-    );
-  }
-
-  /// Selecting someone returns attention to the map, then gets the compact
-  /// People rail back out of the way instead of leaving a large drawer over
-  /// the location the user just selected.
-  void _focusMemberFromDrawer(Member member) {
-    if (!_recenterOn(member)) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-              content: Text('${member.name} has not shared a location yet.')),
-        );
-      return;
-    }
-    if (_memberSheetExpanded) {
-      _sheetController.animateTo(
-        _minSheetSizeFor(context),
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-      );
-    }
-  }
-
-  /// Converts the compact rail's minimum usable height into the fraction the
-  /// draggable sheet needs for the current viewport. On ordinary portrait
-  /// phones this remains the preferred 13%; in short landscape view it grows
-  /// just enough to keep every 48px action discoverable and tappable.
-  double _minSheetSizeFor(BuildContext context) {
-    final MediaQueryData media = MediaQuery.of(context);
-    final double sheetAreaHeight =
-        media.size.height - MapBottomBar.height - media.padding.bottom;
-    if (sheetAreaHeight <= 0) return _baseMinSheetSize;
-
-    final double heightBasedSize =
-        MemberListSheet.compactRailHeight(context) / sheetAreaHeight;
-    return heightBasedSize
-        .clamp(_baseMinSheetSize, _maxSheetSize - 0.08)
-        .toDouble();
-  }
-
-  /// On unusually short screens or very large text, ensure the middle snap
-  /// point remains above the dynamically sized compact rail.
-  double _midSheetSizeFor(BuildContext context) {
-    final double minimum = _minSheetSizeFor(context);
-    return _midSheetSize > minimum + 0.04 ? _midSheetSize : minimum + 0.04;
   }
 
   /// Recenters the map on the caller ("You"). Prefers the caller's own member
@@ -495,6 +406,20 @@ class _MapScreenState extends State<MapScreen>
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => MemberProfileScreen(member: member),
+      ),
+    );
+  }
+
+  /// Opens the dedicated full-screen family member roster (the People
+  /// destination in the bottom bar). It consumes the map's single live member
+  /// subscription so statuses stay fresh without a second WebSocket.
+  void _openPeople() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PeopleScreen(
+          circleName: _familyName,
+          members: _membersListenable,
+        ),
       ),
     );
   }
@@ -610,16 +535,11 @@ class _MapScreenState extends State<MapScreen>
   Widget build(BuildContext context) {
     final List<Member> members = _liveMembers();
     final MediaQueryData media = MediaQuery.of(context);
-    final double screenHeight = media.size.height;
     final double safeBottom = media.padding.bottom;
     // Space reserved at the very bottom for the fixed control bar (its own
-    // height plus the system safe-area inset it sits above).
+    // height plus the system safe-area inset it sits above), so the `+` FAB
+    // docks clear of it.
     final double controlBarReserved = MapBottomBar.height + safeBottom;
-    // The sheet lives in the area above the control bar, so its fractional
-    // sizes are relative to this reduced height.
-    final double sheetAreaHeight = screenHeight - controlBarReserved;
-    final double minSheetSize = _minSheetSizeFor(context);
-    final double midSheetSize = _midSheetSizeFor(context);
 
     return Scaffold(
       body: Stack(
@@ -754,79 +674,26 @@ class _MapScreenState extends State<MapScreen>
             ),
           ),
 
-          // Bottom: a compact People rail that expands into the full member
-          // drawer. It remains above the fixed control bar, so SOS and the
-          // map's primary actions are always available.
+          // Bottom-center `+` FAB for the Check In / Help Alert / Invite quick
+          // actions, docked just above the fixed control bar.
           Positioned(
-            top: 0,
             left: 0,
             right: 0,
-            bottom: controlBarReserved,
-            child: DraggableScrollableSheet(
-              controller: _sheetController,
-              initialChildSize: minSheetSize,
-              minChildSize: minSheetSize,
-              maxChildSize: _maxSheetSize,
-              snap: true,
-              snapSizes: [minSheetSize, midSheetSize, _maxSheetSize],
-              builder: (context, scrollController) {
-                return MemberListSheet(
-                  scrollController: scrollController,
-                  circleName: _familyName,
-                  members: members,
-                  onMemberTap: _focusMemberFromDrawer,
-                  onAddPerson: _openAddPerson,
-                  onToggle: _toggleMemberSheet,
-                  expanded: _memberSheetExpanded,
-                );
-              },
+            bottom: controlBarReserved + 12,
+            child: Center(
+              child: FloatingActionButton(
+                onPressed: _showAddActions,
+                backgroundColor: AppColors.purple,
+                foregroundColor: Colors.white,
+                tooltip: 'Add — Check In / Help Alert / Invite',
+                child: const Icon(Icons.add),
+              ),
             ),
           ),
 
-          // Bottom-center `+` FAB. It tracks the drawer's top edge while the
-          // compact People rail is visible, then fades away as the roster
-          // opens so it never competes with the member list.
-          AnimatedBuilder(
-            animation: _sheetController,
-            builder: (context, _) {
-              final double sheetSize = _sheetController.size < minSheetSize
-                  ? minSheetSize
-                  : _sheetController.size;
-              final double sheetTop =
-                  controlBarReserved + sheetAreaHeight * sheetSize;
-              final double expandedFraction =
-                  ((sheetSize - minSheetSize) / 0.08)
-                      .clamp(0.0, 1.0)
-                      .toDouble();
-              return Positioned(
-                left: 0,
-                right: 0,
-                bottom: sheetTop + 12,
-                child: Center(
-                  child: ExcludeSemantics(
-                    excluding: expandedFraction > 0.5,
-                    child: IgnorePointer(
-                      ignoring: expandedFraction > 0.01,
-                      child: Opacity(
-                        opacity: 1 - expandedFraction,
-                        child: FloatingActionButton(
-                          onPressed: _showAddActions,
-                          backgroundColor: AppColors.purple,
-                          foregroundColor: Colors.white,
-                          tooltip: 'Add — Check In / Help Alert / Invite',
-                          child: const Icon(Icons.add),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // Fixed bottom control bar (SOS + Places / Keys / Safety tab +
-          // Settings gear), pinned to the very bottom and always visible.
-          // Drawn last so it sits above the map; the sheet never reaches it.
+          // Fixed bottom control bar (SOS + People / Places / Keys / Safety
+          // destinations + Settings gear), pinned to the very bottom and always
+          // visible. Drawn last so it sits above the map.
           Positioned(
             left: 0,
             right: 0,
@@ -835,6 +702,7 @@ class _MapScreenState extends State<MapScreen>
               top: false,
               child: MapBottomBar(
                 onSos: _openSos,
+                onPeople: _openPeople,
                 onPlaces: _openPlaces,
                 onKeys: _openKeys,
                 onSafety: _openSafety,
