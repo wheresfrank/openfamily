@@ -2,7 +2,7 @@
 
 import React from 'react'
 
-export type RouteKey = 'dashboard' | 'families' | 'users' | 'builds' | 'settings'
+export type RouteKey = 'dashboard' | 'history' | 'families' | 'users' | 'builds' | 'settings'
 
 export interface RouteDef {
   key: RouteKey
@@ -29,6 +29,20 @@ export const ROUTES: RouteDef[] = [
         d="M4 13.5 12 5l8 8.5M6 12v7h12v-7"
         stroke="currentColor"
         strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+  },
+  {
+    key: 'history',
+    label: 'History',
+    hash: '#/history',
+    icon: icon(
+      <path
+        d="M12 7v5l3 2M12 21a9 9 0 1 0-6.3-2.6L4 21l.5-3.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -95,6 +109,7 @@ export const ROUTES: RouteDef[] = [
 export const DEFAULT_ROUTE: RouteKey = 'dashboard'
 
 export function routeFromHash(hash: string): RouteKey {
-  const match = ROUTES.find((r) => hash === r.hash || hash.startsWith(r.hash))
+  const path = hash.split('?')[0]
+  const match = ROUTES.find((r) => path === r.hash || path.startsWith(`${r.hash}/`))
   return match ? match.key : DEFAULT_ROUTE
 }

@@ -1,104 +1,263 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../models/member.dart';
+import '../models/place.dart';
+import '../services/api_client.dart';
+import '../services/app_config.dart';
+import '../services/family_service.dart';
+import '../services/history_service.dart';
+import '../services/place_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/member_avatar_bubble.dart';
 import '../widgets/movement_icon.dart';
 
-/// "Day Detail" — the location-history timeline for a member.
-///
-/// Renders the member's day as a vertical timeline of past locations with
-/// times (and a movement icon where relevant), ending at their current
-/// location. When the member has no backend history yet, a plausible
-/// synthetic day is generated so the timeline is always demonstrable.
-class DayDetailScreen extends StatelessWidget {
+/// Location-history timeline for a member: a map trail plus named family
+/// places and unnamed stops for a chosen day.
+class DayDetailScreen extends StatefulWidget {
   const DayDetailScreen({super.key, required this.member});
 
   final Member member;
 
   @override
-  Widget build(BuildContext context) {
-    final List<LocationHistoryEntry> entries = _buildTimeline(member);
+  State<DayDetailScreen> createState() => _DayDetailScreenState();
+}
 
+class _DayDetailScreenState extends State<DayDetailScreen> {
+  final MapController _mapController = MapController();
+  final FamilyService _familyService = FamilyService();
+
+  late DateTime _day;
+  MemberHistory? _history;
+  String? _error;
+  bool _loading = true;
+  bool _canManage = false;
+  bool _mapReady = false;
+
+  static final DateTime _today = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
+  static final DateTime _oldest = _today.subtract(const Duration(days: 89));
+
+  @override
+  void initState() {
+    super.initState();
+    _day = _today;
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final List<dynamic> results = await Future.wait<dynamic>(<Future<dynamic>>[
+        HistoryService.fetchDay(memberId: widget.member.id, day: _day),
+        _familyService.fetchFamily(),
+      ]);
+      if (!mounted) return;
+      final MemberHistory history = results[0] as MemberHistory;
+      final FamilyInfo family = results[1] as FamilyInfo;
+      setState(() {
+        _history = history;
+        _canManage = family.role != 'child';
+        _loading = false;
+      });
+      _fitTrail();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e is ApiException
+            ? e.message
+            : 'Couldn\'t load history. Please try again.';
+        _loading = false;
+      });
+    }
+  }
+
+  void _shiftDay(int days) {
+    final DateTime next = _day.add(Duration(days: days));
+    final DateTime clamped = DateTime(next.year, next.month, next.day);
+    if (clamped.isAfter(_today) || clamped.isBefore(_oldest)) return;
+    setState(() => _day = clamped);
+    _load();
+  }
+
+  void _fitTrail() {
+    if (!_mapReady) return;
+    final List<LatLng> coords = _trailCoordinates();
+    if (coords.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      try {
+        _mapController.fitCamera(
+          CameraFit.coordinates(
+            coordinates: coords,
+            padding: const EdgeInsets.all(28),
+            maxZoom: 16,
+          ),
+        );
+      } catch (_) {
+        // Map may not be attached yet on the first frame.
+      }
+    });
+  }
+
+  List<LatLng> _trailCoordinates() {
+    final MemberHistory? history = _history;
+    if (history == null) return <LatLng>[];
+    if (history.trail.isNotEmpty) {
+      return history.trail.map((HistoryTrailPoint p) => p.position).toList();
+    }
+    return history.visits.map((HistoryVisit v) => v.position).toList();
+  }
+
+  Future<void> _saveStop(HistoryVisit visit) async {
+    final _SavePlaceResult? result = await showDialog<_SavePlaceResult>(
+      context: context,
+      builder: (BuildContext context) => _SavePlaceDialog(visit: visit),
+    );
+    if (result == null || !mounted) return;
+    try {
+      await PlaceService.createPlace(
+        name: result.name,
+        type: result.type,
+        lat: visit.position.latitude,
+        lon: visit.position.longitude,
+        radiusMeters: 152.4,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${result.name} saved for the family')),
+      );
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e is ApiException ? e.message : 'Couldn\'t save this place.',
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Day Detail')),
       body: Column(
         children: [
-          _Header(member: member),
-          const Divider(height: 1, color: Color(0x11000000)),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              itemCount: entries.length,
-              itemBuilder: (context, index) => _TimelineEntry(
-                entry: entries[index],
-                isLast: index == entries.length - 1,
-              ),
-            ),
+          _Header(
+            member: widget.member,
+            day: _day,
+            canGoBack: _day.isAfter(_oldest),
+            canGoForward: _day.isBefore(_today),
+            onBack: () => _shiftDay(-1),
+            onForward: () => _shiftDay(1),
           ),
+          const Divider(height: 1, color: Color(0x11000000)),
+          Expanded(child: _body()),
         ],
       ),
     );
   }
 
-  /// Returns the member's real history when present, otherwise synthesizes a
-  /// plausible day ending at the member's current location.
-  List<LocationHistoryEntry> _buildTimeline(Member member) {
-    if (member.history.isNotEmpty) return member.history;
-
-    final DateTime now = DateTime.now();
-    final DateTime today = DateTime(now.year, now.month, now.day);
-
-    return <LocationHistoryEntry>[
-      LocationHistoryEntry(
-        time: today.add(const Duration(hours: 7, minutes: 30)),
-        address: 'Home · 123 Maple St',
-        movement: MovementType.home,
-      ),
-      LocationHistoryEntry(
-        time: today.add(const Duration(hours: 8, minutes: 15)),
-        address: 'Driving · Market St',
-        movement: MovementType.car,
-      ),
-      LocationHistoryEntry(
-        time: today.add(const Duration(hours: 8, minutes: 45)),
-        address: 'Work · 1 Embarcadero',
-        movement: MovementType.work,
-      ),
-      LocationHistoryEntry(
-        time: today.add(const Duration(hours: 12, minutes: 10)),
-        address: 'Lunch · Ferry Building',
-        movement: MovementType.none,
-      ),
-      LocationHistoryEntry(
-        time: today.add(const Duration(hours: 13, minutes: 0)),
-        address: 'Work · 1 Embarcadero',
-        movement: MovementType.work,
-      ),
-      LocationHistoryEntry(
-        time: today.add(const Duration(hours: 17, minutes: 30)),
-        address: 'Driving · Market St',
-        movement: MovementType.car,
-      ),
-      LocationHistoryEntry(
-        time: now,
-        address: member.address,
-        movement: member.movement,
-      ),
-    ];
+  Widget _body() {
+    if (_loading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.purple),
+      );
+    }
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 12),
+              TextButton(onPressed: _load, child: const Text('Retry')),
+            ],
+          ),
+        ),
+      );
+    }
+    final MemberHistory history = _history!;
+    if (history.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'No location history for this day.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textMuted, fontSize: 15),
+          ),
+        ),
+      );
+    }
+    return Column(
+      children: [
+        _TrailMap(
+          member: widget.member,
+          history: history,
+          mapController: _mapController,
+          onMapReady: () {
+            _mapReady = true;
+            _fitTrail();
+          },
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            itemCount: history.visits.length,
+            itemBuilder: (BuildContext context, int index) {
+              final HistoryVisit visit = history.visits[index];
+              return _TimelineEntry(
+                visit: visit,
+                isLast: index == history.visits.length - 1,
+                canSave: _canManage && visit.isStop,
+                onSave: () => _saveStop(visit),
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 }
 
-/// Header showing the member's avatar, name, and the day's date.
 class _Header extends StatelessWidget {
-  const _Header({required this.member});
+  const _Header({
+    required this.member,
+    required this.day,
+    required this.canGoBack,
+    required this.canGoForward,
+    required this.onBack,
+    required this.onForward,
+  });
 
   final Member member;
+  final DateTime day;
+  final bool canGoBack;
+  final bool canGoForward;
+  final VoidCallback onBack;
+  final VoidCallback onForward;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       child: Row(
         children: [
           StatusAvatar(member: member, size: 48),
@@ -116,7 +275,7 @@ class _Header extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _formatDate(DateTime.now()),
+                  _formatDate(day),
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textMuted,
@@ -125,37 +284,131 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
+          IconButton(
+            tooltip: 'Previous day',
+            onPressed: canGoBack ? onBack : null,
+            icon: const Icon(Icons.chevron_left),
+          ),
+          IconButton(
+            tooltip: 'Next day',
+            onPressed: canGoForward ? onForward : null,
+            icon: const Icon(Icons.chevron_right),
+          ),
         ],
       ),
     );
   }
 }
 
-/// A single row of the timeline: time, a dot with a connecting line, and the
-/// location (with a movement icon where relevant).
-class _TimelineEntry extends StatelessWidget {
-  const _TimelineEntry({required this.entry, required this.isLast});
+class _TrailMap extends StatelessWidget {
+  const _TrailMap({
+    required this.member,
+    required this.history,
+    required this.mapController,
+    required this.onMapReady,
+  });
 
-  final LocationHistoryEntry entry;
-  final bool isLast;
+  final Member member;
+  final MemberHistory history;
+  final MapController mapController;
+  final VoidCallback onMapReady;
 
   @override
   Widget build(BuildContext context) {
-    final Color dotColor = entry.movement == MovementType.none
-        ? AppColors.textMuted
-        : AppColors.purple;
+    final List<LatLng> trail =
+        history.trail.map((HistoryTrailPoint p) => p.position).toList();
+    final LatLng center = trail.isNotEmpty
+        ? trail[trail.length ~/ 2]
+        : (member.position ?? const LatLng(0, 0));
+
+    return SizedBox(
+      height: 220,
+      width: double.infinity,
+      child: FlutterMap(
+        mapController: mapController,
+        options: MapOptions(
+          initialCenter: center,
+          initialZoom: 13,
+          onMapReady: onMapReady,
+          interactionOptions: const InteractionOptions(
+            flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+          ),
+        ),
+        children: [
+          TileLayer(
+            urlTemplate: kTileUrl,
+            userAgentPackageName: 'com.whereabouts.whereabouts',
+          ),
+          if (trail.length >= 2)
+            PolylineLayer(
+              polylines: <Polyline>[
+                Polyline(
+                  points: trail,
+                  color: AppColors.purple,
+                  strokeWidth: 3.5,
+                ),
+              ],
+            ),
+          MarkerLayer(
+            markers: <Marker>[
+              for (final HistoryVisit visit in history.visits)
+                if (!visit.isTransit)
+                  Marker(
+                    point: visit.position,
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                        border: Border.all(color: AppColors.purple, width: 2),
+                      ),
+                      child: Icon(
+                        _visitIcon(visit),
+                        size: 14,
+                        color: AppColors.purple,
+                      ),
+                    ),
+                  ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimelineEntry extends StatelessWidget {
+  const _TimelineEntry({
+    required this.visit,
+    required this.isLast,
+    required this.canSave,
+    required this.onSave,
+  });
+
+  final HistoryVisit visit;
+  final bool isLast;
+  final bool canSave;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final MovementType movement = _movementFor(visit);
+    final Color dotColor =
+        visit.isTransit ? AppColors.textMuted : AppColors.purple;
+    final Duration stay = visit.departedAt.difference(visit.arrivedAt);
 
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Time.
           SizedBox(
             width: 64,
             child: Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                _formatTime(entry.time),
+                _formatTime(visit.arrivedAt.toLocal()),
                 textAlign: TextAlign.right,
                 style: const TextStyle(
                   fontSize: 13,
@@ -166,7 +419,6 @@ class _TimelineEntry extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          // Dot + connecting line.
           SizedBox(
             width: 20,
             child: Column(
@@ -192,25 +444,51 @@ class _TimelineEntry extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          // Location + movement.
           Expanded(
             child: Padding(
               padding: EdgeInsets.only(bottom: isLast ? 0 : 20),
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      entry.address,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          visit.placeName,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (stay.inMinutes >= 1)
+                          Text(
+                            _formatDuration(stay),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  if (entry.movement != MovementType.none) ...[
+                  if (movement != MovementType.none) ...[
                     const SizedBox(width: 8),
-                    MovementIcon(movement: entry.movement, size: 18),
+                    MovementIcon(movement: movement, size: 18),
+                  ] else ...[
+                    const SizedBox(width: 8),
+                    Icon(
+                      _visitIcon(visit),
+                      size: 18,
+                      color: AppColors.purple,
+                    ),
                   ],
+                  if (canSave)
+                    IconButton(
+                      tooltip: 'Save as place',
+                      icon: const Icon(Icons.add_location_alt_outlined),
+                      color: AppColors.purple,
+                      onPressed: onSave,
+                    ),
                 ],
               ),
             ),
@@ -219,6 +497,131 @@ class _TimelineEntry extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SavePlaceResult {
+  const _SavePlaceResult({required this.name, required this.type});
+  final String name;
+  final String type;
+}
+
+class _SavePlaceDialog extends StatefulWidget {
+  const _SavePlaceDialog({required this.visit});
+
+  final HistoryVisit visit;
+
+  @override
+  State<_SavePlaceDialog> createState() => _SavePlaceDialogState();
+}
+
+class _SavePlaceDialogState extends State<_SavePlaceDialog> {
+  late final TextEditingController _name;
+  String _type = 'custom';
+
+  static const List<String> _types = <String>[
+    'home',
+    'work',
+    'school',
+    'gym',
+    'custom',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController(text: widget.visit.placeName == 'Stopped'
+        ? ''
+        : widget.visit.placeName);
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Save as family place'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _name,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Name',
+              hintText: 'Coffee shop',
+            ),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _type,
+            decoration: const InputDecoration(labelText: 'Type'),
+            items: _types
+                .map(
+                  (String t) => DropdownMenuItem<String>(
+                    value: t,
+                    child: Text(
+                      '${t[0].toUpperCase()}${t.substring(1)}',
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (String? v) {
+              if (v != null) _type = v;
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final String name = _name.text.trim();
+            if (name.isEmpty) return;
+            Navigator.of(context).pop(
+              _SavePlaceResult(name: name, type: _type),
+            );
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+IconData _visitIcon(HistoryVisit visit) {
+  if (visit.isStop) return Icons.place;
+  if (visit.isPlace) return Place.iconForType(visit.placeType);
+  return Icons.route;
+}
+
+MovementType _movementFor(HistoryVisit visit) {
+  if (visit.isPlace) {
+    switch (visit.placeType) {
+      case 'home':
+        return MovementType.home;
+      case 'work':
+        return MovementType.work;
+      case 'gym':
+        return MovementType.gym;
+    }
+  }
+  if (visit.isTransit) {
+    switch (visit.placeType) {
+      case 'driving':
+        return MovementType.car;
+      case 'cycling':
+        return MovementType.bike;
+    }
+  }
+  return MovementType.none;
 }
 
 String _formatTime(DateTime t) {
@@ -234,4 +637,14 @@ String _formatDate(DateTime d) {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
   return '${months[d.month - 1]} ${d.day}, ${d.year}';
+}
+
+String _formatDuration(Duration d) {
+  if (d.inHours >= 1) {
+    final int hours = d.inHours;
+    final int mins = d.inMinutes.remainder(60);
+    if (mins == 0) return hours == 1 ? '1 hr' : '$hours hrs';
+    return '${hours}h ${mins}m';
+  }
+  return '${d.inMinutes} min';
 }

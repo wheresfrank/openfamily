@@ -24,6 +24,7 @@ func TestAdminRouteSmoke(t *testing.T) {
 		r.Get("/api/admin/families", func(w http.ResponseWriter, r *http.Request) { apiHit = true })
 		r.Get("/api/admin/families/{id}/members", func(w http.ResponseWriter, r *http.Request) { apiHit = true })
 		r.Get("/api/admin/members", func(w http.ResponseWriter, r *http.Request) { apiHit = true })
+		r.Get("/api/admin/members/{id}/history", func(w http.ResponseWriter, r *http.Request) { apiHit = true })
 		r.Get("/api/admin/users", func(w http.ResponseWriter, r *http.Request) { apiHit = true })
 		r.Get("/api/admin/apk", func(w http.ResponseWriter, r *http.Request) { apiHit = true })
 		r.Post("/api/admin/apk/build", func(w http.ResponseWriter, r *http.Request) { apiHit = true })
@@ -44,6 +45,7 @@ func TestAdminRouteSmoke(t *testing.T) {
 		{"/api/admin/families", "GET", true},
 		{"/api/admin/families/abc/members", "GET", true},
 		{"/api/admin/members", "GET", true},
+		{"/api/admin/members/abc/history", "GET", true},
 		{"/api/admin/users", "GET", true},
 		{"/api/admin/apk", "GET", true},
 		{"/api/admin/apk/build", "POST", true},

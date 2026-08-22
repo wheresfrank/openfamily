@@ -10,6 +10,7 @@ import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { FamiliesPage } from './pages/FamiliesPage'
 import { UsersPage } from './pages/UsersPage'
+import { HistoryPage } from './pages/HistoryPage'
 import { BuildsPage } from './pages/BuildsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { DEFAULT_ROUTE, routeFromHash, type RouteKey } from './lib/routes'
@@ -68,6 +69,8 @@ function renderPage(route: RouteKey, email: string | null, logout: () => void): 
   switch (route) {
     case 'dashboard':
       return <DashboardPage />
+    case 'history':
+      return <HistoryPage />
     case 'families':
       return <FamiliesPage />
     case 'users':

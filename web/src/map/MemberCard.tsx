@@ -74,6 +74,13 @@ export function MemberCard({ member, nowMs, onClose }: MemberCardProps) {
           </div>
         )}
       </div>
+
+      <a
+        className="wb-member-card-history"
+        href={`#/history?member=${encodeURIComponent(member.id)}`}
+      >
+        View history
+      </a>
     </div>
   )
 }

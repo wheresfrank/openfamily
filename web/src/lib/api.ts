@@ -11,6 +11,7 @@ import type {
   InviteCode,
   LoginResponse,
   Member,
+  MemberHistory,
   Profile,
   Role,
 } from './types'
@@ -200,6 +201,13 @@ export function listFamilyMembers(familyId: string): Promise<Member[]> {
 
 export function listAllMembers(): Promise<AdminMember[]> {
   return request<AdminMember[]>('/api/admin/members')
+}
+
+export function getMemberHistory(memberId: string, from: string, to: string): Promise<MemberHistory> {
+  const q = new URLSearchParams({ from, to })
+  return request<MemberHistory>(
+    `/api/admin/members/${encodeURIComponent(memberId)}/history?${q.toString()}`,
+  )
 }
 
 /** Returns a member's avatar bytes through the authenticated admin endpoint. */

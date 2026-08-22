@@ -13,6 +13,7 @@ const PLACE_COLORS: Record<string, string> = {
   home: "var(--status-green)",
   school: "var(--status-orange)",
   work: "var(--purple)",
+  gym: "var(--status-purple)",
   other: "var(--status-grey)",
 };
 
@@ -29,6 +30,8 @@ function placeGlyph(type: string): string {
       return '<path d="M12 4 2 9l10 5 10-5-10-5Z" /><path d="M6 11.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5" /><path d="M22 9v5" />';
     case "work":
       return '<rect x="3" y="8" width="18" height="12" rx="2" /><path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><path d="M3 13h18" />';
+    case "gym":
+      return '<path d="M7 10v4M17 10v4M5 8h2v8H5zM17 8h2v8h-2zM7 11h10" />';
     default:
       return '<path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11Z" /><circle cx="12" cy="10" r="2.5" />';
   }

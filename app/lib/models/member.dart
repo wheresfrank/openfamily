@@ -76,7 +76,7 @@ class LocationHistoryEntry {
   /// What the member was doing (driving, at home, at work, etc.).
   final MovementType movement;
 
-  /// Optional geographic position (used to render a mini-map trail later).
+  /// Optional geographic position for a map trail.
   final LatLng? position;
 }
 
@@ -152,8 +152,7 @@ class Member {
   final List<LatLng>? waypoints;
 
   /// The member's location history for the day (Day Detail timeline).
-  /// Empty when no history is available; the Day Detail screen synthesizes a
-  /// plausible timeline in that case.
+  /// Empty unless a caller has loaded it; Day Detail fetches from the API.
   final List<LocationHistoryEntry> history;
 
   /// When this member last reported a location (the backend `ts`), or null if
