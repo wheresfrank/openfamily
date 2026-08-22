@@ -27,6 +27,7 @@ const (
 	shareTTL          = 24 * time.Hour
 	maxAlertNote      = 280
 	checkInRateWindow = time.Minute
+	sosRateWindow     = 2 * time.Minute
 )
 
 type alertRow struct {
@@ -61,6 +62,49 @@ func (s *Server) PostCheckIn(w http.ResponseWriter, r *http.Request) {
 // PostHelp records a non-emergency help alert. Family only (no emergency contacts).
 func (s *Server) PostHelp(w http.ResponseWriter, r *http.Request) {
 	s.postAlert(w, r, alertHelp, false, checkInRateWindow)
+}
+
+// PostSOS records an emergency SOS. Family plus the sender's emergency contacts.
+func (s *Server) PostSOS(w http.ResponseWriter, r *http.Request) {
+	s.postAlert(w, r, alertSOS, true, sosRateWindow)
+}
+
+// ResolveAlert marks the caller's alert resolved and sends an "I'm safe" follow-up.
+func (s *Server) ResolveAlert(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "alert id required")
+		return
+	}
+	var a alertRow
+	err := s.Pool.QueryRow(r.Context(), `
+		SELECT a.id, a.user_id, COALESCE(a.family_id, ''), a.type, a.status, a.lat, a.lon, COALESCE(a.note, ''),
+		       a.share_token, a.created_at, u.name
+		FROM alerts a JOIN users u ON u.id = a.user_id
+		WHERE a.id = $1 AND a.user_id = $2`, id, claims.UserID,
+	).Scan(&a.ID, &a.UserID, &a.FamilyID, &a.Type, &a.Status, &a.Lat, &a.Lon, &a.Note, &a.ShareToken, &a.CreatedAt, &a.SenderName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "alert not found")
+		return
+	}
+	if a.Status != alertStatusActive {
+		writeJSON(w, http.StatusOK, alertJSON{ID: a.ID, Type: a.Type, Status: a.Status, Lat: a.Lat, Lon: a.Lon, Note: a.Note, CreatedAt: a.CreatedAt})
+		return
+	}
+	if _, err := s.Pool.Exec(r.Context(), `
+		UPDATE alerts SET status = 'resolved', resolved_at = now() WHERE id = $1 AND user_id = $2`,
+		id, claims.UserID); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to resolve alert")
+		return
+	}
+	a.Status = "resolved"
+	go s.fanOutResolved(a)
+	writeJSON(w, http.StatusOK, alertJSON{ID: a.ID, Type: a.Type, Status: a.Status, Lat: a.Lat, Lon: a.Lon, Note: a.Note, CreatedAt: a.CreatedAt})
 }
 
 func (s *Server) postAlert(w http.ResponseWriter, r *http.Request, typ string, includeContacts bool, window time.Duration) {
@@ -156,6 +200,38 @@ func (s *Server) fanOutAlert(a alertRow, includeContacts bool) {
 	smsBody := alertSMSBody(firstName(a.SenderName), a.Type, loc)
 	s.smsFamily(ctx, a.FamilyID, a.UserID, smsBody)
 	if includeContacts {
+		s.smsEmergencyContacts(ctx, a.UserID, smsBody)
+	}
+}
+
+func (s *Server) fanOutResolved(a alertRow) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	name := firstName(a.SenderName)
+	title := name + " is safe"
+	body := title
+	if s.hub != nil {
+		payload, err := json.Marshal(map[string]any{
+			"type":       "alert",
+			"alert_type": a.Type,
+			"alert_id":   a.ID,
+			"status":     "resolved",
+			"user_id":    a.UserID,
+			"name":       a.SenderName,
+		})
+		if err == nil {
+			if a.FamilyID != "" {
+				s.hub.broadcast(a.FamilyID, payload)
+			}
+			s.hub.broadcastAdmin(payload)
+		}
+	}
+	if s.Push != nil && a.FamilyID != "" {
+		s.pushFamilyAlert(ctx, a.FamilyID, a.UserID, title, body)
+	}
+	smsBody := name + " is safe."
+	s.smsFamily(ctx, a.FamilyID, a.UserID, smsBody)
+	if a.Type == alertSOS {
 		s.smsEmergencyContacts(ctx, a.UserID, smsBody)
 	}
 }

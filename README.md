@@ -149,6 +149,8 @@ location/
 | POST | `/locations` | Ingest a location point |
 | POST | `/alerts/check-in` | Check in with the family (WS + push + optional SMS) |
 | POST | `/alerts/help` | Non-emergency help alert (family only) |
+| POST | `/alerts/sos` | SOS to family plus emergency contacts |
+| POST | `/alerts/{id}/resolve` | I'm-safe follow-up (sender only) |
 | GET | `/alerts/share/{token}` | Public 24h share page for an alert (no auth) |
 | WS | `/ws/stream` | Live position stream (family-scoped) |
 

@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../services/api_client.dart';
+import '../services/location_reporter.dart';
+import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 
 /// The SOS flow: setup, tap-to-send, press-and-hold (discreet), a 10-second
@@ -26,9 +29,11 @@ enum _SosPhase {
   holding,
   countdown,
   practice,
+  sending,
   sent,
   practiceDone,
   cancelled,
+  resolved,
 }
 
 class _SosScreenState extends State<SosScreen> {
@@ -36,6 +41,8 @@ class _SosScreenState extends State<SosScreen> {
   int _countdown = 10;
   Timer? _timer;
   bool _practice = false;
+  String? _alertId;
+  String? _error;
 
   @override
   void dispose() {
@@ -70,10 +77,55 @@ class _SosScreenState extends State<SosScreen> {
 
   void _send() {
     _timer?.cancel();
+    if (_practice) {
+      setState(() {
+        _phase = _SosPhase.practiceDone;
+        _practice = false;
+      });
+      return;
+    }
+    _sendReal();
+  }
+
+  Future<void> _sendReal() async {
     setState(() {
-      _phase = _practice ? _SosPhase.practiceDone : _SosPhase.sent;
-      _practice = false;
+      _phase = _SosPhase.sending;
+      _error = null;
     });
+    try {
+      final position = await LocationService.currentPosition();
+      final Map<String, dynamic> body = <String, dynamic>{};
+      if (position != null) {
+        body['lat'] = position.latitude;
+        body['lon'] = position.longitude;
+      }
+      final dynamic response = await ApiClient.post('/alerts/sos', body: body);
+      String? id;
+      if (response is Map && response['id'] is String) {
+        id = response['id'] as String;
+      }
+      LocationReporter.startSosBurst();
+      if (!mounted) return;
+      setState(() {
+        _alertId = id;
+        _phase = _SosPhase.sent;
+        _practice = false;
+      });
+    } on SessionExpiredException {
+      return;
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _phase = _SosPhase.idle;
+        _error = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _phase = _SosPhase.idle;
+        _error = 'Couldn\'t send SOS. Please try again.';
+      });
+    }
   }
 
   void _cancel() {
@@ -84,11 +136,33 @@ class _SosScreenState extends State<SosScreen> {
     });
   }
 
+  Future<void> _imSafe() async {
+    final String? id = _alertId;
+    if (id != null) {
+      try {
+        await ApiClient.post('/alerts/$id/resolve');
+      } on SessionExpiredException {
+        return;
+      } catch (_) {
+        // Still leave the SOS UI; the user can retry I'm safe.
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Couldn\'t send I\'m safe. Try again.')),
+        );
+        return;
+      }
+    }
+    LocationReporter.stopSosBurst();
+    if (!mounted) return;
+    setState(() => _phase = _SosPhase.resolved);
+  }
+
   void _reset() {
     _timer?.cancel();
     setState(() {
       _phase = _SosPhase.idle;
       _countdown = 10;
+      _error = null;
     });
   }
 
@@ -118,6 +192,10 @@ class _SosScreenState extends State<SosScreen> {
       case _SosPhase.idle:
         return Column(
           children: [
+            if (_error != null) ...[
+              Text(_error!, style: const TextStyle(color: AppColors.sosRed)),
+              const SizedBox(height: 16),
+            ],
             _SosButton(
               onTap: _send,
               onHoldStart: () => setState(() => _phase = _SosPhase.holding),
@@ -140,6 +218,18 @@ class _SosScreenState extends State<SosScreen> {
           onCancel: _cancel,
           label: 'Practice SOS…',
         );
+      case _SosPhase.sending:
+        return const Column(
+          children: [
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: CircularProgressIndicator(color: AppColors.sosRed),
+            ),
+            SizedBox(height: 16),
+            Text('Sending SOS…'),
+          ],
+        );
       case _SosPhase.sent:
         return _ResultCard(
           icon: Icons.check_circle,
@@ -147,8 +237,10 @@ class _SosScreenState extends State<SosScreen> {
           title: 'SOS sent',
           subtitle:
               'Your family and emergency contacts have been alerted with your location.',
-          actionLabel: 'Done',
-          onAction: () => Navigator.of(context).pop(),
+          actionLabel: 'I\'m safe',
+          onAction: _imSafe,
+          secondaryLabel: 'Done',
+          onSecondary: () => Navigator.of(context).pop(),
         );
       case _SosPhase.practiceDone:
         return _ResultCard(
@@ -164,11 +256,18 @@ class _SosScreenState extends State<SosScreen> {
           icon: Icons.info_outline,
           color: AppColors.purple,
           title: 'Cancelled',
-          subtitle:
-              'No SOS was sent. A "you are safe" follow-up was sent to your '
-              'family and contacts.',
+          subtitle: 'No SOS was sent.',
           actionLabel: 'Back',
           onAction: _reset,
+        );
+      case _SosPhase.resolved:
+        return _ResultCard(
+          icon: Icons.check_circle,
+          color: AppColors.statusGreen,
+          title: 'You\'re safe',
+          subtitle: 'Your family and emergency contacts were told you\'re safe.',
+          actionLabel: 'Done',
+          onAction: () => Navigator.of(context).pop(),
         );
     }
   }
@@ -337,6 +436,8 @@ class _ResultCard extends StatelessWidget {
     required this.subtitle,
     required this.actionLabel,
     required this.onAction,
+    this.secondaryLabel,
+    this.onSecondary,
   });
 
   final IconData icon;
@@ -345,6 +446,8 @@ class _ResultCard extends StatelessWidget {
   final String subtitle;
   final String actionLabel;
   final VoidCallback onAction;
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
 
   @override
   Widget build(BuildContext context) {
@@ -364,6 +467,10 @@ class _ResultCard extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         FilledButton(onPressed: onAction, child: Text(actionLabel)),
+        if (secondaryLabel != null && onSecondary != null) ...[
+          const SizedBox(height: 8),
+          TextButton(onPressed: onSecondary, child: Text(secondaryLabel!)),
+        ],
       ],
     );
   }

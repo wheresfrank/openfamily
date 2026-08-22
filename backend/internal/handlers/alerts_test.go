@@ -33,6 +33,10 @@ func TestAlertSMSBody(t *testing.T) {
 	if got != "Frank checked in. https://example.com/alerts/share/abc" {
 		t.Fatalf("got %q", got)
 	}
+	sos := alertSMSBody("Frank", alertSOS, "https://example.com/x")
+	if sos != "Frank sent SOS. https://example.com/x" {
+		t.Fatalf("sos %q", sos)
+	}
 	lat, lon := 37.7, -122.4
 	loc := alertLocationText("", &lat, &lon)
 	if loc == "" {
@@ -57,6 +61,30 @@ func TestPostHelpUnauthenticated(t *testing.T) {
 	r := chi.NewRouter()
 	r.Post("/alerts/help", srv.PostHelp)
 	req := httptest.NewRequest(http.MethodPost, "/alerts/help", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestPostSOSUnauthenticated(t *testing.T) {
+	srv := &Server{}
+	r := chi.NewRouter()
+	r.Post("/alerts/sos", srv.PostSOS)
+	req := httptest.NewRequest(http.MethodPost, "/alerts/sos", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestResolveAlertUnauthenticated(t *testing.T) {
+	srv := &Server{}
+	r := chi.NewRouter()
+	r.Post("/alerts/{id}/resolve", srv.ResolveAlert)
+	req := httptest.NewRequest(http.MethodPost, "/alerts/abc/resolve", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusUnauthorized {
