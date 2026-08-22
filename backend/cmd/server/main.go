@@ -21,6 +21,7 @@ import (
 	handlers "github.com/whereabouts/whereabouts/backend/internal/handlers"
 	mid "github.com/whereabouts/whereabouts/backend/internal/middleware"
 	"github.com/whereabouts/whereabouts/backend/internal/push"
+	"github.com/whereabouts/whereabouts/backend/internal/sms"
 	web "github.com/whereabouts/whereabouts/backend/web"
 )
 
@@ -66,6 +67,13 @@ func main() {
 	srv.VerbosePush = cfg.VerbosePush
 	srv.NtfyBaseURL = cfg.NtfyBaseURL
 	srv.APNsConfigured = cfg.APNsKeyFile != ""
+	srv.SMS = sms.New(sms.Config{
+		AccountSID: cfg.TwilioAccountSID,
+		AuthToken:  cfg.TwilioAuthToken,
+		From:       cfg.TwilioFrom,
+	})
+	srv.AlertLimit = sms.NewLimiter()
+	srv.PublicBaseURL = cfg.PublicBaseURL
 	srv.AllowedOrigin = cfg.AllowedOrigin
 	srv.APKDir = cfg.APKDir
 	srv.APKGitHubRepo = cfg.APKGitHubRepo

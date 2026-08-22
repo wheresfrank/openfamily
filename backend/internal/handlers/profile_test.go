@@ -6,9 +6,12 @@ import (
 	"image/color"
 	"image/jpeg"
 	"image/png"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func TestNormalizeProfileName(t *testing.T) {
@@ -248,3 +251,15 @@ func (source solidImage) Bounds() image.Rectangle {
 }
 
 func (solidImage) At(_, _ int) color.Color { return color.RGBA{R: 1, A: 255} }
+
+func TestUpdateMeUnauthenticated(t *testing.T) {
+	srv := &Server{}
+	r := chi.NewRouter()
+	r.Patch("/me", srv.UpdateMe)
+	req := httptest.NewRequest(http.MethodPatch, "/me", strings.NewReader(`{"phone":"+15551234567"}`))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}

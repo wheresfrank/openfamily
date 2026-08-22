@@ -47,6 +47,12 @@ services:
       APNS_TEAM_ID: ${APNS_TEAM_ID:-}
       APNS_TOPIC: ${APNS_TOPIC:-}
       APNS_PRODUCTION: ${APNS_PRODUCTION:-false}
+      # Optional Twilio SMS for family alerts. Empty disables SMS; in-app
+      # push and WebSocket still work.
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM: ${TWILIO_FROM:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       # Directory the admin panel caches the GitHub Release APK into. The APK
       # is built in CI and published as a release asset; the server fetches it
       # on download (it does not build APKs).
