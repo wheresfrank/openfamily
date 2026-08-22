@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// An emergency contact. They do not need the app or to be Circle members.
+/// An emergency contact. They do not need the app or to be family members.
 class _Contact {
   _Contact({required this.name, required this.phone, required this.relation});
 
@@ -37,7 +37,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
             padding: EdgeInsets.fromLTRB(20, 8, 20, 8),
             child: Text(
               'Emergency contacts receive your SOS alerts with your location. '
-              'They do not need the app or to be in your Circle.',
+              'They do not need the app or to be in your family.',
               style: TextStyle(fontSize: 13, color: AppColors.textMuted),
             ),
           ),

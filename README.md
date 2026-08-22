@@ -9,7 +9,7 @@ server.
 > location ingest, WebSocket live streaming, places, geofences, and push
 > (ntfy/APNs). The Flutter app covers login/signup with 2FA, a live map with
 > member positions, a member list, places with geofence alerts, onboarding with
-> circle invites, and foreground + background location reporting. A **web admin
+> family invites, and foreground + background location reporting. A **web admin
 > panel** (served by the backend at `/admin`) lets a platform admin view a live
 > map of every family and member, browse groups, and download the Android APK.
 > Privacy is first-class: self-hosted, configurable tile URLs, geocoding

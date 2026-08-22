@@ -12,7 +12,7 @@ import '../theme/app_theme.dart';
 /// * **Press and hold** to arm discreetly; on release a 10-second countdown
 ///   begins. Slide the "Slide to Cancel" control **left** to abort before it
 ///   fires.
-/// * Cancelling sends a "you are safe" follow-up to the Circle and contacts.
+/// * Cancelling sends a "you are safe" follow-up to the family and contacts.
 class SosScreen extends StatefulWidget {
   const SosScreen({super.key});
 
@@ -146,7 +146,7 @@ class _SosScreenState extends State<SosScreen> {
           color: AppColors.statusGreen,
           title: 'SOS sent',
           subtitle:
-              'Your Circle and emergency contacts have been alerted with your location.',
+              'Your family and emergency contacts have been alerted with your location.',
           actionLabel: 'Done',
           onAction: () => Navigator.of(context).pop(),
         );
@@ -166,7 +166,7 @@ class _SosScreenState extends State<SosScreen> {
           title: 'Cancelled',
           subtitle:
               'No SOS was sent. A "you are safe" follow-up was sent to your '
-              'Circle and contacts.',
+              'family and contacts.',
           actionLabel: 'Back',
           onAction: _reset,
         );
@@ -192,7 +192,7 @@ class _SetupCard extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'SOS alerts your Circle and emergency contacts with your location, '
+          'SOS alerts your family and emergency contacts with your location, '
           'even on silent.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 15, color: AppColors.textMuted),
