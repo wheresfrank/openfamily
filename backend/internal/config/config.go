@@ -64,6 +64,11 @@ type Config struct {
 	// modes.
 	VerbosePush bool
 
+	// NtfyBaseURL is the public ntfy origin (no trailing slash) exposed by
+	// GET /config so a generic APK can register UnifiedPush without a
+	// dart-define. Empty means the client should skip ntfy-specific hints.
+	NtfyBaseURL string
+
 	// APNs push notification credentials (optional; empty KeyFile disables APNs).
 	APNsKeyFile    string
 	APNsKeyID      string
@@ -103,27 +108,28 @@ type Config struct {
 // Load reads configuration from the environment, applying sensible defaults.
 func Load() Config {
 	return Config{
-		HTTPAddr:           getenv("HTTP_ADDR", ":8080"),
-		DatabaseURL:        getenv("DATABASE_URL", defaultDatabaseURL),
-		JWTSecret:          getenv("JWT_SECRET", ""),
-		AccessTokenTTL:     getenvDuration("ACCESS_TOKEN_TTL", 15*time.Minute),
-		RefreshTokenTTL:    getenvDuration("REFRESH_TOKEN_TTL", 30*24*time.Hour),
-		AllowedOrigin:      getenv("ALLOWED_ORIGIN", ""),
-		AppEnv:             getenv("APP_ENV", "development"),
-		TLSCertFile:        getenv("TLS_CERT_FILE", ""),
-		TLSKeyFile:         getenv("TLS_KEY_FILE", ""),
-		TLSBehindProxy:     getenvBool("TLS_BEHIND_PROXY", false),
-		InsecureHTTP:       getenvBool("INSECURE_HTTP", false),
-		VerbosePush:        getenvBool("VERBOSE_PUSH", false),
-		APNsKeyFile:        getenv("APNS_KEY_FILE", ""),
-		APNsKeyID:          getenv("APNS_KEY_ID", ""),
-		APNsTeamID:         getenv("APNS_TEAM_ID", ""),
-		APNsTopic:          getenv("APNS_TOPIC", ""),
-		APNsProduction:     getenvBool("APNS_PRODUCTION", false),
+		HTTPAddr:              getenv("HTTP_ADDR", ":8080"),
+		DatabaseURL:           getenv("DATABASE_URL", defaultDatabaseURL),
+		JWTSecret:             getenv("JWT_SECRET", ""),
+		AccessTokenTTL:        getenvDuration("ACCESS_TOKEN_TTL", 15*time.Minute),
+		RefreshTokenTTL:       getenvDuration("REFRESH_TOKEN_TTL", 30*24*time.Hour),
+		AllowedOrigin:         getenv("ALLOWED_ORIGIN", ""),
+		AppEnv:                getenv("APP_ENV", "development"),
+		TLSCertFile:           getenv("TLS_CERT_FILE", ""),
+		TLSKeyFile:            getenv("TLS_KEY_FILE", ""),
+		TLSBehindProxy:        getenvBool("TLS_BEHIND_PROXY", false),
+		InsecureHTTP:          getenvBool("INSECURE_HTTP", false),
+		VerbosePush:           getenvBool("VERBOSE_PUSH", false),
+		NtfyBaseURL:           strings.TrimRight(getenv("NTFY_BASE_URL", ""), "/"),
+		APNsKeyFile:           getenv("APNS_KEY_FILE", ""),
+		APNsKeyID:             getenv("APNS_KEY_ID", ""),
+		APNsTeamID:            getenv("APNS_TEAM_ID", ""),
+		APNsTopic:             getenv("APNS_TOPIC", ""),
+		APNsProduction:        getenvBool("APNS_PRODUCTION", false),
 		PlatformAdminEmail:    getenv("PLATFORM_ADMIN_EMAIL", ""),
 		PlatformAdminPassword: getenv("PLATFORM_ADMIN_PASSWORD", ""),
 		APKDir:                getenv("APK_DIR", ""),
-		FlutterAppDir:      getenv("FLUTTER_APP_DIR", "./app"),
+		FlutterAppDir:         getenv("FLUTTER_APP_DIR", "./app"),
 	}
 }
 

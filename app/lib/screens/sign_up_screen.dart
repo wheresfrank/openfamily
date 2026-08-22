@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/device_service.dart';
+import '../services/push_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
 import 'login_screen.dart';
@@ -99,6 +100,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // Auth succeeded; register the device (best-effort, non-blocking).
     try {
       await DeviceService.ensureRegistered();
+      await PushService.sync();
     } on SessionExpiredException {
       // Session expired during device registration; the app root already
       // redirected to login. Abort navigation so we don't land on a protected
