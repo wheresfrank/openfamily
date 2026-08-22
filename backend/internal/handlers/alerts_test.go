@@ -52,6 +52,18 @@ func TestPostCheckInUnauthenticated(t *testing.T) {
 	}
 }
 
+func TestPostHelpUnauthenticated(t *testing.T) {
+	srv := &Server{}
+	r := chi.NewRouter()
+	r.Post("/alerts/help", srv.PostHelp)
+	req := httptest.NewRequest(http.MethodPost, "/alerts/help", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
+
 func TestShareURLRequiresHTTPS(t *testing.T) {
 	srv := &Server{PublicBaseURL: "http://localhost"}
 	if srv.shareURL("abc") != "" {
