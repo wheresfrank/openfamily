@@ -15,6 +15,8 @@
   height: 100%;
   background: var(--surface-soft);
   font-family: var(--font-sans);
+  /* Leaflet panes default to z-index 400–1000; contain them inside the map. */
+  z-index: 0;
 }
 
 /* Strip Leaflet's default divIcon white box + border so bubbles float cleanly. */

@@ -11,13 +11,20 @@
   min-height: 100vh;
 }
 .wb-shell-sidebar { grid-area: sidebar; min-width: 0; }
-.wb-shell-topbar { grid-area: topbar; min-width: 0; }
+.wb-shell-topbar {
+  grid-area: topbar;
+  min-width: 0;
+  /* Above content so overflowing chrome (search/account menus) paints over the map. */
+  z-index: 2;
+}
 .wb-shell-content {
   grid-area: content;
   min-width: 0;
   min-height: 0;
   overflow: auto;
   background: var(--surface-soft);
+  /* Contain Leaflet pane z-indexes (400–1000) so they cannot cover the top bar. */
+  z-index: 1;
 }
 
 @media (max-width: 860px) {
