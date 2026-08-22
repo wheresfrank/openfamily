@@ -67,7 +67,7 @@ location/
 │   │   ├── models/                 # member, place
 │   │   ├── screens/                # add_locations, check_in, create_circle,
 │   │   │                           #   create_or_join_circle, day_detail,
-│   │   │                           #   help_alert, invite, join_circle, keys,
+│   │   │                           #   help_alert, invite, join_circle,
 │   │   │                           #   login, map, member_profile,
 │   │   │                           #   permissions, place_picker, places,
 │   │   │                           #   safety, settings, sign_up, sos, welcome

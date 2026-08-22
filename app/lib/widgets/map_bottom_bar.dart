@@ -9,7 +9,7 @@ import '../theme/app_theme.dart';
 /// * a large, prominent **SOS** button (emergency red but flat at rest,
 ///   escalating to intense red only during an active SOS countdown),
 /// * a **People** destination opening the full-screen family member roster,
-/// * **Places**, **Keys**, and **Safety** as small circular icon buttons,
+/// * **Places** and **Safety** as small circular icon buttons,
 /// * a **Settings** gear pinned to the bottom-right corner as a distinct
 ///   corner element.
 ///
@@ -22,7 +22,6 @@ class MapBottomBar extends StatelessWidget {
     this.onSos,
     this.onPeople,
     this.onPlaces,
-    this.onKeys,
     this.onSafety,
     this.onSettings,
     this.sosIntense = false,
@@ -31,7 +30,6 @@ class MapBottomBar extends StatelessWidget {
   final VoidCallback? onSos;
   final VoidCallback? onPeople;
   final VoidCallback? onPlaces;
-  final VoidCallback? onKeys;
   final VoidCallback? onSafety;
   final VoidCallback? onSettings;
 
@@ -55,8 +53,8 @@ class MapBottomBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          // Primary cluster: SOS plus the circle destinations (People, Places,
-          // Keys, Safety). Wrapped in a FittedBox(scaleDown) so this row of
+          // Primary cluster: SOS plus People, Places, and Safety. Wrapped in a
+          // FittedBox(scaleDown) so this row of
           // controls never overflows off-screen on unusually narrow / landscape
           // viewports — the circles scale down fractionally instead of
           // overflowing, staying tappable.
@@ -84,13 +82,6 @@ class MapBottomBar extends StatelessWidget {
                     icon: Icons.place_outlined,
                     label: 'Places',
                     onTap: onPlaces,
-                  ),
-                  const SizedBox(width: 6),
-                  // Keys / Tile.
-                  _FloatingIconButton(
-                    icon: Icons.key_outlined,
-                    label: 'Keys',
-                    onTap: onKeys,
                   ),
                   const SizedBox(width: 6),
                   // Safety — a white circular icon button, matching the others.
@@ -172,7 +163,7 @@ class _SosButton extends StatelessWidget {
   }
 }
 
-/// A small circular icon button floating over the map (Places, Keys, Safety,
+/// A small circular icon button floating over the map (Places, Safety,
 /// Settings). A white disc with a purple glyph and a soft shadow, which is how
 /// every secondary map control reads consistently.
 class _FloatingIconButton extends StatelessWidget {

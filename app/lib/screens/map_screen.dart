@@ -23,7 +23,6 @@ import 'check_in_screen.dart';
 import 'help_alert_screen.dart';
 import 'invite_screen.dart';
 import 'join_circle_screen.dart';
-import 'keys_screen.dart';
 import 'member_profile_screen.dart';
 import 'people_screen.dart';
 import 'places_screen.dart';
@@ -42,7 +41,7 @@ const double kApproxZoneRadiusMeters = 300.0;
 /// their locations (clustered and fanned out when near each other).
 ///
 /// The bottom control bar — a large, dominant SOS button plus the Places /
-/// Keys / Safety / People destinations and a Settings gear pinned bottom-right
+/// Safety / People destinations and a Settings gear pinned bottom-right
 /// — is FIXED and pinned to the very bottom of the screen, always visible.
 /// The family member roster lives on a dedicated full-screen People destination
 /// (no drawer overlapping these controls). A `+` FAB floats above the bar and
@@ -434,11 +433,6 @@ class _MapScreenState extends State<MapScreen>
         .push(MaterialPageRoute<void>(builder: (_) => const PlacesScreen()));
   }
 
-  void _openKeys() {
-    Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => const KeysScreen()));
-  }
-
   void _openSafety() {
     Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => const SafetyScreen()));
@@ -691,7 +685,7 @@ class _MapScreenState extends State<MapScreen>
             ),
           ),
 
-          // Fixed bottom control bar (SOS + People / Places / Keys / Safety
+          // Fixed bottom control bar (SOS + People / Places / Safety
           // destinations + Settings gear), pinned to the very bottom and always
           // visible. Drawn last so it sits above the map.
           Positioned(
@@ -704,7 +698,6 @@ class _MapScreenState extends State<MapScreen>
                 onSos: _openSos,
                 onPeople: _openPeople,
                 onPlaces: _openPlaces,
-                onKeys: _openKeys,
                 onSafety: _openSafety,
                 onSettings: _openSettings,
               ),
