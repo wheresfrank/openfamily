@@ -85,3 +85,9 @@ flutter {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
+
+// unifiedpush/webpush pull JVM tink; flutter_secure_storage pulls tink-android.
+// Both ship the same classes, so drop the JVM artifact on Android.
+configurations.configureEach {
+    exclude(group = "com.google.crypto.tink", module = "tink")
+}
