@@ -115,7 +115,7 @@ location/
 | POST | `/auth/login` | Password + optional TOTP → token pair |
 | POST | `/auth/refresh` | Rotate refresh token |
 | GET | `/me` | Get the signed-in user's profile |
-| PATCH | `/me` | Update the signed-in user's display name |
+| PATCH | `/me` | Update the signed-in user's display name and/or phone |
 | GET | `/api/profile` | Get your own profile and avatar metadata |
 | GET | `/api/profile/avatar` | Get your private profile image |
 | PUT | `/api/profile/avatar` | Upload a PNG/JPEG profile image (raw body; max 5 MiB) |
@@ -492,6 +492,8 @@ go build ./...         # embeds backend/web/dist/ into the binary
 | `APNS_TEAM_ID` | *(empty)* | Apple Developer team ID |
 | `APNS_TOPIC` | *(empty)* | App bundle ID |
 | `APNS_PRODUCTION` | `false` | Use the APNs production endpoint |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM` | *(empty)* | Optional Twilio SMS. Empty disables SMS; alerts still fan out in-app |
+| `PUBLIC_BASE_URL` | *(empty)* | HTTPS origin for SMS share links. Non-https falls back to lat/lon in the message |
 
 ### Flutter app (build-time `--dart-define`)
 
@@ -522,6 +524,12 @@ go build ./...         # embeds backend/web/dist/ into the binary
 - **No third-party location data** — self-hosted tiles and self-hosted push
   (ntfy) keep map viewports and notifications off third-party servers; iOS push
   uses APNs (Apple is the platform vendor, and payloads carry no location).
+- **SMS is optional** — when `TWILIO_*` is set, alert SMS include destination
+  phone numbers and a short-lived share URL on your server. Twilio does not
+  receive live coordinates unless `PUBLIC_BASE_URL` is missing or not public
+  HTTPS, in which case the message falls back to lat/lon. Leave Twilio unset
+  to keep alerts on push + WebSocket only. This is the same class of tradeoff
+  as APNs.
 - **Background credentials** live in `shared_preferences` (not secure storage) —
   a documented tradeoff so the background isolate can authenticate and refresh
   tokens. Biometric unlock protects the interactive UI but does not encrypt
@@ -541,6 +549,6 @@ unnamed dwells and save-as-family-place), and the web admin panel
 at `/admin`).
 
 Pending: app icon, the "Bubble" privacy feature, self-hosted Nominatim
-deployment, a phone field, member join/leave presence, activity recognition
+deployment, member join/leave presence, activity recognition
 (`motion_state`), and adaptive battery-aware tracking.
 See `PLAN.md` for the full plan.

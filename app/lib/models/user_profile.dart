@@ -10,6 +10,7 @@ class UserProfile {
     required this.email,
     required this.role,
     required this.hasAvatar,
+    this.phone,
     this.avatarUpdatedAt,
   });
 
@@ -17,6 +18,7 @@ class UserProfile {
   final String name;
   final String email;
   final String role;
+  final String? phone;
   final bool hasAvatar;
   final DateTime? avatarUpdatedAt;
 
@@ -27,6 +29,7 @@ class UserProfile {
       name: json['name'] as String? ?? 'Your profile',
       email: json['email'] as String? ?? '',
       role: json['role'] as String? ?? 'member',
+      phone: json['phone'] as String?,
       hasAvatar: json['has_avatar'] == true,
       avatarUpdatedAt:
           updatedAt is String ? DateTime.tryParse(updatedAt)?.toUtc() : null,
@@ -38,15 +41,18 @@ class UserProfile {
     String? name,
     String? email,
     String? role,
+    String? phone,
     bool? hasAvatar,
     DateTime? avatarUpdatedAt,
     bool clearAvatarUpdatedAt = false,
+    bool clearPhone = false,
   }) {
     return UserProfile(
       id: id ?? this.id,
       name: name ?? this.name,
       email: email ?? this.email,
       role: role ?? this.role,
+      phone: clearPhone ? null : phone ?? this.phone,
       hasAvatar: hasAvatar ?? this.hasAvatar,
       avatarUpdatedAt:
           clearAvatarUpdatedAt ? null : avatarUpdatedAt ?? this.avatarUpdatedAt,
