@@ -58,6 +58,11 @@ func (s *Server) PostCheckIn(w http.ResponseWriter, r *http.Request) {
 	s.postAlert(w, r, alertCheckIn, false, checkInRateWindow)
 }
 
+// PostHelp records a non-emergency help alert. Family only (no emergency contacts).
+func (s *Server) PostHelp(w http.ResponseWriter, r *http.Request) {
+	s.postAlert(w, r, alertHelp, false, checkInRateWindow)
+}
+
 func (s *Server) postAlert(w http.ResponseWriter, r *http.Request, typ string, includeContacts bool, window time.Duration) {
 	claims := middleware.ClaimsFromContext(r.Context())
 	if claims == nil {

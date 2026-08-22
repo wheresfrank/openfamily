@@ -148,6 +148,7 @@ location/
 | PATCH | `/devices/{id}` | Attach or clear this device's push token / UnifiedPush endpoint |
 | POST | `/locations` | Ingest a location point |
 | POST | `/alerts/check-in` | Check in with the family (WS + push + optional SMS) |
+| POST | `/alerts/help` | Non-emergency help alert (family only) |
 | GET | `/alerts/share/{token}` | Public 24h share page for an alert (no auth) |
 | WS | `/ws/stream` | Live position stream (family-scoped) |
 

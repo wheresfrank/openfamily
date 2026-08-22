@@ -163,6 +163,7 @@ func main() {
 
 		r.Post("/locations", srv.IngestLocation)
 		r.Post("/alerts/check-in", srv.PostCheckIn)
+		r.Post("/alerts/help", srv.PostHelp)
 	})
 
 	// Platform admin API, namespaced under /api/admin/* so it never collides
