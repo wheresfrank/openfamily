@@ -93,6 +93,34 @@ export interface AdminInvite extends InviteCode {
   family_name: string
 }
 
+export interface HistoryTrailPoint {
+  lat: number
+  lon: number
+  ts: string
+  motion_state?: string
+}
+
+export type HistoryVisitKind = 'place' | 'stop' | 'transit'
+
+export interface HistoryVisit {
+  arrived_at: string
+  departed_at: string
+  lat: number
+  lon: number
+  place_id?: string | null
+  place_name: string
+  place_type?: string
+  kind: HistoryVisitKind
+}
+
+export interface MemberHistory {
+  user_id: string
+  from: string
+  to: string
+  trail: HistoryTrailPoint[]
+  visits: HistoryVisit[]
+}
+
 /** Discriminated result for the API client. */
 export type ApiResult<T> =
   | { ok: true; value: T }

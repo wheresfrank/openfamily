@@ -20,6 +20,11 @@ func ClaimsFromContext(ctx context.Context) *auth.Claims {
 	return c
 }
 
+// ContextWithClaims injects claims into ctx. Used by RequireAuth and tests.
+func ContextWithClaims(ctx context.Context, c *auth.Claims) context.Context {
+	return context.WithValue(ctx, claimsKey, c)
+}
+
 // RequireAuth validates the Bearer access token and injects claims into the
 // request context. It returns 401 on missing/invalid tokens.
 func RequireAuth(tm *auth.TokenManager) func(http.Handler) http.Handler {
@@ -36,8 +41,7 @@ func RequireAuth(tm *auth.TokenManager) func(http.Handler) http.Handler {
 				http.Error(w, `{"error":"invalid or expired token"}`, http.StatusUnauthorized)
 				return
 			}
-			ctx := context.WithValue(r.Context(), claimsKey, claims)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			next.ServeHTTP(w, r.WithContext(ContextWithClaims(r.Context(), claims)))
 		})
 	}
 }

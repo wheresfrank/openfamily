@@ -76,7 +76,7 @@ location/
 │   │   │                           #   background_location_service,
 │   │   │                           #   device_service, family_service,
 │   │   │                           #   geocoding_service, geofence_service,
-│   │   │                           #   invite_service, join_service,
+│   │   │                           #   history_service, invite_service, join_service,
 │   │   │                           #   location_reporter, location_service,
 │   │   │                           #   member_mapper, permission_service,
 │   │   │                           #   place_service, profile_storage,
@@ -94,7 +94,7 @@ location/
 ├── web/                            # Web admin panel (Vite + React + Leaflet)
 │   ├── src/
 │   │   ├── components/             # shell: sidebar, top bar, ⌘K, primitives
-│   │   ├── pages/                  # dashboard, groups, builds, settings
+│   │   ├── pages/                  # dashboard, history, groups, builds, settings
 │   │   └── map/                    # live map: bubbles, clustering, places, WS
 │   ├── vite.config.ts
 │   └── package.json
@@ -120,6 +120,7 @@ location/
 | PUT | `/api/profile/avatar` | Upload a PNG/JPEG profile image (raw body; max 5 MiB) |
 | DELETE | `/api/profile/avatar` | Remove your profile image |
 | GET | `/family/members/{id}/avatar` | Get a same-family member's private profile image |
+| GET | `/family/members/{id}/history?from&to` | One day of location history (trail + visits) |
 | POST | `/families` | Create a family (caller becomes admin) |
 | GET | `/family` | Get your family |
 | GET | `/family/members` | List members |
@@ -154,6 +155,7 @@ admin SPA is served at `/admin` and calls these under `/api/admin/*`.
 | GET | `/api/admin/families/{id}/members` | List one family's members |
 | GET | `/api/admin/members` | List every member across all families |
 | GET | `/api/admin/members/{id}/avatar` | Get a member's private profile image |
+| GET | `/api/admin/members/{id}/history?from&to` | One day of location history for any member |
 | PATCH | `/api/admin/members/{id}/family` | Move a member to another family |
 | GET | `/api/admin/users` | List every account (including users with no family) |
 | POST | `/api/admin/users` | Create an account (bypasses invite-gated registration) |
@@ -524,13 +526,13 @@ go build ./...         # embeds backend/web/dist/ into the binary
 Done: auth (Argon2id + JWT + TOTP), families, devices, location ingest,
 WebSocket live streaming, places, geofences, ntfy/APNs push, the Flutter map,
 onboarding, foreground + background location reporting, 90-day retention,
-audit logging, biometric app unlock on Android/iOS, a location history timeline
-(day detail; synthetic fallback until backend history is wired), and the web
-admin panel (platform-admin live map of all families, groups, APK
-build/download, served at `/admin`).
+audit logging, biometric app unlock on Android/iOS, location history (per-day
+map trail + visit timeline on the app and the web admin panel, including
+unnamed dwells and save-as-family-place), and the web admin panel
+(platform-admin live map of all families, groups, APK build/download, served
+at `/admin`).
 
 Pending: app icon, the "Bubble" privacy feature, self-hosted Nominatim
 deployment, a phone field, member join/leave presence, activity recognition
-(`motion_state`), adaptive battery-aware tracking, and wiring the location
-history UI to real backend history.
+(`motion_state`), and adaptive battery-aware tracking.
 See `PLAN.md` for the full plan.

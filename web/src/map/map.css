@@ -831,6 +831,23 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.wb-member-card-history {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-4);
+  width: 100%;
+  height: 36px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-soft);
+  color: var(--purple);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+.wb-member-card-history:hover {
+  background: var(--surface-hover);
+}
 
 /* Responsive: on narrow screens, collapse the panel below the switcher. */
 @media (max-width: 640px) {
