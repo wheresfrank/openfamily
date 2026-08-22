@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// A compact circle control at the top of the map.
+/// A compact family-name control at the top of the map.
 ///
-/// With one circle it is simply contextual information plus a small join
+/// With one family it is simply contextual information plus a small join
 /// action; rendering a full segmented control when there is nothing to switch
-/// makes the map header feel oversized and non-functional. If several circles
+/// makes the map header feel oversized and non-functional. If several families
 /// are available, it grows into a switcher.
 class CircleSwitcher extends StatelessWidget {
   const CircleSwitcher({
@@ -71,9 +71,9 @@ class CircleSwitcher extends StatelessWidget {
   }
 }
 
-/// The single-circle state is intentionally not a fake tab. The name tells
+/// The single-family state is intentionally not a fake tab. The name tells
 /// the user whose locations they are viewing, while the adjacent circular
-/// affordance keeps joining another circle available without competing with
+/// affordance keeps joining another family available without competing with
 /// the map or member drawer.
 class _SingleCircleContext extends StatelessWidget {
   const _SingleCircleContext({
@@ -91,7 +91,7 @@ class _SingleCircleContext extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         // The map reserves a right-hand rail for layer/location controls.
-        // Let a long circle name shrink inside the remaining width instead of
+        // Let a long family name shrink inside the remaining width instead of
         // extending underneath those controls on a narrow screen.
         final double availableWidth =
             constraints.maxWidth.isFinite ? constraints.maxWidth : 320;
@@ -105,7 +105,7 @@ class _SingleCircleContext extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Semantics(
-                label: 'Current circle: $label',
+                label: 'Current family: $label',
                 child: Material(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(22),
@@ -145,10 +145,10 @@ class _SingleCircleContext extends StatelessWidget {
               if (onJoinCircle != null) ...[
                 const SizedBox(width: 8),
                 Tooltip(
-                  message: 'Join a circle',
+                  message: 'Join a family',
                   child: Semantics(
                     button: true,
-                    label: 'Join a circle',
+                    label: 'Join a family',
                     child: Material(
                       color: Colors.white,
                       shape: const CircleBorder(),
@@ -210,7 +210,7 @@ class _CircleChip extends StatelessWidget {
   }
 }
 
-/// A labeled "Join a Circle" chip that opens the "Join a Circle" flow.
+/// A labeled "Join a family" chip that opens the join-family flow.
 class _JoinChip extends StatelessWidget {
   const _JoinChip({required this.onTap});
 
@@ -232,7 +232,7 @@ class _JoinChip extends StatelessWidget {
             Icon(Icons.add, size: 18, color: AppColors.purple),
             SizedBox(width: 4),
             Text(
-              'Join a Circle',
+              'Join a family',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,

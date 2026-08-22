@@ -41,9 +41,9 @@ void main() {
     );
 
     expect(find.byIcon(Icons.group_outlined), findsOneWidget);
-    expect(find.text('Join a Circle'), findsNothing);
+    expect(find.text('Join a family'), findsNothing);
 
-    await tester.tap(find.byTooltip('Join a circle'));
+    await tester.tap(find.byTooltip('Join a family'));
 
     expect(joined, isTrue);
   });

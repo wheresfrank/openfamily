@@ -4,7 +4,7 @@ import '../theme/app_theme.dart';
 
 /// The Check In flow, reached from the map's `+` action sheet.
 ///
-/// Lets the user share their current location with their Circle, with an
+/// Lets the user share their current location with their family, with an
 /// optional note. On confirm it shows a success state (a real screen, not a
 /// snackbar no-op).
 class CheckInScreen extends StatefulWidget {
@@ -46,12 +46,12 @@ class _CheckInScreenState extends State<CheckInScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Share your location with your Circle',
+          'Share your location with your family',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         const Text(
-          'Your Circle will see where you are right now.',
+          'Your family will see where you are right now.',
           style: TextStyle(fontSize: 14, color: AppColors.textMuted),
         ),
         const SizedBox(height: 20),
@@ -120,7 +120,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Your Circle can now see your location.',
+          'Your family can now see your location.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 15, color: AppColors.textMuted),
         ),

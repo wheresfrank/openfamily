@@ -42,7 +42,7 @@ void main() {
 
     await tester.pumpWidget(_app(roster));
 
-    // Header shows the circle name and member count.
+    // Header shows the family name and member count.
     expect(find.text('Frank Family'), findsOneWidget);
     expect(find.text('2 members'), findsOneWidget);
 

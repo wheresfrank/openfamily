@@ -4,7 +4,7 @@ import '../theme/app_theme.dart';
 
 /// The Help Alert flow, reached from the map's `+` action sheet.
 ///
-/// Sends a non-emergency help request to the Circle (distinct from the
+/// Sends a non-emergency help request to the family (distinct from the
 /// emergency SOS). On confirm it shows a success state (a real screen, not a
 /// snackbar no-op).
 class HelpAlertScreen extends StatefulWidget {
@@ -41,12 +41,12 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
         const Icon(Icons.campaign_outlined, size: 56, color: AppColors.purple),
         const SizedBox(height: 16),
         const Text(
-          'Ask your Circle for help',
+          'Ask your family for help',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         const Text(
-          'Send a non-emergency help alert with your location. Your Circle '
+          'Send a non-emergency help alert with your location. Your family '
           'members get a notification and can see where you are.',
           style: TextStyle(fontSize: 14, color: AppColors.textMuted),
         ),
@@ -83,7 +83,7 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Your Circle has been notified with your location.',
+          'Your family has been notified with your location.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 15, color: AppColors.textMuted),
         ),
