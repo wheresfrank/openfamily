@@ -2,9 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/whereabouts/whereabouts/backend/internal/middleware"
 	"github.com/whereabouts/whereabouts/backend/internal/push"
 )
@@ -32,22 +36,9 @@ func (s *Server) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "platform must be ios, android, or web")
 		return
 	}
-	// Reject platform/credential mismatches so a misconfigured device fails
-	// loudly instead of silently never receiving pushes.
-	if req.Platform == "ios" && req.UnifiedPushEndpoint != "" {
-		writeError(w, http.StatusBadRequest, "ios devices must use push_token, not unifiedpush_endpoint")
+	if msg := validateDevicePushFields(req.Platform, req.PushToken, req.UnifiedPushEndpoint); msg != "" {
+		writeError(w, http.StatusBadRequest, msg)
 		return
-	}
-	if req.Platform == "android" && req.PushToken != "" {
-		writeError(w, http.StatusBadRequest, "android devices must use unifiedpush_endpoint, not push_token")
-		return
-	}
-	// Reject unsafe UnifiedPush endpoints (SSRF protection).
-	if req.UnifiedPushEndpoint != "" {
-		if err := push.ValidateUnifiedPushEndpoint(req.UnifiedPushEndpoint); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid unifiedpush_endpoint")
-			return
-		}
 	}
 
 	var device struct {
@@ -68,6 +59,72 @@ func (s *Server) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, device)
+}
+
+// UpdateDevice attaches or clears push credentials on an existing device.
+// Empty strings clear the corresponding column; omitted fields are left as-is.
+func (s *Server) UpdateDevice(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "device id required")
+		return
+	}
+
+	var req struct {
+		PushToken           *string `json:"push_token"`
+		UnifiedPushEndpoint *string `json:"unifiedpush_endpoint"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.PushToken == nil && req.UnifiedPushEndpoint == nil {
+		writeError(w, http.StatusBadRequest, "provide push_token or unifiedpush_endpoint")
+		return
+	}
+
+	var platform string
+	var curToken, curEndpoint *string
+	err := s.Pool.QueryRow(r.Context(), `
+		SELECT platform, push_token, unifiedpush_endpoint
+		FROM devices WHERE id = $1 AND user_id = $2`, id, claims.UserID,
+	).Scan(&platform, &curToken, &curEndpoint)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "device not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load device")
+		return
+	}
+
+	token := derefOrEmpty(curToken)
+	endpoint := derefOrEmpty(curEndpoint)
+	if req.PushToken != nil {
+		token = strings.TrimSpace(*req.PushToken)
+	}
+	if req.UnifiedPushEndpoint != nil {
+		endpoint = strings.TrimSpace(*req.UnifiedPushEndpoint)
+	}
+	if msg := validateDevicePushFields(platform, token, endpoint); msg != "" {
+		writeError(w, http.StatusBadRequest, msg)
+		return
+	}
+
+	_, err = s.Pool.Exec(r.Context(), `
+		UPDATE devices SET push_token = NULLIF($1, ''), unifiedpush_endpoint = NULLIF($2, '')
+		WHERE id = $3 AND user_id = $4`,
+		token, endpoint, id, claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update device")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"id": id})
 }
 
 // ListDevices returns the authenticated user's devices.
@@ -106,4 +163,29 @@ func (s *Server) ListDevices(w http.ResponseWriter, r *http.Request) {
 		devices = append(devices, d)
 	}
 	writeJSON(w, http.StatusOK, devices)
+}
+
+// validateDevicePushFields returns a client-facing error or "" if the
+// platform/credential combination is acceptable. Empty credentials are
+// allowed (the device simply will not receive pushes).
+func validateDevicePushFields(platform, pushToken, unifiedpushEndpoint string) string {
+	if platform == "ios" && unifiedpushEndpoint != "" {
+		return "ios devices must use push_token, not unifiedpush_endpoint"
+	}
+	if platform == "android" && pushToken != "" {
+		return "android devices must use unifiedpush_endpoint, not push_token"
+	}
+	if unifiedpushEndpoint != "" {
+		if err := push.ValidateUnifiedPushEndpoint(unifiedpushEndpoint); err != nil {
+			return "invalid unifiedpush_endpoint"
+		}
+	}
+	return ""
+}
+
+func derefOrEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

@@ -64,6 +64,8 @@ func main() {
 	})
 	srv := handlers.New(pool, tm, dispatcher)
 	srv.VerbosePush = cfg.VerbosePush
+	srv.NtfyBaseURL = cfg.NtfyBaseURL
+	srv.APNsConfigured = cfg.APNsKeyFile != ""
 	srv.AllowedOrigin = cfg.AllowedOrigin
 	srv.APKDir = cfg.APKDir
 	srv.APKGitHubRepo = cfg.APKGitHubRepo
@@ -93,6 +95,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
+	r.Get("/config", srv.GetConfig)
 
 	// Auth (unauthenticated).
 	r.Post("/auth/register", srv.Register)
@@ -149,6 +152,7 @@ func main() {
 
 		r.Post("/devices", srv.RegisterDevice)
 		r.Get("/devices", srv.ListDevices)
+		r.Patch("/devices/{id}", srv.UpdateDevice)
 
 		r.Post("/locations", srv.IngestLocation)
 	})

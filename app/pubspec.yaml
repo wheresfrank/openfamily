@@ -49,6 +49,8 @@ dependencies:
   # WebSocket client for the live location stream (/ws/stream). Web-safe
   # (no dart:io) and carries the access token as the subprotocol.
   web_socket_channel: ^3.0.0
+  flutter_local_notifications: ^22.3.0
+  unifiedpush: ^6.2.0
 
 dev_dependencies:
   flutter_test:

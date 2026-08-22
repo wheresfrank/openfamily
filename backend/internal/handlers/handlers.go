@@ -23,6 +23,13 @@ type Server struct {
 	// the user's name ("Mom arrived at School").
 	VerbosePush bool
 
+	// NtfyBaseURL is the public ntfy origin advertised by GET /config.
+	NtfyBaseURL string
+
+	// APNsConfigured is true when the operator set an APNs key file. The
+	// client uses this to skip iOS token registration when APNs cannot work.
+	APNsConfigured bool
+
 	// AllowedOrigin is the single cross-origin origin allowed for the WebSocket
 	// stream (empty = same-origin only). It mirrors config.AllowedOrigin.
 	AllowedOrigin string

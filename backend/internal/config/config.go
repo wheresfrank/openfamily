@@ -64,6 +64,11 @@ type Config struct {
 	// modes.
 	VerbosePush bool
 
+	// NtfyBaseURL is the public ntfy origin (no trailing slash) exposed by
+	// GET /config so a generic APK can register UnifiedPush without a
+	// dart-define. Empty means the client should skip ntfy-specific hints.
+	NtfyBaseURL string
+
 	// APNs push notification credentials (optional; empty KeyFile disables APNs).
 	APNsKeyFile    string
 	APNsKeyID      string
@@ -124,6 +129,7 @@ func Load() Config {
 		TLSBehindProxy:        getenvBool("TLS_BEHIND_PROXY", false),
 		InsecureHTTP:          getenvBool("INSECURE_HTTP", false),
 		VerbosePush:           getenvBool("VERBOSE_PUSH", false),
+		NtfyBaseURL:           strings.TrimRight(getenv("NTFY_BASE_URL", ""), "/"),
 		APNsKeyFile:           getenv("APNS_KEY_FILE", ""),
 		APNsKeyID:             getenv("APNS_KEY_ID", ""),
 		APNsTeamID:            getenv("APNS_TEAM_ID", ""),
