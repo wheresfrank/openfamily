@@ -163,7 +163,7 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
             if (widget.onDone != null) {
               widget.onDone!();
             } else {
-              Navigator.of(context).pop();
+              Navigator.of(context).pop(true);
             }
           },
           child: const Text('Done'),

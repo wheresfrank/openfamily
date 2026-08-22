@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:whereabouts/models/member.dart';
+import 'package:whereabouts/screens/families_screen.dart';
 import 'package:whereabouts/screens/profile_screen.dart';
 import 'package:whereabouts/screens/settings_screen.dart';
 import 'package:whereabouts/widgets/circle_switcher.dart';
@@ -20,6 +21,17 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.byType(ProfileScreen), findsOneWidget);
+  });
+
+  testWidgets('family setting opens the family screen',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const MaterialApp(home: SettingsScreen()));
+
+    await tester.tap(find.text('Family'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(FamiliesScreen), findsOneWidget);
   });
 
   testWidgets('single-circle header stays compact and keeps join available', (

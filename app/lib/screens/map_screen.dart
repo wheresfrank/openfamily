@@ -80,6 +80,7 @@ class _MapScreenState extends State<MapScreen>
   final LocationReporter _reporter = LocationReporter();
   String _familyName = 'Family';
   String? _userId;
+  bool _hasFamily = true;
 
   /// True while the first family/members fetch is in flight.
   bool _loading = true;
@@ -152,10 +153,28 @@ class _MapScreenState extends State<MapScreen>
         _familyName = name;
         _members = members;
         _membersListenable.value = members;
+        _hasFamily = true;
         _loading = false;
       });
       if (_mapReady) _fitToMembers();
       await _familyService.start();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.status == 404) {
+        setState(() {
+          _hasFamily = false;
+          _familyName = 'No family';
+          _members = <Member>[];
+          _membersListenable.value = const <Member>[];
+          _loading = false;
+          _error = null;
+        });
+        return;
+      }
+      setState(() {
+        _loading = false;
+        _error = _friendlyError(e);
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -449,9 +468,13 @@ class _MapScreenState extends State<MapScreen>
   }
 
   void _openJoinCircle() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const JoinCircleScreen()));
+    Navigator.of(context)
+        .push(
+      MaterialPageRoute<bool>(builder: (_) => const JoinCircleScreen()),
+    )
+        .then((bool? joined) {
+      if (joined == true && mounted) _load();
+    });
   }
 
   void _openCheckIn() {
@@ -627,7 +650,7 @@ class _MapScreenState extends State<MapScreen>
                       circles: [_familyName],
                       selectedIndex: 0,
                       onSelected: (_) {},
-                      onJoinCircle: _openJoinCircle,
+                      onJoinCircle: _hasFamily ? null : _openJoinCircle,
                       alignment: Alignment.centerLeft,
                     ),
                   ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../main.dart';
+import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
 import 'add_locations_screen.dart';
@@ -20,6 +21,8 @@ class CreateCircleScreen extends StatefulWidget {
 
 class _CreateCircleScreenState extends State<CreateCircleScreen> {
   final TextEditingController _name = TextEditingController();
+  bool _submitting = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -27,9 +30,32 @@ class _CreateCircleScreenState extends State<CreateCircleScreen> {
     super.dispose();
   }
 
-  void _create() {
+  Future<void> _create() async {
+    if (_submitting) return;
     final String trimmed = _name.text.trim();
     final String name = trimmed.isEmpty ? 'My Family' : trimmed;
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      await ApiClient.createFamily(name);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = e.message;
+      });
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = 'Could not create the family. Please try again.';
+      });
+      return;
+    }
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (_) => InviteScreen(
@@ -74,6 +100,7 @@ class _CreateCircleScreenState extends State<CreateCircleScreen> {
               TextField(
                 controller: _name,
                 autofocus: true,
+                enabled: !_submitting,
                 textCapitalization: TextCapitalization.words,
                 decoration: const InputDecoration(
                   labelText: 'Family name (optional)',
@@ -81,12 +108,31 @@ class _CreateCircleScreenState extends State<CreateCircleScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _error!,
+                  style: const TextStyle(color: AppColors.statusRed),
+                ),
+              ],
               const Spacer(),
               FilledButton(
-                onPressed: _create,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  child: Text('Create family', style: TextStyle(fontSize: 16)),
+                onPressed: _submitting ? null : _create,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Create family',
+                          style: TextStyle(fontSize: 16),
+                        ),
                 ),
               ),
             ],
