@@ -126,6 +126,39 @@ class ApiClient {
     return data as Map<String, dynamic>;
   }
 
+  /// POST /families → create a family (caller becomes admin).
+  static Future<Map<String, dynamic>> createFamily(String name) async {
+    final dynamic data = await _send(
+      'POST',
+      _uri('/families'),
+      body: <String, dynamic>{'name': name},
+    );
+    return data as Map<String, dynamic>;
+  }
+
+  /// PATCH /family → rename the caller's family (admin only).
+  static Future<void> renameFamily(String name) async {
+    await _send(
+      'PATCH',
+      _uri('/family'),
+      body: <String, dynamic>{'name': name},
+    );
+  }
+
+  /// POST /family/leave → leave the current family.
+  static Future<void> leaveFamily() async {
+    await _send('POST', _uri('/family/leave'));
+  }
+
+  /// PATCH /family/members/{id}/role → change a member's role (admin only).
+  static Future<void> updateMemberRole(String memberId, String role) async {
+    await _send(
+      'PATCH',
+      _uri('/family/members/${Uri.encodeComponent(memberId)}/role'),
+      body: <String, dynamic>{'role': role},
+    );
+  }
+
   /// POST /auth/login → the token pair.
   static Future<Map<String, dynamic>> login({
     required String email,

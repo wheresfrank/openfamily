@@ -6,6 +6,7 @@ import '../services/battery_optimization_service.dart';
 import '../services/biometric_service.dart';
 import '../theme/app_theme.dart';
 import 'profile_screen.dart';
+import 'families_screen.dart';
 import 'welcome_screen.dart';
 
 /// The Settings screen. Account profile is server-backed; the remaining
@@ -193,10 +194,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
             ),
           ),
-          const ListTile(
-            leading: Icon(Icons.group_outlined, color: AppColors.purple),
-            title: Text('Family'),
-            trailing: Icon(Icons.chevron_right, color: AppColors.textMuted),
+          ListTile(
+            leading: const Icon(Icons.group_outlined, color: AppColors.purple),
+            title: const Text('Family'),
+            trailing:
+                const Icon(Icons.chevron_right, color: AppColors.textMuted),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const FamiliesScreen()),
+            ),
           ),
           const Divider(height: 1),
           const _SectionHeader('Privacy & Security'),

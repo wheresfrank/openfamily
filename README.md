@@ -68,6 +68,7 @@ location/
 │   │   ├── screens/                # add_locations, check_in, create_circle,
 │   │   │                           #   create_or_join_circle, day_detail,
 │   │   │                           #   help_alert, invite, join_circle,
+│   │   │                           #   login, map, member_profile, families,
 │   │   │                           #   login, map, member_profile,
 │   │   │                           #   permissions, place_picker, places,
 │   │   │                           #   safety, settings, sign_up, sos, welcome
@@ -123,6 +124,8 @@ location/
 | GET | `/family/members/{id}/history?from&to` | One day of location history (trail + visits) |
 | POST | `/families` | Create a family (caller becomes admin) |
 | GET | `/family` | Get your family |
+| PATCH | `/family` | Rename your family (admin only) |
+| POST | `/family/leave` | Leave your family (last admin cannot leave) |
 | GET | `/family/members` | List members |
 | PATCH | `/family/members/{id}/role` | Change a member's role |
 | POST | `/family/invites` | Create an invite code for your family (admin only) |

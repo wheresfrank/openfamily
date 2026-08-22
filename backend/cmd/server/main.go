@@ -121,6 +121,8 @@ func main() {
 
 		r.Post("/families", srv.CreateFamily)
 		r.Get("/family", srv.GetFamily)
+		r.Patch("/family", srv.RenameFamily)
+		r.Post("/family/leave", srv.LeaveFamily)
 		r.Get("/family/members", srv.ListMembers)
 		r.Get("/family/members/{id}/avatar", srv.GetFamilyMemberAvatar)
 		r.Get("/family/members/{id}/history", srv.GetMemberHistory)
