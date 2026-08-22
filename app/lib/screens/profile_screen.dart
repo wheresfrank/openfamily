@@ -24,6 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 
   UserProfile? _profile;
   Uint8List? _avatarBytes;
@@ -46,6 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -98,6 +100,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             text: profile.name,
             selection: TextSelection.collapsed(offset: profile.name.length),
           );
+          final String phone = profile.phone ?? '';
+          _phoneController.value = TextEditingValue(
+            text: phone,
+            selection: TextSelection.collapsed(offset: phone.length),
+          );
         }
         _avatarBytes = avatarBytes;
         _loading = false;
@@ -140,16 +147,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final dynamic response = await ApiClient.patch(
         '/me',
-        body: <String, dynamic>{'name': name},
+        body: <String, dynamic>{
+          'name': name,
+          'phone': _phoneController.text.trim(),
+        },
       );
       final Map<String, dynamic> updated = response as Map<String, dynamic>;
       final String savedName = updated['name'] as String? ?? name;
+      final String? savedPhone = updated['phone'] as String?;
       if (!mounted) return;
       setState(() {
-        _profile = _profile?.copyWith(name: savedName);
+        _profile = _profile?.copyWith(
+          name: savedName,
+          phone: savedPhone,
+          clearPhone: savedPhone == null,
+        );
         _nameController.value = TextEditingValue(
           text: savedName,
           selection: TextSelection.collapsed(offset: savedName.length),
+        );
+        final String phoneText = savedPhone ?? '';
+        _phoneController.value = TextEditingValue(
+          text: phoneText,
+          selection: TextSelection.collapsed(offset: phoneText.length),
         );
         _nameDirty = false;
         _nameSaving = false;
@@ -390,6 +410,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onChanged: _onNameChanged,
                         decoration: const InputDecoration(
                           labelText: 'Name',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _phoneController,
+                        enabled: !_nameSaving && !_avatarSaving,
+                        keyboardType: TextInputType.phone,
+                        onChanged: _onNameChanged,
+                        decoration: const InputDecoration(
+                          labelText: 'Phone (SMS alerts)',
+                          hintText: '+15551234567',
                           border: OutlineInputBorder(),
                         ),
                       ),
