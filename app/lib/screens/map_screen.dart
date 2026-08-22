@@ -12,6 +12,7 @@ import '../services/battery_optimization_service.dart';
 import '../services/family_service.dart';
 import '../services/location_reporter.dart';
 import '../services/location_service.dart';
+import '../services/location_sharing_service.dart';
 import '../services/permission_service.dart';
 import '../services/token_storage.dart';
 import '../theme/app_theme.dart';
@@ -110,16 +111,11 @@ class _MapScreenState extends State<MapScreen>
     _familyService.onUserId = _onUserId;
     _load();
     _checkLocation();
-    // Fire-and-forget: reporting must not block the UI. The reporter handles
-    // its own errors (including the location-off case) internally.
-    _reporter.start();
-    // Start background location reporting only after the first frame, when the
-    // activity is visible. Starting a `location` foreground service during
-    // startup (before the app is in the foreground) is rejected on Android 15+.
+    _initLocationSharing();
+    // One-time Android battery-optimization guidance (keeps background
+    // updates alive when the app is closed). No-op elsewhere. Runs after the
+    // first frame so the activity is visible.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      BackgroundLocationService.start();
-      // One-time Android battery-optimization guidance (keeps background
-      // updates alive when the app is closed). No-op elsewhere.
       _suggestBatteryOptimization();
     });
   }
@@ -262,6 +258,7 @@ class _MapScreenState extends State<MapScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    LocationSharingService.enabled.removeListener(_onSharingChanged);
     _reporter.stop();
     _familyService.dispose();
     _cameraAnim?.dispose();
@@ -292,7 +289,38 @@ class _MapScreenState extends State<MapScreen>
     } catch (_) {
       // Ignore sync failures; the reporter's own 401→refresh path recovers.
     }
-    _reporter.start();
+    if (LocationSharingService.enabled.value) {
+      _reporter.start();
+    }
+  }
+
+  Future<void> _initLocationSharing() async {
+    await LocationSharingService.load();
+    if (!mounted) return;
+    LocationSharingService.enabled.addListener(_onSharingChanged);
+    _applyLocationSharing(startBackgroundAfterFrame: true);
+  }
+
+  void _onSharingChanged() {
+    _applyLocationSharing(startBackgroundAfterFrame: false);
+  }
+
+  void _applyLocationSharing({required bool startBackgroundAfterFrame}) {
+    if (LocationSharingService.enabled.value) {
+      _reporter.start();
+      if (startBackgroundAfterFrame) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (LocationSharingService.enabled.value) {
+            BackgroundLocationService.start();
+          }
+        });
+      } else {
+        BackgroundLocationService.start();
+      }
+    } else {
+      _reporter.stop();
+      BackgroundLocationService.stop();
+    }
   }
 
   /// Members with the caller's own member relabeled as "You".
