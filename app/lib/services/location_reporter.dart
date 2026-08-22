@@ -67,7 +67,23 @@ class LocationReporter {
   static const Duration _restartDelay = Duration(seconds: 15);
 
   /// Minimum interval between POST attempts (safety net against flooding).
-  static const Duration _minPostInterval = Duration(seconds: 5);
+  /// Shortened while an SOS is active so family sees fresher points.
+  static Duration minPostInterval = const Duration(seconds: 5);
+
+  static Timer? _sosBurstTimer;
+
+  /// Reports more often for a few minutes after SOS. No-op if already bursting.
+  static void startSosBurst({Duration last = const Duration(minutes: 5)}) {
+    minPostInterval = const Duration(seconds: 2);
+    _sosBurstTimer?.cancel();
+    _sosBurstTimer = Timer(last, stopSosBurst);
+  }
+
+  static void stopSosBurst() {
+    _sosBurstTimer?.cancel();
+    _sosBurstTimer = null;
+    minPostInterval = const Duration(seconds: 5);
+  }
 
   /// Ensures the device is registered, then starts the position stream.
   ///
@@ -193,7 +209,7 @@ class LocationReporter {
     if (!bypassRateLimit) {
       final DateTime now = DateTime.now().toUtc();
       if (_lastPostTime != null &&
-          now.difference(_lastPostTime!) < _minPostInterval) {
+          now.difference(_lastPostTime!) < minPostInterval) {
         return;
       }
     }
