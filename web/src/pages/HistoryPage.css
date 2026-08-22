@@ -46,6 +46,9 @@
   min-height: 360px;
   font-family: var(--font-sans);
 }
+.wb-history-leaflet .leaflet-container {
+  z-index: 0;
+}
 .wb-history-loading {
   display: flex;
   align-items: center;
