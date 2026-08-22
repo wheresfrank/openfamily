@@ -36,6 +36,19 @@ export interface Family {
   member_count: number
 }
 
+/** Account as returned by GET /api/admin/users — includes users with no family. */
+export interface AdminUser {
+  id: string
+  family_id: string | null
+  family_name: string | null
+  email: string
+  name: string
+  role: Role
+  platform_admin: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Member {
   id: string
   name: string
