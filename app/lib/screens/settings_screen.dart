@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart' show BiometricType;
 
 import '../services/auth_service.dart';
+import '../services/battery_optimization_service.dart';
 import '../services/biometric_service.dart';
 import '../theme/app_theme.dart';
 import 'profile_screen.dart';
@@ -228,6 +229,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _locationSharing,
             onChanged: (v) => setState(() => _locationSharing = v),
           ),
+          if (BatteryOptimizationService.isSupported)
+            ListTile(
+              leading: const Icon(
+                Icons.battery_alert_outlined,
+                color: AppColors.purple,
+              ),
+              title: const Text('Background updates'),
+              subtitle: const Text(
+                'Let Whereabouts run freely so your location stays fresh '
+                'when the app is closed.',
+              ),
+              trailing:
+                  const Icon(Icons.chevron_right, color: AppColors.textMuted),
+              onTap: BatteryOptimizationService.openSettings,
+            ),
           SwitchListTile(
             secondary: const Icon(Icons.directions_car_outlined,
                 color: AppColors.purple),
