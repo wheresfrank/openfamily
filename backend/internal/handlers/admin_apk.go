@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/whereabouts/whereabouts/backend/internal/apkrelease"
 	"github.com/whereabouts/whereabouts/backend/internal/middleware"
 )
 
@@ -41,6 +42,10 @@ type apkManager struct {
 	artifact   string // absolute path of the last successful artifact
 	lastError  string
 	lastOutput string // tail of the build output (for failed diagnostics)
+
+	// syncMu serializes GitHub Release fetches so two overlapping downloads
+	// cannot truncate the cached APK.
+	syncMu sync.Mutex
 }
 
 // apkStatusOut is the JSON shape returned by GET /api/admin/apk/status.
@@ -104,10 +109,11 @@ func (s *Server) AdminAPKStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.apk.snapshot())
 }
 
-// AdminDownloadAPK serves the most recently built APK from APKDir. It returns
-// 404 with a clear message when APK_DIR is not configured or no APK exists yet.
-// The artifact is served inline-of-origin (same /api/admin/apk route) with a
-// Content-Disposition so browsers offer a sensible download filename.
+// AdminDownloadAPK serves the latest Android APK. When APK_GITHUB_REPO is set,
+// it syncs the latest GitHub Release asset into APKDir (skipping the download
+// when the cached file already matches) and then serves that file. If GitHub
+// is unreachable, a previously cached APK is served. It returns 404 when
+// APK_DIR is unset or no APK can be obtained.
 func (s *Server) AdminDownloadAPK(w http.ResponseWriter, r *http.Request) {
 	if middleware.ClaimsFromContext(r.Context()) == nil {
 		writeError(w, http.StatusUnauthorized, "unauthenticated")
@@ -117,14 +123,44 @@ func (s *Server) AdminDownloadAPK(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "APK_DIR is not configured; no APK available")
 		return
 	}
-	path, err := latestAPK(s.APKDir)
+	path, err := s.resolveAPK(r.Context())
 	if err != nil {
-		writeError(w, http.StatusNotFound, "no APK available; trigger a build via POST /api/admin/apk/build first")
+		writeError(w, http.StatusNotFound, err.Error())
 		return
 	}
 	w.Header().Set("Content-Type", "application/vnd.android.package-archive")
 	w.Header().Set("Content-Disposition", `attachment; filename="`+filepath.Base(path)+`"`)
 	http.ServeFile(w, r, path)
+}
+
+// resolveAPK returns a local path to the APK to serve. GitHub is the source of
+// truth when configured; APKDir is only a cache (and a fallback if GitHub fails).
+func (s *Server) resolveAPK(ctx context.Context) (string, error) {
+	if s.APKGitHubRepo == "" {
+		path, err := latestAPK(s.APKDir)
+		if err != nil {
+			return "", errors.New("no APK available; set APK_GITHUB_REPO/APK_GITHUB_TOKEN so the server can fetch the latest GitHub Release")
+		}
+		return path, nil
+	}
+
+	s.apk.syncMu.Lock()
+	defer s.apk.syncMu.Unlock()
+
+	path, err := apkrelease.Sync(ctx, apkrelease.Options{
+		Repo:    s.APKGitHubRepo,
+		Token:   s.APKGitHubToken,
+		DestDir: s.APKDir,
+	})
+	if err == nil {
+		return path, nil
+	}
+
+	if cached, cacheErr := latestAPK(s.APKDir); cacheErr == nil {
+		slog.Warn("github apk sync failed; serving cached apk", "err", err)
+		return cached, nil
+	}
+	return "", err
 }
 
 // AdminBuildAPK triggers a background APK build. It returns:

@@ -34,9 +34,15 @@ type Server struct {
 	// default.
 	RequireInvite bool
 
-	// APKDir is the directory served by GET /api/admin/apk and where successful
-	// builds are published (config: APK_DIR). Empty disables APK features.
+	// APKDir is the directory served by GET /api/admin/apk and where the latest
+	// GitHub Release APK is cached (config: APK_DIR). Empty disables APK features.
 	APKDir string
+	// APKGitHubRepo is "owner/name" for the GitHub Release that holds the APK
+	// (config: APK_GITHUB_REPO). Empty skips GitHub and serves APKDir as-is.
+	APKGitHubRepo string
+	// APKGitHubToken authenticates GitHub API calls (config: APK_GITHUB_TOKEN).
+	// Required for private repositories.
+	APKGitHubToken string
 	// FlutterAppDir is the Flutter project root used by POST /api/admin/apk/build
 	// (config: FLUTTER_APP_DIR, default "./app").
 	FlutterAppDir string

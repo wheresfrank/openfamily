@@ -334,9 +334,12 @@ spaces and dashes (`ab12-cd34` matches `AB12CD34`).
 
 The server does **not** build APKs. CI
 ([`.github/workflows/apk.yml`](.github/workflows/apk.yml)) builds a release
-APK on merge to `master` and commits `apk/whereabouts-release.apk`. Compose
-mounts `./apk/` as `APK_DIR`; the admin **Download** button serves
-`GET /api/admin/apk`.
+APK on merge to `master` (when `app/` changes) and publishes it as a GitHub
+Release. The admin **Download** button fetches that latest asset and caches
+it in `APK_DIR`.
+
+Because this repository is private, set `APK_GITHUB_TOKEN` in `.env` to a
+fine-grained PAT with **Contents: Read**, then recreate the API container.
 
 One generic APK works for every deployment because of the runtime server URL
 screen.
@@ -421,7 +424,9 @@ For a fully private map, host your own tiles. The simplest option is
 | `APNS_PRODUCTION` | `false` | Use the APNs production endpoint |
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM` | *(empty)* | Optional SMS; empty keeps alerts in-app |
 | `PUBLIC_BASE_URL` | *(empty)* | HTTPS origin for SMS share links |
-| `APK_DIR` | `/data/apk` | Directory the admin panel serves the APK from |
+| `APK_DIR` | `/data/apk` | Directory that caches the GitHub Release APK |
+| `APK_GITHUB_REPO` | *(empty)* | GitHub `owner/name` whose latest Release holds the APK |
+| `APK_GITHUB_TOKEN` | *(empty)* | PAT used to fetch the APK (required for this private repo; Contents: Read) |
 
 ### Flutter app (`--dart-define`)
 
@@ -533,7 +538,7 @@ All routes require a platform admin. The SPA at `/admin` calls these under
 | PATCH | `/api/admin/users/{id}/password` | Reset password |
 | GET | `/api/admin/places` | Every saved place |
 | GET / POST | `/api/admin/invites` | List / create invite codes |
-| GET | `/api/admin/apk` | Download the Android APK |
+| GET | `/api/admin/apk` | Download the latest Android APK (GitHub Release, cached in `APK_DIR`) |
 | POST | `/api/admin/apk/build` | Optional on-server build (needs Flutter) |
 | GET | `/api/admin/apk/status` | Poll that build |
 | WS | `/api/admin/ws` | Live positions across all families |
@@ -549,7 +554,7 @@ All routes require a platform admin. The SPA at `/admin` calls these under
 ├── app/              Flutter app (Android + iOS)
 ├── web/              Admin panel source (Vite + React + Leaflet)
 ├── caddy/            Caddyfile
-├── apk/              CI-built release APK
+├── apk/              Cached GitHub Release APK
 └── docker-compose.yml
 ```
 
