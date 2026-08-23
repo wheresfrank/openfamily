@@ -4,6 +4,13 @@ name: Build Android APK
 # dispatch) and publishes it as a GitHub Release. The admin panel's Download
 # button fetches the latest release asset and caches it in APK_DIR. The APK is
 # not committed to the repository.
+#
+# Signing (required — debug-signed APKs cannot update each other across CI runs):
+#   ANDROID_KEYSTORE_BASE64    base64-encoded upload-keystore.jks
+#   ANDROID_KEYSTORE_PASSWORD  keystore and key password
+#   ANDROID_KEY_ALIAS          key alias (upload)
+#
+# versionCode is github.run_number so each published APK is newer than the last.
 
 on:
   push:
@@ -36,9 +43,28 @@ jobs:
           flutter-version: '3.47.0'
           cache: true
 
+      - name: Configure Android signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64}" ] || [ -z "${ANDROID_KEYSTORE_PASSWORD}" ] || [ -z "${ANDROID_KEY_ALIAS}" ]; then
+            echo "Missing Android signing secrets (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS)" >&2
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > app/android/upload-keystore.jks
+          {
+            printf 'storePassword=%s\n' "$ANDROID_KEYSTORE_PASSWORD"
+            printf 'keyPassword=%s\n' "$ANDROID_KEYSTORE_PASSWORD"
+            printf 'keyAlias=%s\n' "$ANDROID_KEY_ALIAS"
+            printf 'storeFile=%s\n' "../upload-keystore.jks"
+          } > app/android/key.properties
+
       - name: Build release APK
         working-directory: app
-        run: flutter build apk --release
+        run: flutter build apk --release --build-number=${{ github.run_number }}
 
       - name: Stage APK
         run: |
@@ -60,4 +86,5 @@ jobs:
           make_latest: true
           body: |
             Release APK built from ${{ github.sha }}.
+            versionCode ${{ github.run_number }}.
             The admin APK page fetches this asset automatically.
