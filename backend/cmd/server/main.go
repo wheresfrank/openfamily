@@ -66,6 +66,8 @@ func main() {
 	srv.VerbosePush = cfg.VerbosePush
 	srv.AllowedOrigin = cfg.AllowedOrigin
 	srv.APKDir = cfg.APKDir
+	srv.APKGitHubRepo = cfg.APKGitHubRepo
+	srv.APKGitHubToken = cfg.APKGitHubToken
 	srv.FlutterAppDir = cfg.FlutterAppDir
 	// A managed server (one with a configured platform admin) closes open
 	// registration: new users must present an invite code.

@@ -21,6 +21,11 @@ app/android/app/.cxx/
 # Env / secrets
 .env
 
+# CI publishes the APK as a GitHub Release. The server caches it here; do not
+# commit the binary.
+apk/*.apk
+apk/.apk-release.json
+
 # OS
 .DS_Store
 app/android/build/

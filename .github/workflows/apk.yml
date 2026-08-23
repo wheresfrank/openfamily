@@ -1,14 +1,16 @@
 name: Build Android APK
 
-# Builds the release APK on every merge to master (and on manual dispatch) and
-# commits it back into the repository at apk/whereabouts-release.apk. Servers
-# pull master to obtain both new code and the APK, so the admin panel's
-# Download button (which serves APK_DIR) works without any server-side build
-# or GitHub token. The server does NOT build APKs itself.
+# Builds the release APK on merges that touch the Flutter app (and on manual
+# dispatch) and publishes it as a GitHub Release. The admin panel's Download
+# button fetches the latest release asset and caches it in APK_DIR. The APK is
+# not committed to the repository.
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
+    paths:
+      - 'app/**'
+      - '.github/workflows/apk.yml'
   workflow_dispatch:
 
 permissions:
@@ -17,11 +19,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Skip the run that our own APK commit-back push on master triggers, so
-    # pushing the APK back does not cause another build (infinite loop). Manual
-    # dispatch always builds. Match both the marker AND the bot author so a
-    # human commit message that happens to start with "[APK]" still builds.
-    if: ${{ github.event_name == 'workflow_dispatch' || !(startsWith(github.event.head_commit.message, '[APK]') && github.event.head_commit.author.email == 'build@whereabouts.invalid') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,25 +40,24 @@ jobs:
         working-directory: app
         run: flutter build apk --release
 
-      - name: Stage APK into the repo
+      - name: Stage APK
         run: |
           set -euo pipefail
           APK=$(find app/build/app/outputs -name 'app-release.apk' -print -quit)
           test -n "$APK" || { echo "APK not found after build" >&2; exit 1; }
-          mkdir -p apk
-          cp "$APK" apk/whereabouts-release.apk
-          echo "Staged $APK -> apk/whereabouts-release.apk"
+          cp "$APK" whereabouts-release.apk
+          echo "Staged $APK -> whereabouts-release.apk"
+          ls -lh whereabouts-release.apk
 
-      - name: Commit and push APK back to the repo
-        run: |
-          set -euo pipefail
-          git add apk/whereabouts-release.apk
-          if git diff --cached --quiet -- apk/whereabouts-release.apk; then
-            echo "APK unchanged; no commit"
-            exit 0
-          fi
-          git config user.name "whereabouts-build"
-          git config user.email "build@whereabouts.invalid"
-          git commit -m "[APK] update release APK"
-          git push
-          echo "Committed and pushed apk/whereabouts-release.apk"
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: Android APK ${{ github.run_number }}
+          files: whereabouts-release.apk
+          fail_on_unmatched_files: true
+          overwrite_files: true
+          make_latest: true
+          body: |
+            Release APK built from ${{ github.sha }}.
+            The admin APK page fetches this asset automatically.

@@ -1,10 +1,9 @@
-// APK page — serves the pre-built Android APK. The APK is built in CI (see
-// .github/workflows/apk.yml) and placed in the server's APK_DIR; this page just
-// downloads it. There is no on-server build.
+// APK page — fetches the latest GitHub Release APK and serves it. CI publishes
+// the file; this page just downloads it. There is no on-server build.
 
 import React from 'react'
 import { downloadApk, ApiError } from '../lib/api'
-import { Button, Card, CopyButton } from '../components/primitives'
+import { Button, Card } from '../components/primitives'
 import './pages.css'
 import './BuildsPage.css'
 
@@ -37,7 +36,7 @@ export function BuildsPage() {
       <div className="wb-page-header">
         <div>
           <h1 className="wb-page-title">APK</h1>
-          <p className="wb-page-subtitle">Download the Android app.</p>
+          <p className="wb-page-subtitle">Install the Android app on a phone.</p>
         </div>
       </div>
 
@@ -49,11 +48,8 @@ export function BuildsPage() {
             </div>
 
             <p className="wb-build-info-text">
-              The release APK is built by CI and committed to the repository at
-              <code className="wb-build-info-code">apk/whereabouts-release.apk</code>.
-              Servers pull master, which brings the APK down with the code, and the
-              button serves it from the server's <code className="wb-build-info-code">APK_DIR</code>.
-              No manual copy is needed.
+              Latest Android build. The first click after a new GitHub Actions
+              run may take a moment.
             </p>
 
             <div className="wb-build-actions">
@@ -77,23 +73,12 @@ export function BuildsPage() {
         </Card>
 
         <Card>
-          <h3 className="wb-build-info-title">How the APK is built</h3>
+          <h3 className="wb-build-info-title">How the APK is published</h3>
           <p className="wb-build-info-text">
-            The APK is built by a GitHub Actions workflow on every merge to master
-            (<code className="wb-build-info-code">push</code>) and committed straight
-            back into the repository at
-            <code className="wb-build-info-code">apk/whereabouts-release.apk</code>.
-            A server that pulls master receives the APK automatically; the download
-            button serves the newest <code className="wb-build-info-code">.apk</code>
-            from its <code className="wb-build-info-code">APK_DIR</code>.
+            GitHub Actions publishes the file. Set
+            <code className="wb-build-info-code">APK_GITHUB_TOKEN</code>
+            in the server env for this private repo.
           </p>
-          <ul className="wb-build-info-list">
-            <li>
-              <span className="wb-build-info-k">Download</span>
-              <code className="wb-build-info-code">GET /api/admin/apk</code>
-              <CopyButton value="GET /api/admin/apk" label="Copy download endpoint" />
-            </li>
-          </ul>
         </Card>
       </div>
     </div>
