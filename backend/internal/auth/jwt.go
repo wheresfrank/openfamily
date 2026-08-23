@@ -18,17 +18,18 @@ const (
 
 // Claims is the JWT payload for both access and refresh tokens.
 type Claims struct {
-	UserID    string    `json:"uid"`
-	FamilyID  string    `json:"fid,omitempty"`
-	TokenType TokenType `json:"typ"`
+	UserID       string    `json:"uid"`
+	FamilyID     string    `json:"fid,omitempty"`
+	TokenType    TokenType `json:"typ"`
+	TokenVersion int       `json:"ver"`
 	jwt.RegisteredClaims
 }
 
 // TokenManager issues and validates JWTs.
 type TokenManager struct {
-	secret        []byte
-	accessTTL     time.Duration
-	refreshTTL    time.Duration
+	secret     []byte
+	accessTTL  time.Duration
+	refreshTTL time.Duration
 }
 
 // NewTokenManager builds a TokenManager from a signing secret and TTLs.
@@ -41,8 +42,8 @@ func NewTokenManager(secret string, accessTTL, refreshTTL time.Duration) *TokenM
 }
 
 // IssueAccess creates a short-lived access token for a user.
-func (m *TokenManager) IssueAccess(userID, familyID string) (string, error) {
-	return m.issue(userID, familyID, AccessToken, m.accessTTL)
+func (m *TokenManager) IssueAccess(userID, familyID string, tokenVersion int) (string, error) {
+	return m.issue(userID, familyID, tokenVersion, AccessToken, m.accessTTL)
 }
 
 // AccessTTL returns the configured access-token lifetime, for reporting the
@@ -52,16 +53,17 @@ func (m *TokenManager) AccessTTL() time.Duration {
 }
 
 // IssueRefresh creates a long-lived refresh token for a user.
-func (m *TokenManager) IssueRefresh(userID, familyID string) (string, error) {
-	return m.issue(userID, familyID, RefreshToken, m.refreshTTL)
+func (m *TokenManager) IssueRefresh(userID, familyID string, tokenVersion int) (string, error) {
+	return m.issue(userID, familyID, tokenVersion, RefreshToken, m.refreshTTL)
 }
 
-func (m *TokenManager) issue(userID, familyID string, typ TokenType, ttl time.Duration) (string, error) {
+func (m *TokenManager) issue(userID, familyID string, tokenVersion int, typ TokenType, ttl time.Duration) (string, error) {
 	now := time.Now()
 	claims := Claims{
-		UserID:    userID,
-		FamilyID:  familyID,
-		TokenType: typ,
+		UserID:       userID,
+		FamilyID:     familyID,
+		TokenType:    typ,
+		TokenVersion: tokenVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "whereabouts",
 			Subject:   userID,

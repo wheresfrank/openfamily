@@ -282,7 +282,9 @@ func (s *Server) AdminResetUserPassword(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusInternalServerError, "failed to hash password")
 		return
 	}
-	command, err := s.Pool.Exec(r.Context(), `UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`, hash, userID)
+	command, err := s.Pool.Exec(r.Context(),
+		`UPDATE users SET password_hash = $1, token_version = token_version + 1, updated_at = now() WHERE id = $2`,
+		hash, userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to reset password")
 		return

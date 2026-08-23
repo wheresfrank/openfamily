@@ -66,6 +66,8 @@ func main() {
 	srv := handlers.New(pool, tm, dispatcher)
 	srv.VerbosePush = cfg.VerbosePush
 	srv.NtfyBaseURL = cfg.NtfyBaseURL
+	srv.TileURL = cfg.TileURL
+	srv.SatelliteTileURL = cfg.SatelliteTileURL
 	srv.APNsConfigured = cfg.APNsKeyFile != ""
 	srv.SMS = sms.New(sms.Config{
 		AccountSID: cfg.TwilioAccountSID,
@@ -73,6 +75,7 @@ func main() {
 		From:       cfg.TwilioFrom,
 	})
 	srv.AlertLimit = sms.NewLimiter()
+	srv.AuthLimit = sms.NewLimiter()
 	srv.PublicBaseURL = cfg.PublicBaseURL
 	srv.AllowedOrigin = cfg.AllowedOrigin
 	srv.APKDir = cfg.APKDir
@@ -123,10 +126,13 @@ func main() {
 	// Authenticated API.
 	r.Group(func(r chi.Router) {
 		r.Use(mid.RequireAuth(tm))
+		r.Use(mid.RequireTokenVersion(pool))
 
 		r.Get("/me", srv.GetMe)
 		r.Patch("/me", srv.UpdateMe)
 		r.Patch("/me/password", srv.ChangeMyPassword)
+		r.Delete("/me", srv.DeleteMe)
+		r.Post("/auth/logout", srv.Logout)
 		r.Get("/me/contacts", srv.ListContacts)
 		r.Post("/me/contacts", srv.CreateContact)
 		r.Delete("/me/contacts/{id}", srv.DeleteContact)
@@ -178,6 +184,7 @@ func main() {
 	// every request (never trusts the JWT).
 	r.Group(func(r chi.Router) {
 		r.Use(mid.RequireAuth(tm))
+		r.Use(mid.RequireTokenVersion(pool))
 		r.Use(mid.RequirePlatformAdmin(pool))
 
 		r.Get("/api/admin/families", srv.AdminListFamilies)

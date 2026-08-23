@@ -14,6 +14,12 @@ import (
 const (
 	defaultDatabaseURL = "postgres://whereabouts:whereabouts@localhost:5432/whereabouts?sslmode=disable"
 	insecureJWTSecret  = "change-me-in-production"
+
+	// DefaultTileURL is the public OSM raster template. Operators override
+	// TILE_URL when they want another provider or a self-hosted endpoint.
+	DefaultTileURL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+	// DefaultSatelliteTileURL is Esri World Imagery. Override with SATELLITE_TILE_URL.
+	DefaultSatelliteTileURL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 )
 
 // Config holds all runtime configuration, sourced from environment variables.
@@ -68,6 +74,13 @@ type Config struct {
 	// GET /config so a generic APK can register UnifiedPush without a
 	// dart-define. Empty means the client should skip ntfy-specific hints.
 	NtfyBaseURL string
+
+	// TileURL and SatelliteTileURL are raster {z}/{x}/{y} templates advertised
+	// on GET /config. Empty env uses the public OSM / Esri defaults. A provider
+	// API key belongs in the URL (query or path); /config is public, so treat
+	// that key as app-visible quota, not a server secret.
+	TileURL          string
+	SatelliteTileURL string
 
 	// APNs push notification credentials (optional; empty KeyFile disables APNs).
 	APNsKeyFile    string
@@ -141,6 +154,8 @@ func Load() Config {
 		InsecureHTTP:          getenvBool("INSECURE_HTTP", false),
 		VerbosePush:           getenvBool("VERBOSE_PUSH", false),
 		NtfyBaseURL:           strings.TrimRight(getenv("NTFY_BASE_URL", ""), "/"),
+		TileURL:               getenv("TILE_URL", DefaultTileURL),
+		SatelliteTileURL:      getenv("SATELLITE_TILE_URL", DefaultSatelliteTileURL),
 		APNsKeyFile:           getenv("APNS_KEY_FILE", ""),
 		APNsKeyID:             getenv("APNS_KEY_ID", ""),
 		APNsTeamID:            getenv("APNS_TEAM_ID", ""),

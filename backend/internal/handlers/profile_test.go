@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/whereabouts/whereabouts/backend/internal/models"
 )
 
 func TestNormalizeProfileName(t *testing.T) {
@@ -269,6 +270,38 @@ func TestChangeMyPasswordUnauthenticated(t *testing.T) {
 	r := chi.NewRouter()
 	r.Patch("/me/password", srv.ChangeMyPassword)
 	req := httptest.NewRequest(http.MethodPatch, "/me/password", strings.NewReader(`{"current_password":"old-password","new_password":"new-password"}`))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestDeleteAccountBlocked(t *testing.T) {
+	cases := []struct {
+		role                    models.Role
+		adminCount, memberCount int
+		blocked                 bool
+	}{
+		{models.RoleAdmin, 1, 3, true},
+		{models.RoleAdmin, 1, 1, false},
+		{models.RoleAdmin, 2, 3, false},
+		{models.RoleMember, 1, 3, false},
+	}
+	for _, tc := range cases {
+		got := deleteAccountBlocked(tc.role, tc.adminCount, tc.memberCount)
+		if got != tc.blocked {
+			t.Errorf("role=%s admins=%d members=%d blocked=%v want %v",
+				tc.role, tc.adminCount, tc.memberCount, got, tc.blocked)
+		}
+	}
+}
+
+func TestDeleteMeUnauthenticated(t *testing.T) {
+	srv := &Server{}
+	r := chi.NewRouter()
+	r.Delete("/me", srv.DeleteMe)
+	req := httptest.NewRequest(http.MethodDelete, "/me", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusUnauthorized {

@@ -38,6 +38,13 @@ type Server struct {
 	// AlertLimit rate-limits SOS and similar fan-out per user.
 	AlertLimit *sms.Limiter
 
+	// AuthLimit rate-limits login, register, refresh, and family join.
+	AuthLimit *sms.Limiter
+
+	// TileURL and SatelliteTileURL are raster templates advertised on GET /config.
+	TileURL          string
+	SatelliteTileURL string
+
 	// PublicBaseURL is the https origin used to build SMS share links.
 	PublicBaseURL string
 

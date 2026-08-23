@@ -212,6 +212,9 @@ func (s *Server) CreateFamilyInvite(w http.ResponseWriter, r *http.Request) {
 // (or in open mode) and now want to join a family. A user who already belongs
 // to a family is rejected so joining cannot silently abandon it.
 func (s *Server) JoinFamily(w http.ResponseWriter, r *http.Request) {
+	if !s.allowAuth(w, authIPKey("join", clientIP(r)), joinPerIP, joinWindow) {
+		return
+	}
 	claims := middleware.ClaimsFromContext(r.Context())
 	if claims == nil {
 		writeError(w, http.StatusUnauthorized, "unauthenticated")
