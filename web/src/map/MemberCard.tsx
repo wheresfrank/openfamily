@@ -33,7 +33,7 @@ export function MemberCard({ member, nowMs, onClose }: MemberCardProps) {
         </div>
       </div>
 
-      <div className="wb-member-card-status">
+      <div className="wb-member-card-status" data-status={member.status}>
         <span
           className="wb-member-card-status-dot"
           style={{ background: statusColor(member.status) }}

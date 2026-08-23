@@ -39,7 +39,7 @@ class CircleSwitcher extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: BrandTheme.of(context).sheet,
           borderRadius: BorderRadius.circular(24),
           boxShadow: const [
             BoxShadow(
@@ -107,7 +107,7 @@ class _SingleCircleContext extends StatelessWidget {
               Semantics(
                 label: 'Current family: $label',
                 child: Material(
-                  color: Colors.white,
+                  color: BrandTheme.of(context).sheet,
                   borderRadius: BorderRadius.circular(22),
                   elevation: 3,
                   child: Padding(
@@ -130,8 +130,10 @@ class _SingleCircleContext extends StatelessWidget {
                             label,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                               fontWeight: FontWeight.w700,
                               fontSize: 14,
                             ),
@@ -150,7 +152,7 @@ class _SingleCircleContext extends StatelessWidget {
                     button: true,
                     label: 'Join a family',
                     child: Material(
-                      color: Colors.white,
+                      color: BrandTheme.of(context).sheet,
                       shape: const CircleBorder(),
                       elevation: 3,
                       child: InkWell(
@@ -200,7 +202,9 @@ class _CircleChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.white : AppColors.textMuted,
+            color: selected
+                ? BrandTheme.of(context).onAccent
+                : Theme.of(context).colorScheme.onSurfaceVariant,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             fontSize: 14,
           ),

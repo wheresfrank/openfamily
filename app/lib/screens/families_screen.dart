@@ -288,15 +288,17 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
                             ),
                           ),
                         const Divider(height: 1),
-                        const Padding(
-                          padding: EdgeInsets.fromLTRB(20, 16, 20, 4),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
                           child: Text(
                             'MEMBERS',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1,
-                              color: AppColors.textMuted,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -344,7 +346,9 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
                             'Leave family',
                             style: TextStyle(
                               color: _isLastAdmin
-                                  ? AppColors.textMuted
+                                  ? Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant
                                   : AppColors.sosRed,
                             ),
                           ),
@@ -382,10 +386,12 @@ class _NoFamily extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Create a family to invite people, or join one with a code.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textMuted),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 24),
           FilledButton(

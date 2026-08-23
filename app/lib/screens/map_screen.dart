@@ -523,9 +523,9 @@ class _MapScreenState extends State<MapScreen>
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: BrandTheme.of(context).sheet,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Column(
@@ -731,8 +731,6 @@ class _MapScreenState extends State<MapScreen>
             child: Center(
               child: FloatingActionButton(
                 onPressed: _showAddActions,
-                backgroundColor: AppColors.purple,
-                foregroundColor: Colors.white,
                 tooltip: 'Add — Check In / Help Alert / Invite',
                 child: const Icon(Icons.add),
               ),
@@ -787,7 +785,7 @@ class _LayerToggle extends StatelessWidget {
     return Tooltip(
       message: isSatellite ? 'Switch to standard map' : 'Switch to satellite',
       child: Material(
-        color: Colors.white,
+        color: BrandTheme.of(context).sheet,
         shape: const CircleBorder(),
         elevation: 3,
         child: InkWell(
@@ -798,7 +796,7 @@ class _LayerToggle extends StatelessWidget {
             child: Icon(
               isSatellite ? Icons.map : Icons.satellite_alt,
               size: 22,
-              color: AppColors.purple,
+              color: BrandTheme.of(context).accent,
             ),
           ),
         ),
@@ -819,15 +817,19 @@ class _LocateButton extends StatelessWidget {
     return Tooltip(
       message: 'Center on my location',
       child: Material(
-        color: Colors.white,
+        color: BrandTheme.of(context).sheet,
         shape: const CircleBorder(),
         elevation: 3,
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: onTap,
-          child: const Padding(
-            padding: EdgeInsets.all(10),
-            child: Icon(Icons.my_location, size: 22, color: AppColors.purple),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Icon(
+              Icons.my_location,
+              size: 22,
+              color: BrandTheme.of(context).accent,
+            ),
           ),
         ),
       ),
@@ -909,7 +911,7 @@ class _LocationOffBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: BrandTheme.of(context).sheet,
       elevation: 3,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
@@ -918,11 +920,14 @@ class _LocationOffBanner extends StatelessWidget {
           children: [
             const Icon(Icons.location_off, color: AppColors.statusOrange),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Location sharing is off, so your family can\'t see where you '
                 'are.',
-                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -946,7 +951,7 @@ class _LoadErrorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Material(
-        color: AppColors.surface,
+        color: BrandTheme.of(context).sheet,
         elevation: 4,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -963,9 +968,9 @@ class _LoadErrorCard extends StatelessWidget {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.textMuted,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 16),

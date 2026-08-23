@@ -143,7 +143,7 @@ class _PeopleHeader extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0x33000000),
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -182,9 +182,11 @@ class _PeopleHeader extends StatelessWidget {
                                     ),
                                     Text(
                                       countLabel,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: AppColors.textMuted,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
                                       ),
                                     ),
                                   ],
@@ -243,7 +245,7 @@ class _PeopleHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return Material(color: const Color(0xFFFFFEFF), child: child);
+    return Material(color: BrandTheme.of(context).sheet, child: child);
   }
 
   @override
@@ -293,8 +295,8 @@ class _AvatarStack extends StatelessWidget {
               left: index * (avatarSize - overlap),
               child: Container(
                 padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(
-                  color: AppColors.surface,
+                decoration: BoxDecoration(
+                  color: BrandTheme.of(context).sheet,
                   shape: BoxShape.circle,
                 ),
                 child: StatusAvatar(member: visibleMembers[index], size: 36),
@@ -311,11 +313,11 @@ class _EmptyMemberList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 28),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       child: Text(
         'Invite someone to see them on your map.',
-        style: TextStyle(color: AppColors.textMuted),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     );
   }

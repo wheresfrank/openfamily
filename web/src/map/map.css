@@ -7,13 +7,15 @@
   height: 100%;
   min-height: 420px;
   overflow: hidden;
-  background: var(--surface-soft);
+  background-color: var(--surface-soft);
+  background-image: none;
 }
 
 .wb-map .leaflet-container {
   width: 100%;
   height: 100%;
-  background: var(--surface-soft);
+  background-color: var(--surface-soft);
+  background-image: none;
   font-family: var(--font-sans);
   /* Leaflet panes default to z-index 400–1000; contain them inside the map. */
   z-index: 0;
@@ -31,9 +33,19 @@
 
 /* Leaflet controls restyled to match the brand. */
 .wb-map .leaflet-control-attribution {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--overlay);
   font-size: var(--font-xs);
   color: var(--text-faint);
+}
+.wb-map .leaflet-popup-content-wrapper,
+.wb-map .leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+}
+.wb-map .leaflet-popup-content {
+  margin: 10px 12px;
+  color: var(--text);
 }
 .wb-map .leaflet-bar a {
   color: var(--purple);
@@ -88,7 +100,7 @@
   padding: 0 5px;
   border-radius: var(--radius-xs);
   background: var(--surface-active);
-  color: var(--purple);
+  color: var(--text);
   font-size: var(--font-xs);
   font-weight: 700;
 }
@@ -130,14 +142,14 @@
 .wb-switcher-item[data-active="true"] {
   background: var(--surface-active);
   font-weight: 700;
-  color: var(--purple-dark);
+  color: var(--text);
 }
 .wb-switcher-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   flex: 0 0 auto;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 0 2px var(--surface);
 }
 .wb-switcher-count {
   margin-left: auto;
@@ -158,7 +170,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--overlay);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border);
@@ -175,7 +187,7 @@
 .wb-switcher-chip-btn[data-active="true"] {
   border-color: var(--purple);
   background: var(--surface-active);
-  color: var(--purple-dark);
+  color: var(--text);
   box-shadow: 0 0 0 3px var(--ring);
 }
 
@@ -190,12 +202,13 @@
   max-width: calc(100vw - 32px);
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--overlay-strong);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
+  color: var(--text);
   overflow: hidden;
   transition: transform 0.25s ease, opacity 0.25s ease;
 }
@@ -323,11 +336,11 @@
   font-weight: 600;
 }
 /* Status color by data-status (no inline style) — reuses the --status-* accents. */
-.wb-member-row-status[data-status="normal"] { color: var(--status-green); }
-.wb-member-row-status[data-status="warning"] { color: var(--status-orange); }
-.wb-member-row-status[data-status="gpsIssue"] { color: var(--status-purple); }
-.wb-member-row-status[data-status="stopped"] { color: var(--status-grey); }
-.wb-member-row-status[data-status="error"] { color: var(--status-red); }
+.wb-member-row-status[data-status="normal"] { color: var(--status-green-fg); }
+.wb-member-row-status[data-status="warning"] { color: var(--status-orange-fg); }
+.wb-member-row-status[data-status="gpsIssue"] { color: var(--status-purple-fg); }
+.wb-member-row-status[data-status="stopped"] { color: var(--status-grey-fg); }
+.wb-member-row-status[data-status="error"] { color: var(--status-red-fg); }
 .wb-member-row-status-dot {
   width: 7px;
   height: 7px;
@@ -431,7 +444,7 @@
   pointer-events: auto;
 }
 .wb-state.wb-loading {
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--scrim);
   backdrop-filter: blur(2px);
 }
 .wb-state-card {
@@ -613,8 +626,8 @@
 .wb-place-label {
   max-width: 80px;
   padding: 1px 6px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: var(--overlay-strong);
+  border: 1px solid var(--border);
   border-radius: var(--radius-xs);
   font-size: var(--font-xs);
   font-weight: 600;
@@ -705,7 +718,7 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--overlay);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border);
@@ -738,12 +751,13 @@
   width: 280px;
   max-width: calc(100vw - 32px);
   padding: var(--space-4);
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--overlay-strong);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
+  color: var(--text);
   animation: wb-card-in 0.18s ease;
 }
 @keyframes wb-card-in {
@@ -802,6 +816,26 @@
   font-weight: 600;
   color: var(--text);
 }
+.wb-member-card-status[data-status="normal"] {
+  background: var(--status-green-bg);
+  color: var(--status-green-fg);
+}
+.wb-member-card-status[data-status="warning"] {
+  background: var(--status-orange-bg);
+  color: var(--status-orange-fg);
+}
+.wb-member-card-status[data-status="gpsIssue"] {
+  background: var(--status-purple-bg);
+  color: var(--status-purple-fg);
+}
+.wb-member-card-status[data-status="stopped"] {
+  background: var(--status-grey-bg);
+  color: var(--status-grey-fg);
+}
+.wb-member-card-status[data-status="error"] {
+  background: var(--status-red-bg);
+  color: var(--status-red-fg);
+}
 .wb-member-card-status-dot {
   width: 8px;
   height: 8px;
@@ -843,14 +877,15 @@
   width: 100%;
   height: 36px;
   border-radius: var(--radius-xs);
-  background: var(--surface-soft);
-  color: var(--purple);
+  background: var(--accent);
+  color: var(--on-accent);
   font-size: var(--font-sm);
   font-weight: 600;
   text-decoration: none;
 }
 .wb-member-card-history:hover {
-  background: var(--surface-hover);
+  background: var(--purple-dark);
+  color: var(--on-accent);
 }
 
 /* Responsive: on narrow screens, collapse the panel below the switcher. */

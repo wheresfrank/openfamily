@@ -81,7 +81,7 @@ class MemberProfileScreen extends StatelessWidget {
               movement: member.movement,
               size: 22,
               color: member.movement == MovementType.none
-                  ? AppColors.textMuted
+                  ? Theme.of(context).colorScheme.onSurfaceVariant
                   : null,
             ),
             label: 'Status',
@@ -238,7 +238,10 @@ class _DetailRow extends StatelessWidget {
             width: 72,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 14, color: AppColors.textMuted),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           Expanded(
@@ -263,7 +266,7 @@ class _DayDetailButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surfaceTint,
+      color: BrandTheme.of(context).sheet,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -274,28 +277,38 @@ class _DayDetailButton extends StatelessWidget {
             ),
           );
         },
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Icon(Icons.location_on, color: AppColors.purple, size: 24),
-              SizedBox(width: 12),
+              Icon(
+                Icons.location_on,
+                color: BrandTheme.of(context).accent,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Day Detail',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.purple,
+                    color: BrandTheme.of(context).accent,
                   ),
                 ),
               ),
               Text(
                 'Location history',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
-              SizedBox(width: 4),
-              Icon(Icons.chevron_right, color: AppColors.textMuted),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.chevron_right,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),

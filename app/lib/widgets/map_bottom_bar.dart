@@ -164,7 +164,7 @@ class _SosButton extends StatelessWidget {
 }
 
 /// A small circular icon button floating over the map (Places, Safety,
-/// Settings). A white disc with a purple glyph and a soft shadow, which is how
+/// Settings). A themed disc with a lime glyph and a soft shadow, which is how
 /// every secondary map control reads consistently.
 class _FloatingIconButton extends StatelessWidget {
   const _FloatingIconButton({
@@ -182,7 +182,7 @@ class _FloatingIconButton extends StatelessWidget {
     return Tooltip(
       message: label,
       child: Material(
-        color: Colors.white,
+        color: BrandTheme.of(context).sheet,
         shape: const CircleBorder(),
         elevation: 3,
         child: InkWell(
@@ -190,7 +190,7 @@ class _FloatingIconButton extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Icon(icon, color: AppColors.purple, size: 22),
+            child: Icon(icon, color: BrandTheme.of(context).accent, size: 22),
           ),
         ),
       ),
