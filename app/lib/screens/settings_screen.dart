@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart' show BiometricType;
 
+import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/battery_optimization_service.dart';
 import '../services/biometric_service.dart';
 import '../services/location_sharing_service.dart';
 import '../services/push_service.dart';
+import '../services/server_config.dart';
 import '../theme/app_theme.dart';
 import 'profile_screen.dart';
 import 'families_screen.dart';
+import 'server_config_screen.dart';
 import 'welcome_screen.dart';
 
 /// The Settings screen. Account profile is server-backed; the remaining
@@ -25,8 +28,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _locationSharingLoading = true;
   bool _notifications = true;
   bool _notificationsLoading = true;
-  bool _driveDetection = true;
   bool _loggingOut = false;
+  bool _deletingAccount = false;
   final BiometricService _biometricService = BiometricService.instance;
   bool _biometricLoading = true;
   bool _biometricUpdating = false;
@@ -212,6 +215,110 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _changeServer() async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Change server?'),
+          content: const Text(
+            'You will be signed out. Enter the new server address on the next screen.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Continue'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await AuthService.logout();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not sign out safely. Please try again.'),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => const ServerConfigScreen(allowCancel: false),
+      ),
+      (route) => false,
+    );
+  }
+
+  Future<void> _deleteAccount() async {
+    if (_deletingAccount) return;
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete account?'),
+          content: const Text(
+            'This permanently deletes your account, devices, and location '
+            'history on this server. If you are the last admin of a family '
+            'that still has other people, promote someone else first.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppColors.sosRed),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _deletingAccount = true);
+    try {
+      await ApiClient.deleteAccount();
+      await AuthService.logout(notifyServer: false);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _deletingAccount = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.status == 409
+                ? e.message
+                : e.status == 404
+                    ? 'This server cannot delete accounts yet. Ask the operator to update it.'
+                    : e.message,
+          ),
+        ),
+      );
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _deletingAccount = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not delete the account. Try again.')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -236,6 +343,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const FamiliesScreen()),
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.dns_outlined, color: AppColors.purple),
+            title: const Text('Server'),
+            subtitle: Text(
+              ServerConfig.instance.apiBaseUrl.isEmpty
+                  ? 'Not set'
+                  : ServerConfig.instance.apiBaseUrl,
+            ),
+            trailing:
+                const Icon(Icons.chevron_right, color: AppColors.textMuted),
+            onTap: _changeServer,
           ),
           const Divider(height: 1),
           const _SectionHeader('Privacy & Security'),
@@ -284,15 +403,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               trailing:
                   const Icon(Icons.chevron_right, color: AppColors.textMuted),
-              onTap: BatteryOptimizationService.openSettings,
+                  onTap: BatteryOptimizationService.openSettings,
             ),
-          SwitchListTile(
-            secondary: const Icon(Icons.directions_car_outlined,
-                color: AppColors.purple),
-            title: const Text('Drive detection'),
-            value: _driveDetection,
-            onChanged: (v) => setState(() => _driveDetection = v),
-          ),
           const Divider(height: 1),
           const _SectionHeader('Notifications'),
           SwitchListTile(
@@ -300,7 +412,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 color: AppColors.purple),
             title: const Text('Push notifications'),
             subtitle: const Text(
-              'ntfy on Android, APNs on iOS. Off unregisters this device.',
+              'Android needs the ntfy app (UnifiedPush) so alerts arrive when '
+              'Whereabouts is closed. Off unregisters this device.',
             ),
             value: _notifications,
             onChanged: _notificationsLoading ? null : _setPushNotifications,
@@ -319,8 +432,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'Log Out',
               style: TextStyle(color: AppColors.sosRed),
             ),
-            enabled: !_loggingOut,
+            enabled: !_loggingOut && !_deletingAccount,
             onTap: _logout,
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_forever, color: AppColors.sosRed),
+            title: const Text(
+              'Delete account',
+              style: TextStyle(color: AppColors.sosRed),
+            ),
+            enabled: !_loggingOut && !_deletingAccount,
+            onTap: _deleteAccount,
           ),
         ],
       ),

@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 
+import '../services/api_client.dart';
 import '../services/server_config.dart';
+import '../services/tile_config.dart';
 import '../theme/app_theme.dart';
 import 'welcome_screen.dart';
 
-/// First-launch server configuration screen.
+/// Server URL screen (first launch, or Settings → change server).
 ///
-/// Shown when no API URL is configured (neither `--dart-define` nor a
-/// previously entered value). The user enters their Whereabouts server URL
-/// (e.g. `https://whereabouts.example.com`), which is persisted to
-/// `shared_preferences` and used for all subsequent API + WebSocket calls.
+/// The user enters their Whereabouts server URL, we ping `/healthz`, then
+/// persist it for API + WebSocket calls.
 class ServerConfigScreen extends StatefulWidget {
-  const ServerConfigScreen({super.key});
+  const ServerConfigScreen({super.key, this.allowCancel = false});
+
+  /// When true, show a back control so Settings can return without saving.
+  final bool allowCancel;
 
   @override
   State<ServerConfigScreen> createState() => _ServerConfigScreenState();
@@ -21,6 +24,14 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
   final TextEditingController _controller = TextEditingController();
   bool _saving = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (ServerConfig.instance.isConfigured) {
+      _controller.text = ServerConfig.instance.apiBaseUrl;
+    }
+  }
 
   @override
   void dispose() {
@@ -46,21 +57,29 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
       _saving = true;
       _error = null;
     });
+    final String previous = ServerConfig.instance.apiBaseUrl;
     try {
       await ServerConfig.instance.setUrl(url);
-      if (mounted) {
-        // Replace this screen with the welcome screen so the user can't
-        // navigate back to the server config. pushAndRemoveUntil is needed
-        // because ServerConfigScreen is the root — pop() would show black.
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()),
-          (route) => false,
-        );
-      }
-    } catch (e) {
+      await ApiClient.healthz();
+      await TileConfig.instance.refresh();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()),
+        (route) => false,
+      );
+    } on ApiException catch (e) {
+      await ServerConfig.instance.setUrl(previous);
+      if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Failed to save: $e';
+        _error = e.message;
+      });
+    } catch (_) {
+      await ServerConfig.instance.setUrl(previous);
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error = 'Could not reach that server. Check the URL and try again.';
       });
     }
   }
@@ -68,6 +87,9 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: widget.allowCancel
+          ? AppBar(title: const Text('Server'))
+          : null,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),

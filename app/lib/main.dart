@@ -9,6 +9,7 @@ import 'services/auth_service.dart';
 import 'services/background_location_service.dart';
 import 'services/push_service.dart';
 import 'services/server_config.dart';
+import 'services/tile_config.dart';
 import 'services/token_storage.dart';
 import 'theme/app_theme.dart';
 import 'widgets/biometric_app_lock.dart';
@@ -116,6 +117,8 @@ class _SessionGateState extends State<_SessionGate> {
     if (!ServerConfig.instance.isConfigured) {
       return _GateResult.needsServerConfig;
     }
+
+    await TileConfig.instance.refresh();
 
     try {
       await TokenStorage.syncFromBackgroundStore();

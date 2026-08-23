@@ -1,15 +1,9 @@
 // Runtime server configuration for the Whereabouts app.
 //
-// The API base URL can come from two sources:
-//   1. A compile-time `--dart-define=WHEREABOUTS_API_URL=...` (preferred for
-//      managed deployments).
-//   2. A user-entered value stored in `shared_preferences` (needed for
-//      self-hosted deployments where the user installs a generic APK and
-//      enters their own server URL on first launch).
-//
-// [ServerConfig] resolves the two: the dart-define takes priority; when it is
-// empty, the stored value is used.  This lets a pre-built APK work for any
-// deployment without rebuilding.
+// The API base URL comes from:
+//   1. A value the user saved in `shared_preferences` (generic APK / Settings).
+//   2. An optional compile-time `--dart-define=WHEREABOUTS_API_URL` hint when
+//      nothing is stored yet. A dart-define never locks the URL.
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,7 +17,7 @@ class ServerConfig {
 
   static final ServerConfig instance = ServerConfig._();
 
-  String _apiBaseUrl = kApiBaseUrl; // compile-time default
+  String _apiBaseUrl = '';
   bool _loaded = false;
 
   /// The resolved API base URL (no trailing slash).
@@ -32,18 +26,17 @@ class ServerConfig {
   /// Whether a non-empty URL is configured.
   bool get isConfigured => _apiBaseUrl.isNotEmpty;
 
-  /// Loads the stored URL from `shared_preferences` if the dart-define was
-  /// empty.  Safe to call multiple times; only the first call does I/O.
+  /// Loads the stored URL. A dart-define is only a first-launch hint.
   Future<void> load() async {
     if (_loaded) return;
     _loaded = true;
-    if (kApiBaseUrl.isNotEmpty) {
-      _apiBaseUrl = kApiBaseUrl;
-      return;
-    }
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString(_kPrefKey) ?? '';
-    _apiBaseUrl = stored;
+    if (stored.isNotEmpty) {
+      _apiBaseUrl = stored;
+      return;
+    }
+    _apiBaseUrl = kApiBaseUrl;
   }
 
   /// Persists a user-entered URL and updates the live value.
@@ -54,10 +47,16 @@ class ServerConfig {
     await prefs.setString(_kPrefKey, cleaned);
   }
 
-  /// Clears the stored URL (used on logout / reset).
+  /// Clears the stored URL (used when the user wants to pick a new server).
   Future<void> clear() async {
-    _apiBaseUrl = kApiBaseUrl; // fall back to dart-define
+    _apiBaseUrl = '';
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kPrefKey);
+  }
+
+  /// For tests: reset the in-memory singleton without touching disk.
+  void debugReset() {
+    _apiBaseUrl = '';
+    _loaded = false;
   }
 }

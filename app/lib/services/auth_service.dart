@@ -96,7 +96,15 @@ class AuthService {
   }
 
   /// Clears stored tokens and the device id to log the user out.
-  static Future<void> logout() async {
+  static Future<void> logout({bool notifyServer = true}) async {
+    // Ask the server to kill outstanding JWTs when the route exists. A missing
+    // endpoint (older server) must not block local sign-out. Skip after
+    // account deletion — the user row is already gone.
+    if (notifyServer) {
+      try {
+        await ApiClient.logout();
+      } catch (_) {}
+    }
     // Stop background reporting before clearing credentials, so the background
     // isolate never reports with a dead session.
     await BackgroundLocationService.stop();

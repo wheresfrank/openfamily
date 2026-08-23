@@ -25,6 +25,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   UserProfile? _profile;
   Uint8List? _avatarBytes;
@@ -37,6 +42,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _error;
   String? _avatarError;
   String? _nameError;
+  String? _passwordError;
+  bool _passwordSaving = false;
 
   @override
   void initState() {
@@ -48,7 +55,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _changePassword() async {
+    final String current = _currentPasswordController.text;
+    final String next = _newPasswordController.text;
+    final String confirm = _confirmPasswordController.text;
+    if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
+      setState(() => _passwordError = 'Fill in all password fields.');
+      return;
+    }
+    if (next.length < 8) {
+      setState(() => _passwordError = 'New password must be at least 8 characters.');
+      return;
+    }
+    if (next != confirm) {
+      setState(() => _passwordError = 'New passwords do not match.');
+      return;
+    }
+    setState(() {
+      _passwordSaving = true;
+      _passwordError = null;
+    });
+    try {
+      await ApiClient.changePassword(
+        currentPassword: current,
+        newPassword: next,
+      );
+      if (!mounted) return;
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
+      setState(() => _passwordSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password updated. Other devices will need to sign in again.')),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _passwordSaving = false;
+        _passwordError = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _passwordSaving = false;
+        _passwordError = 'Could not change password. Try again.';
+      });
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -498,6 +556,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onRetry: _loadProfile,
                         ),
                       ],
+                      const SizedBox(height: 28),
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Change password',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _currentPasswordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Current password',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _newPasswordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'New password',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _confirmPasswordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Confirm new password',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      if (_passwordError != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _passwordError!,
+                          style: const TextStyle(color: AppColors.sosRed),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: _passwordSaving ? null : _changePassword,
+                        child: _passwordSaving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Update password'),
+                      ),
                       const SizedBox(height: 28),
                       const Divider(),
                       const SizedBox(height: 16),
