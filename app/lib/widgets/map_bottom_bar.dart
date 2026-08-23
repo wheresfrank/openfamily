@@ -87,7 +87,7 @@ class MapBottomBar extends StatelessWidget {
                   // Safety — a white circular icon button, matching the others.
                   _FloatingIconButton(
                     icon: Icons.shield_outlined,
-                    label: 'Safety',
+                    label: 'Emergency contacts',
                     onTap: onSafety,
                   ),
                 ],
@@ -138,23 +138,17 @@ class _SosButton extends StatelessWidget {
           onTap: onTap,
           child: Container(
             height: MapBottomBar.sosHeight,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Only the "SOS" word is drawn. The `sos` glyph icon already
-                // renders the letters "SOS", so drawing both would read the
-                // word twice — keep just the text.
-                Text(
-                  'SOS',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 22,
-                    letterSpacing: 2,
-                  ),
-                ),
-              ],
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: const Text(
+              'SOS',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 22,
+                height: 1,
+              ),
             ),
           ),
         ),

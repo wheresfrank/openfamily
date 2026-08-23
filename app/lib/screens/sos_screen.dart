@@ -1,21 +1,23 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_client.dart';
 import '../services/location_reporter.dart';
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
+import 'safety_screen.dart';
 
-/// The SOS flow: setup, tap-to-send, press-and-hold (discreet), a 10-second
-/// countdown, and slide-to-cancel (swipe left).
+/// The SOS flow: a first-run explainer, tap-to-send (with confirm),
+/// press-and-hold (discreet countdown), and slide-to-cancel.
 ///
-/// * **Begin Setup** — first-run setup, then **Practice SOS**.
-/// * **Tap** the SOS button to send immediately.
-/// * **Press and hold** to arm discreetly; on release a 10-second countdown
-///   begins. Slide the "Slide to Cancel" control **left** to abort before it
-///   fires.
-/// * Cancelling sends a "you are safe" follow-up to the family and contacts.
+/// * First open explains that the red button is live and that Practice
+///   does not notify anyone. Emergency contacts are added on Safety.
+/// * **Tap** asks before sending. **Hold** starts a 10-second countdown;
+///   slide left to abort.
+/// * **I'm safe** resolves the last real SOS, including after leaving
+///   and coming back.
 class SosScreen extends StatefulWidget {
   const SosScreen({super.key});
 
@@ -24,7 +26,8 @@ class SosScreen extends StatefulWidget {
 }
 
 enum _SosPhase {
-  setup,
+  loading,
+  intro,
   idle,
   holding,
   countdown,
@@ -37,7 +40,12 @@ enum _SosPhase {
 }
 
 class _SosScreenState extends State<SosScreen> {
-  _SosPhase _phase = _SosPhase.setup;
+  static const String _introKey = 'sos_intro_seen';
+  static const String _alertIdKey = 'sos_active_alert_id';
+  static const String _alertAtKey = 'sos_active_alert_at';
+  static const Duration _activeAlertTtl = Duration(hours: 24);
+
+  _SosPhase _phase = _SosPhase.loading;
   int _countdown = 10;
   Timer? _timer;
   bool _practice = false;
@@ -45,12 +53,88 @@ class _SosScreenState extends State<SosScreen> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _restore();
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
   }
 
-  void _beginSetup() {
+  Future<void> _restore() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final bool seen = prefs.getBool(_introKey) ?? false;
+    final String? storedId = prefs.getString(_alertIdKey);
+    final int? sentAtMs = prefs.getInt(_alertAtKey);
+    final bool alertFresh = storedId != null &&
+        storedId.isNotEmpty &&
+        sentAtMs != null &&
+        DateTime.now().difference(
+              DateTime.fromMillisecondsSinceEpoch(sentAtMs),
+            ) <
+            _activeAlertTtl;
+
+    if (!mounted) return;
+    setState(() {
+      if (alertFresh) {
+        _alertId = storedId;
+        _phase = _SosPhase.sent;
+      } else {
+        if (storedId != null) {
+          unawaited(_clearStoredAlert());
+        }
+        _phase = seen ? _SosPhase.idle : _SosPhase.intro;
+      }
+    });
+  }
+
+  Future<void> _markIntroSeen() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_introKey, true);
+  }
+
+  Future<void> _storeAlert(String id) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_alertIdKey, id);
+    await prefs.setInt(_alertAtKey, DateTime.now().millisecondsSinceEpoch);
+  }
+
+  Future<void> _clearStoredAlert() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_alertIdKey);
+    await prefs.remove(_alertAtKey);
+  }
+
+  Future<String?> _storedAlertId() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? storedId = prefs.getString(_alertIdKey);
+    final int? sentAtMs = prefs.getInt(_alertAtKey);
+    if (storedId == null || storedId.isEmpty || sentAtMs == null) return null;
+    if (DateTime.now().difference(
+          DateTime.fromMillisecondsSinceEpoch(sentAtMs),
+        ) >=
+        _activeAlertTtl) {
+      return null;
+    }
+    return storedId;
+  }
+
+  Future<void> _continueFromIntro() async {
+    await _markIntroSeen();
+    if (!mounted) return;
+    setState(() => _phase = _SosPhase.idle);
+  }
+
+  Future<void> _openEmergencyContacts() async {
+    await _markIntroSeen();
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const SafetyScreen()),
+    );
+    if (!mounted) return;
     setState(() => _phase = _SosPhase.idle);
   }
 
@@ -84,7 +168,39 @@ class _SosScreenState extends State<SosScreen> {
       });
       return;
     }
-    _sendReal();
+    unawaited(_sendReal());
+  }
+
+  Future<void> _confirmAndSend() async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Send SOS?'),
+          content: const Text(
+            'This alerts your family and emergency contacts with your '
+            'location. Use Practice if you only want to try the countdown.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.sosRed,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Send SOS'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true && mounted) {
+      unawaited(_sendReal());
+    }
   }
 
   Future<void> _sendReal() async {
@@ -100,10 +216,11 @@ class _SosScreenState extends State<SosScreen> {
         body['lon'] = position.longitude;
       }
       final dynamic response = await ApiClient.post('/alerts/sos', body: body);
-      String? id;
-      if (response is Map && response['id'] is String) {
-        id = response['id'] as String;
+      final String? id = _alertIdFrom(response);
+      if (id == null || id.isEmpty) {
+        throw const ApiException(500, 'SOS sent, but no alert id came back.');
       }
+      await _storeAlert(id);
       LocationReporter.startSosBurst();
       if (!mounted) return;
       setState(() {
@@ -115,9 +232,21 @@ class _SosScreenState extends State<SosScreen> {
       return;
     } on ApiException catch (e) {
       if (!mounted) return;
+      if (e.status == 429) {
+        final String? existing = _alertId ?? await _storedAlertId();
+        if (!mounted) return;
+        if (existing != null) {
+          setState(() {
+            _alertId = existing;
+            _error = _sendErrorMessage(e);
+            _phase = _SosPhase.sent;
+          });
+          return;
+        }
+      }
       setState(() {
         _phase = _SosPhase.idle;
-        _error = e.message;
+        _error = _sendErrorMessage(e);
       });
     } catch (_) {
       if (!mounted) return;
@@ -126,6 +255,22 @@ class _SosScreenState extends State<SosScreen> {
         _error = 'Couldn\'t send SOS. Please try again.';
       });
     }
+  }
+
+  String? _alertIdFrom(dynamic response) {
+    if (response is Map) {
+      final Object? id = response['id'];
+      if (id is String && id.isNotEmpty) return id;
+    }
+    return null;
+  }
+
+  String _sendErrorMessage(ApiException e) {
+    if (e.status == 429) {
+      return 'An SOS was already sent recently. Wait a couple of minutes, '
+          'or tap I\'m safe if that alert is still active.';
+    }
+    return e.message;
   }
 
   void _cancel() {
@@ -138,23 +283,41 @@ class _SosScreenState extends State<SosScreen> {
 
   Future<void> _imSafe() async {
     final String? id = _alertId;
-    if (id != null) {
-      try {
-        await ApiClient.post('/alerts/$id/resolve');
-      } on SessionExpiredException {
-        return;
-      } catch (_) {
-        // Still leave the SOS UI; the user can retry I'm safe.
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Couldn\'t send I\'m safe. Try again.')),
-        );
-        return;
-      }
+    if (id == null || id.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'There\'s no SOS to resolve. Practice does not send an alert.',
+          ),
+        ),
+      );
+      return;
     }
+    try {
+      await ApiClient.post('/alerts/$id/resolve');
+    } on SessionExpiredException {
+      return;
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Couldn\'t send I\'m safe. Try again.')),
+      );
+      return;
+    }
+    await _clearStoredAlert();
     LocationReporter.stopSosBurst();
     if (!mounted) return;
-    setState(() => _phase = _SosPhase.resolved);
+    setState(() {
+      _alertId = null;
+      _phase = _SosPhase.resolved;
+    });
   }
 
   void _reset() {
@@ -172,8 +335,9 @@ class _SosScreenState extends State<SosScreen> {
       appBar: AppBar(title: const Text('SOS')),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
               _buildBody(),
@@ -187,29 +351,48 @@ class _SosScreenState extends State<SosScreen> {
 
   Widget _buildBody() {
     switch (_phase) {
-      case _SosPhase.setup:
-        return _SetupCard(onBeginSetup: _beginSetup);
+      case _SosPhase.loading:
+        return const Center(child: CircularProgressIndicator());
+      case _SosPhase.intro:
+        return _IntroCard(
+          onContinue: _continueFromIntro,
+          onAddContacts: _openEmergencyContacts,
+        );
       case _SosPhase.idle:
-        return Column(
+      case _SosPhase.holding:
+        return _PhaseColumn(
           children: [
-            if (_error != null) ...[
-              Text(_error!, style: const TextStyle(color: AppColors.sosRed)),
+            if (_error != null && _phase == _SosPhase.idle) ...[
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.sosRed),
+              ),
               const SizedBox(height: 16),
             ],
             _SosButton(
-              onTap: _send,
+              holding: _phase == _SosPhase.holding,
+              onTap: _confirmAndSend,
               onHoldStart: () => setState(() => _phase = _SosPhase.holding),
               onHoldEnd: _startCountdown,
+              onHoldCancel: () {
+                if (_phase == _SosPhase.holding) {
+                  setState(() => _phase = _SosPhase.idle);
+                }
+              },
             ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: _startPractice,
-              child: const Text('Practice SOS'),
-            ),
+            if (_phase == _SosPhase.idle) ...[
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _startPractice,
+                style: TextButton.styleFrom(
+                  foregroundColor: BrandTheme.of(context).accentInk,
+                ),
+                child: const Text('Practice SOS'),
+              ),
+            ],
           ],
         );
-      case _SosPhase.holding:
-        return const _HoldingIndicator();
       case _SosPhase.countdown:
         return _Countdown(seconds: _countdown, onCancel: _cancel);
       case _SosPhase.practice:
@@ -219,7 +402,7 @@ class _SosScreenState extends State<SosScreen> {
           label: 'Practice SOS…',
         );
       case _SosPhase.sending:
-        return const Column(
+        return const _PhaseColumn(
           children: [
             SizedBox(
               width: 48,
@@ -235,8 +418,9 @@ class _SosScreenState extends State<SosScreen> {
           icon: Icons.check_circle,
           color: AppColors.statusGreen,
           title: 'SOS sent',
-          subtitle:
-              'Your family and emergency contacts have been alerted with your location.',
+          subtitle: _error ??
+              'Your family and emergency contacts have been alerted with your location. '
+                  'Tap I\'m safe when you are.',
           actionLabel: 'I\'m safe',
           onAction: _imSafe,
           secondaryLabel: 'Done',
@@ -245,7 +429,7 @@ class _SosScreenState extends State<SosScreen> {
       case _SosPhase.practiceDone:
         return _ResultCard(
           icon: Icons.check_circle,
-          color: AppColors.purple,
+          color: BrandTheme.of(context).accentInk,
           title: 'Practice complete',
           subtitle: 'No alert was sent. You are ready to send a real SOS.',
           actionLabel: 'Done',
@@ -254,7 +438,7 @@ class _SosScreenState extends State<SosScreen> {
       case _SosPhase.cancelled:
         return _ResultCard(
           icon: Icons.info_outline,
-          color: AppColors.purple,
+          color: BrandTheme.of(context).accentInk,
           title: 'Cancelled',
           subtitle: 'No SOS was sent.',
           actionLabel: 'Back',
@@ -273,120 +457,162 @@ class _SosScreenState extends State<SosScreen> {
   }
 }
 
-/// First-run setup card: "Begin Setup" → then "Practice SOS".
-class _SetupCard extends StatelessWidget {
-  const _SetupCard({required this.onBeginSetup});
+/// First-run explainer. This is not a settings wizard — it tells the user
+/// what the red button actually does before they can fire it.
+class _IntroCard extends StatelessWidget {
+  const _IntroCard({
+    required this.onContinue,
+    required this.onAddContacts,
+  });
 
-  final VoidCallback onBeginSetup;
+  final VoidCallback onContinue;
+  final VoidCallback onAddContacts;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final Color muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return _PhaseColumn(
       children: [
         const Icon(Icons.sos, size: 72, color: AppColors.sosRed),
         const SizedBox(height: 16),
         const Text(
-          'Set up SOS',
+          'How SOS works',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'SOS alerts your family and emergency contacts with your location, '
-          'even on silent.',
+        const SizedBox(height: 12),
+        Text(
+          'The red button sends a real alert to your family and any '
+          'emergency contacts, with your location.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 15, color: AppColors.textMuted),
+          style: TextStyle(fontSize: 15, color: muted),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Practice runs the countdown only — nobody is notified. '
+          'The shield on the map is where you add emergency contacts, '
+          'not I\'m safe.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 15, color: muted),
         ),
         const SizedBox(height: 24),
         FilledButton(
-          onPressed: onBeginSetup,
-          child: const Text('Begin Setup'),
+          onPressed: onAddContacts,
+          child: const Text('Add emergency contacts'),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: onContinue,
+          style: TextButton.styleFrom(
+            foregroundColor: BrandTheme.of(context).accentInk,
+          ),
+          child: const Text('Continue'),
         ),
       ],
+    );
+  }
+}
+
+/// Centers phase content. The scaffold column stretches this to full
+/// width so a long hint line cannot shift the SOS disc.
+class _PhaseColumn extends StatelessWidget {
+  const _PhaseColumn({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: children,
     );
   }
 }
 
 /// The large SOS button: tap to send, press-and-hold to arm discreetly.
+/// Stay mounted while [holding] so release can start the countdown.
 class _SosButton extends StatelessWidget {
   const _SosButton({
     required this.onTap,
     required this.onHoldStart,
     required this.onHoldEnd,
+    required this.onHoldCancel,
+    this.holding = false,
   });
 
   final VoidCallback onTap;
   final VoidCallback onHoldStart;
   final VoidCallback onHoldEnd;
+  final VoidCallback onHoldCancel;
+  final bool holding;
+
+  static const double _size = 180;
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        GestureDetector(
-          onTap: onTap,
-          onLongPressStart: (_) => onHoldStart(),
-          onLongPressEnd: (_) => onHoldEnd(),
-          child: Container(
-            width: 180,
-            height: 180,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.sosRed,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.sosRed.withValues(alpha: 0.5),
-                  blurRadius: 30,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Only the "SOS" word is drawn. The `sos` glyph icon already
-                // renders the letters "SOS", so drawing both would read the
-                // word twice — keep just the text.
-                Text(
-                  'SOS',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 28,
-                    letterSpacing: 2,
+        Semantics(
+          button: true,
+          label: holding
+              ? 'SOS armed. Release to start the countdown.'
+              : 'SOS. Tap to send a real alert. Press and hold to arm discreetly.',
+          child: GestureDetector(
+            key: const ValueKey<String>('sos-send-button'),
+            behavior: HitTestBehavior.opaque,
+            onTap: holding ? null : onTap,
+            onLongPressStart: (_) => onHoldStart(),
+            onLongPressEnd: (_) => onHoldEnd(),
+            onLongPressCancel: onHoldCancel,
+            child: Container(
+              width: _size,
+              height: _size,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.sosRed,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.sosRed.withValues(alpha: 0.32),
+                    blurRadius: 28,
+                    spreadRadius: 2,
                   ),
-                ),
-              ],
+                ],
+              ),
+              child: holding
+                  ? const SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'SOS',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 32,
+                        height: 1,
+                      ),
+                    ),
             ),
           ),
         ),
-        const SizedBox(height: 20),
-        const Text(
-          'Tap to send · press and hold to arm discreetly',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 13, color: AppColors.textMuted),
-        ),
-      ],
-    );
-  }
-}
-
-class _HoldingIndicator extends StatelessWidget {
-  const _HoldingIndicator();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      children: [
-        SizedBox(
-          width: 48,
-          height: 48,
-          child: CircularProgressIndicator(color: AppColors.sosRed),
-        ),
-        SizedBox(height: 16),
+        const SizedBox(height: 24),
         Text(
-          'Keep holding… release to start the countdown',
+          holding
+              ? 'Keep holding… release to start the countdown'
+              : 'Tap to send · press and hold to arm discreetly',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 15, color: AppColors.textMuted),
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.35,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );
@@ -406,7 +632,7 @@ class _Countdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return _PhaseColumn(
       children: [
         Text(
           '$seconds',
@@ -414,12 +640,17 @@ class _Countdown extends StatelessWidget {
             fontSize: 96,
             fontWeight: FontWeight.w800,
             color: AppColors.sosRed,
+            height: 1,
           ),
         ),
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(fontSize: 16, color: AppColors.textMuted),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 32),
         _SlideToCancel(onCancel: onCancel),
@@ -451,19 +682,23 @@ class _ResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return _PhaseColumn(
       children: [
         Icon(icon, size: 72, color: color),
         const SizedBox(height: 16),
         Text(
           title,
+          textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Text(
           subtitle,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 15, color: AppColors.textMuted),
+          style: TextStyle(
+            fontSize: 15,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 24),
         FilledButton(onPressed: onAction, child: Text(actionLabel)),
@@ -510,7 +745,7 @@ class _SlideToCancelState extends State<_SlideToCancel> {
         width: _trackWidth,
         height: 56,
         decoration: BoxDecoration(
-          color: const Color(0x11000000),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(28),
         ),
         child: Stack(
@@ -521,7 +756,7 @@ class _SlideToCancelState extends State<_SlideToCancel> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textMuted.withValues(alpha: 0.7),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -532,10 +767,10 @@ class _SlideToCancelState extends State<_SlideToCancel> {
               child: Container(
                 width: _thumbSize,
                 height: _thumbSize,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white,
-                  boxShadow: [
+                  color: BrandTheme.of(context).sheet,
+                  boxShadow: const [
                     BoxShadow(color: Color(0x33000000), blurRadius: 6),
                   ],
                 ),

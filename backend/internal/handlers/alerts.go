@@ -123,6 +123,11 @@ func (s *Server) postAlert(w http.ResponseWriter, r *http.Request, typ string, i
 		return
 	}
 	if s.AlertLimit != nil && !s.AlertLimit.Allow("alert:"+typ+":"+claims.UserID, 1, window) {
+		if typ == alertSOS {
+			writeError(w, http.StatusTooManyRequests,
+				"an SOS was already sent recently; wait a couple of minutes")
+			return
+		}
 		writeError(w, http.StatusTooManyRequests, "too many requests")
 		return
 	}
