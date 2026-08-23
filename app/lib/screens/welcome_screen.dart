@@ -81,20 +81,21 @@ class WelcomeScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.w800,
-                          color: Theme.of(context).colorScheme.onSurface,
+                          // Map wash is always light; Night onSurface is white.
+                          color: AppColors.iceInk,
                         ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     'Know where your family is — privately.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: AppColors.textMuted),
+                    style: TextStyle(fontSize: 16, color: AppColors.iceMuted),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     'Self-hosted. No ads. Your location stays in your family.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                    style: TextStyle(fontSize: 13, color: AppColors.iceMuted),
                   ),
                   const Spacer(),
                   FilledButton(
@@ -110,6 +111,9 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.iceInk,
+                    ),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => const LoginScreen(),
