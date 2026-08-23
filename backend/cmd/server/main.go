@@ -114,6 +114,9 @@ func main() {
 
 		r.Get("/me", srv.GetMe)
 		r.Patch("/me", srv.UpdateMe)
+		r.Get("/me/contacts", srv.ListContacts)
+		r.Post("/me/contacts", srv.CreateContact)
+		r.Delete("/me/contacts/{id}", srv.DeleteContact)
 
 		// Account profile and avatar are deliberately private to the caller.
 		r.Get("/api/profile", srv.GetProfile)

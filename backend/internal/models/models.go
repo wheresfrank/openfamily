@@ -29,6 +29,16 @@ type Family struct {
 	CreatedAt time.Time      `json:"created_at"`
 }
 
+// EmergencyContact is someone who receives SOS even without the app.
+type EmergencyContact struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	Name      string    `json:"name"`
+	Phone     string    `json:"phone"`
+	Relation  string    `json:"relation,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 // User is an account. A user belongs to at most one family.
 type User struct {
 	ID           string    `json:"id"`

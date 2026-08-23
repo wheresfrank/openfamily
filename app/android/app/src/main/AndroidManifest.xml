@@ -24,6 +24,15 @@
         android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
+    <!-- Android 11+ package visibility: let the emergency-contact picker
+         resolve the system ACTION_PICK for a phone number. No READ_CONTACTS. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PICK"/>
+            <data android:mimeType="vnd.android.cursor.dir/phone_v2"/>
+        </intent>
+    </queries>
+
     <application
         android:label="Whereabouts"
         android:name="${applicationName}"
