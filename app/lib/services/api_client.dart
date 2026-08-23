@@ -213,10 +213,53 @@ class ApiClient {
     return data as Map<String, dynamic>;
   }
 
-  /// GET /config → public ntfy/APNs settings for the generic APK.
+  /// GET /config → public ntfy/APNs/tile settings for the generic APK.
   static Future<Map<String, dynamic>> getPushConfig() async {
     final dynamic data = await _send('GET', _uri('/config'), auth: false);
     return data as Map<String, dynamic>;
+  }
+
+  /// GET /healthz → throws when the server is unreachable or not OK.
+  static Future<void> healthz() async {
+    final http.Response response = await _rawSend(
+      'GET',
+      _uri('/healthz'),
+      auth: false,
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw ApiException(response.statusCode, 'Server is not reachable.');
+    }
+  }
+
+  /// POST /auth/logout → invalidates server-side sessions when supported.
+  /// Older servers without the route return 404; that is treated as success.
+  static Future<void> logout() async {
+    try {
+      await _send('POST', _uri('/auth/logout'));
+    } on ApiException catch (e) {
+      if (e.status == 404) return;
+      rethrow;
+    }
+  }
+
+  /// PATCH /me/password.
+  static Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _send(
+      'PATCH',
+      _uri('/me/password'),
+      body: <String, dynamic>{
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      },
+    );
+  }
+
+  /// DELETE /me → wipe this account. 409 means last admin of a shared family.
+  static Future<void> deleteAccount() async {
+    await _send('DELETE', _uri('/me'));
   }
 
   /// PATCH /devices/{id} with push credentials. Empty strings clear them.

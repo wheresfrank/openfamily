@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../services/invite_service.dart';
+import '../services/server_config.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
 
@@ -167,7 +168,8 @@ class _InviteScreenState extends State<InviteScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                InviteService.joinUrl(_code!),
+                ServerConfig.instance.apiBaseUrl,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.textMuted,

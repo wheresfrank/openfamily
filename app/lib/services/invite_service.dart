@@ -16,15 +16,16 @@ class InviteService {
     return data['code'] as String;
   }
 
-  /// The deep link a recipient can tap to join, pointing at the user's own
-  /// server (resolved from [ServerConfig]).
-  static String joinUrl(String code) =>
-      '${ServerConfig.instance.apiBaseUrl}/join/$code';
-
   /// The share-sheet subject line.
   static const String shareSubject = 'Join my Whereabouts family';
 
-  /// The share-sheet body: the code plus the join link.
+  /// The share-sheet body: the code and the operator's server URL.
+  ///
+  /// There is no `/join/{code}` web route; the recipient installs the Android
+  /// app, enters this server, and types the code.
   static String shareMessage(String code) =>
-      'Join my Whereabouts family! Use code $code or tap ${joinUrl(code)}';
+      'Join my Whereabouts family!\n\n'
+      '1. Install the Whereabouts Android app\n'
+      '2. Enter this server: ${ServerConfig.instance.apiBaseUrl}\n'
+      '3. Use invite code $code';
 }
