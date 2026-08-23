@@ -55,6 +55,10 @@ async function refreshTokens(): Promise<boolean> {
   }
 }
 
+function isRootApiPath(path: string): boolean {
+  return path.startsWith('/api') || path.startsWith('/auth') || path.startsWith('/me')
+}
+
 interface RequestOptions {
   method?: string
   /** A value serialized as JSON. */
@@ -96,7 +100,7 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
         : undefined
 
   const doFetch = (): Promise<Response> =>
-    fetch(path.startsWith('http') ? path : `${path.startsWith('/api') || path.startsWith('/auth') ? '' : API_BASE}${path}`, {
+    fetch(path.startsWith('http') ? path : `${isRootApiPath(path) ? '' : API_BASE}${path}`, {
       method: opts.method ?? 'GET',
       headers,
       body: requestBody,
@@ -187,6 +191,19 @@ export function uploadProfileAvatar(file: File): Promise<void> {
 /** Remove the current user's avatar. */
 export function deleteProfileAvatar(): Promise<void> {
   return request<void>('/api/profile/avatar', { method: 'DELETE' })
+}
+
+/** Update the signed-in user's display name. */
+export function updateProfile(name: string): Promise<{ name: string }> {
+  return request<{ name: string }>('/me', { method: 'PATCH', body: { name } })
+}
+
+/** Change the signed-in user's password. Stays signed in on success. */
+export function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  return request<void>('/me/password', {
+    method: 'PATCH',
+    body: { current_password: currentPassword, new_password: newPassword },
+  })
 }
 
 // ---- Admin endpoints ----

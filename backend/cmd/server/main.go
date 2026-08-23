@@ -126,6 +126,7 @@ func main() {
 
 		r.Get("/me", srv.GetMe)
 		r.Patch("/me", srv.UpdateMe)
+		r.Patch("/me/password", srv.ChangeMyPassword)
 		r.Get("/me/contacts", srv.ListContacts)
 		r.Post("/me/contacts", srv.CreateContact)
 		r.Delete("/me/contacts/{id}", srv.DeleteContact)

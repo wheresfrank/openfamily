@@ -1,14 +1,17 @@
-// Settings page — signed-in account details, profile picture, and server info.
+// Settings page — signed-in account (photo, name, password) and a short About
+// block for this server. Developer endpoints and session tokens stay out of
+// the public UI.
 
 import React from 'react'
 import {
   ApiError,
+  changePassword,
   deleteProfileAvatar,
   getProfile,
   getProfileAvatar,
+  updateProfile,
   uploadProfileAvatar,
 } from '../lib/api'
-import { getAccessToken } from '../lib/auth'
 import type { Profile } from '../lib/types'
 import { Button, Card, CopyButton, Mono, Spinner } from '../components/primitives'
 import './pages.css'
@@ -16,6 +19,9 @@ import './SettingsPage.css'
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 const ACCEPTED_AVATAR_TYPES = new Set(['image/jpeg', 'image/png'])
+const MAX_NAME_LENGTH = 120
+const MIN_PASSWORD_LENGTH = 8
+const APP_VERSION = '0.1.0'
 
 type AvatarMutation = 'uploading' | 'removing' | null
 type ProfileMessage = { tone: 'success' | 'error'; text: string } | null
@@ -85,8 +91,31 @@ function messageFromError(error: unknown, fallback: string): string {
   return fallback
 }
 
+/**
+ * Client-side password form checks. Confirm-match can only happen here; length
+ * and "must differ from current" are also enforced by the API.
+ */
+function passwordFormIssue(
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string,
+): string | null {
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return 'Enter your current password and a new password twice.'
+  }
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return `New password must be at least ${MIN_PASSWORD_LENGTH} characters.`
+  }
+  if (newPassword !== confirmPassword) {
+    return 'New password and confirmation do not match.'
+  }
+  if (currentPassword === newPassword) {
+    return 'Choose a password that is different from your current one.'
+  }
+  return null
+}
+
 export function SettingsPage({ email, onLogout }: SettingsPageProps) {
-  const token = getAccessToken()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const avatarObjectUrlRef = React.useRef<string | null>(null)
   const requestVersionRef = React.useRef(0)
@@ -95,7 +124,16 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
   const [profileLoading, setProfileLoading] = React.useState(true)
   const [profileError, setProfileError] = React.useState<string | null>(null)
   const [mutation, setMutation] = React.useState<AvatarMutation>(null)
-  const [message, setMessage] = React.useState<ProfileMessage>(null)
+  const [avatarMessage, setAvatarMessage] = React.useState<ProfileMessage>(null)
+  const [nameDraft, setNameDraft] = React.useState('')
+  const nameReadyRef = React.useRef(false)
+  const [nameSaving, setNameSaving] = React.useState(false)
+  const [nameMessage, setNameMessage] = React.useState<ProfileMessage>(null)
+  const [currentPassword, setCurrentPassword] = React.useState('')
+  const [newPassword, setNewPassword] = React.useState('')
+  const [confirmPassword, setConfirmPassword] = React.useState('')
+  const [passwordSaving, setPasswordSaving] = React.useState(false)
+  const [passwordMessage, setPasswordMessage] = React.useState<ProfileMessage>(null)
 
   const replaceAvatarUrl = React.useCallback((nextUrl: string | null) => {
     const previousUrl = avatarObjectUrlRef.current
@@ -120,6 +158,8 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
         return false
       }
       setProfile(loaded.profile)
+      setNameDraft((current) => (nameReadyRef.current ? current : loaded.profile.name))
+      nameReadyRef.current = true
       replaceAvatarUrl(loaded.avatarUrl)
       return true
     } catch (error) {
@@ -147,20 +187,20 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
     if (!file || mutation) return
 
     if (!ACCEPTED_AVATAR_TYPES.has(file.type)) {
-      setMessage({ tone: 'error', text: 'Choose a JPEG or PNG image.' })
+      setAvatarMessage({ tone: 'error', text: 'Choose a JPEG or PNG image.' })
       return
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setMessage({ tone: 'error', text: 'Choose an image smaller than 5 MB.' })
+      setAvatarMessage({ tone: 'error', text: 'Choose an image smaller than 5 MB.' })
       return
     }
 
-    setMessage(null)
+    setAvatarMessage(null)
     setMutation('uploading')
     try {
       await uploadProfileAvatar(file)
       const refreshed = await refreshProfile()
-      setMessage(
+      setAvatarMessage(
         refreshed
           ? { tone: 'success', text: 'Profile picture updated.' }
           : {
@@ -169,7 +209,7 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
             },
       )
     } catch (error) {
-      setMessage({ tone: 'error', text: messageFromError(error, 'Could not upload your profile picture.') })
+      setAvatarMessage({ tone: 'error', text: messageFromError(error, 'Could not upload your profile picture.') })
     } finally {
       setMutation(null)
     }
@@ -178,12 +218,12 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
   const removeAvatar = async () => {
     if (!profile?.has_avatar || mutation) return
 
-    setMessage(null)
+    setAvatarMessage(null)
     setMutation('removing')
     try {
       await deleteProfileAvatar()
       const refreshed = await refreshProfile()
-      setMessage(
+      setAvatarMessage(
         refreshed
           ? { tone: 'success', text: 'Profile picture removed.' }
           : {
@@ -192,23 +232,79 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
             },
       )
     } catch (error) {
-      setMessage({ tone: 'error', text: messageFromError(error, 'Could not remove your profile picture.') })
+      setAvatarMessage({ tone: 'error', text: messageFromError(error, 'Could not remove your profile picture.') })
     } finally {
       setMutation(null)
+    }
+  }
+
+  const saveName = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!profile || nameSaving) return
+
+    const name = nameDraft.trim()
+    if (!name) {
+      setNameMessage({ tone: 'error', text: 'Name is required.' })
+      return
+    }
+    if ([...name].length > MAX_NAME_LENGTH) {
+      setNameMessage({ tone: 'error', text: `Name must be ${MAX_NAME_LENGTH} characters or fewer.` })
+      return
+    }
+    if (name === profile.name) return
+
+    setNameMessage(null)
+    setNameSaving(true)
+    try {
+      const updated = await updateProfile(name)
+      setProfile((current) => (current ? { ...current, name: updated.name } : current))
+      setNameDraft(updated.name)
+      setNameMessage({ tone: 'success', text: 'Name updated.' })
+    } catch (error) {
+      setNameMessage({ tone: 'error', text: messageFromError(error, 'Could not update your name.') })
+    } finally {
+      setNameSaving(false)
+    }
+  }
+
+  const savePassword = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (passwordSaving) return
+
+    const issue = passwordFormIssue(currentPassword, newPassword, confirmPassword)
+    if (issue) {
+      setPasswordMessage({ tone: 'error', text: issue })
+      return
+    }
+
+    setPasswordMessage(null)
+    setPasswordSaving(true)
+    try {
+      await changePassword(currentPassword, newPassword)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setPasswordMessage({ tone: 'success', text: 'Password updated. You are still signed in here.' })
+    } catch (error) {
+      setPasswordMessage({ tone: 'error', text: messageFromError(error, 'Could not update your password.') })
+    } finally {
+      setPasswordSaving(false)
     }
   }
 
   const displayName = profile?.name.trim() || profile?.email || email || 'Your account'
   const displayEmail = profile?.email || email || '—'
   const hasAvatar = Boolean(profile?.has_avatar && avatarUrl)
-  const avatarControlsDisabled = !profile || profileLoading || mutation !== null
+  const avatarControlsDisabled = !profile || mutation !== null
+  const nameUnchanged = Boolean(profile && nameDraft.trim() === profile.name)
+  const serverUrl = typeof window !== 'undefined' ? window.location.origin : '—'
 
   return (
     <div className="wb-page">
       <div className="wb-page-header">
         <div>
           <h1 className="wb-page-title">Settings</h1>
-          <p className="wb-page-subtitle">Account and server configuration.</p>
+          <p className="wb-page-subtitle">Your account on this server.</p>
         </div>
       </div>
 
@@ -220,7 +316,7 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
             <div className="wb-profile-avatar">
               {avatarUrl ? (
                 <img src={avatarUrl} alt={`${displayName}'s profile picture`} />
-              ) : profileLoading ? (
+              ) : profileLoading && !profile ? (
                 <Spinner size={24} />
               ) : (
                 <span role="img" aria-label={`No profile picture for ${displayName}`}>
@@ -267,13 +363,13 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
                   </Button>
                 )}
               </div>
-              {message && (
+              {avatarMessage && (
                 <p
-                  className={`wb-profile-message wb-profile-message-${message.tone}`}
-                  role={message.tone === 'error' ? 'alert' : 'status'}
-                  aria-live={message.tone === 'error' ? 'assertive' : 'polite'}
+                  className={`wb-profile-message wb-profile-message-${avatarMessage.tone}`}
+                  role={avatarMessage.tone === 'error' ? 'alert' : 'status'}
+                  aria-live={avatarMessage.tone === 'error' ? 'assertive' : 'polite'}
                 >
-                  {message.text}
+                  {avatarMessage.text}
                 </p>
               )}
             </div>
@@ -288,27 +384,115 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
             </div>
           )}
 
-          <dl className="wb-settings-list">
-            <div>
-              <dt>Name</dt>
-              <dd>{profileLoading && !profile ? 'Loading…' : displayName}</dd>
+          <form className="wb-settings-section" onSubmit={(event) => void saveName(event)}>
+            <h4 className="wb-settings-section-title">Profile</h4>
+            <label className="wb-field" htmlFor="wb-settings-name">
+              <span className="wb-label">Name</span>
+              <input
+                id="wb-settings-name"
+                className="wb-input"
+                value={nameDraft}
+                onChange={(event) => setNameDraft(event.target.value)}
+                maxLength={MAX_NAME_LENGTH}
+                autoComplete="name"
+                disabled={!profile || nameSaving}
+                required
+              />
+            </label>
+            <label className="wb-field" htmlFor="wb-settings-email">
+              <span className="wb-label">Email</span>
+              <input
+                id="wb-settings-email"
+                className="wb-input"
+                value={profileLoading && !profile ? 'Loading…' : displayEmail}
+                readOnly
+                autoComplete="username"
+              />
+            </label>
+            <div className="wb-field">
+              <span className="wb-label">Role</span>
+              <p className="wb-settings-readonly">
+                {profileLoading && !profile ? 'Loading…' : displayRole(profile?.role)}
+              </p>
             </div>
-            <div>
-              <dt>Email</dt>
-              <dd>{profileLoading && !profile ? 'Loading…' : displayEmail}</dd>
+            <div className="wb-settings-form-actions">
+              <Button type="submit" loading={nameSaving} disabled={!profile || nameSaving || nameUnchanged}>
+                Save name
+              </Button>
             </div>
-            <div>
-              <dt>Role</dt>
-              <dd>{profileLoading && !profile ? 'Loading…' : displayRole(profile?.role)}</dd>
+            {nameMessage && (
+              <p
+                className={`wb-profile-message wb-profile-message-${nameMessage.tone}`}
+                role={nameMessage.tone === 'error' ? 'alert' : 'status'}
+                aria-live={nameMessage.tone === 'error' ? 'assertive' : 'polite'}
+              >
+                {nameMessage.text}
+              </p>
+            )}
+          </form>
+
+          <form className="wb-settings-section" onSubmit={(event) => void savePassword(event)}>
+            <h4 className="wb-settings-section-title">Password</h4>
+            <p className="wb-settings-section-help">
+              At least {MIN_PASSWORD_LENGTH} characters. You stay signed in on this browser.
+            </p>
+            <label className="wb-field" htmlFor="wb-settings-current-password">
+              <span className="wb-label">Current password</span>
+              <input
+                id="wb-settings-current-password"
+                className="wb-input"
+                type="password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                autoComplete="current-password"
+                disabled={passwordSaving}
+                required
+              />
+            </label>
+            <label className="wb-field" htmlFor="wb-settings-new-password">
+              <span className="wb-label">New password</span>
+              <input
+                id="wb-settings-new-password"
+                className="wb-input"
+                type="password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
+                disabled={passwordSaving}
+                required
+              />
+            </label>
+            <label className="wb-field" htmlFor="wb-settings-confirm-password">
+              <span className="wb-label">Confirm new password</span>
+              <input
+                id="wb-settings-confirm-password"
+                className="wb-input"
+                type="password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
+                disabled={passwordSaving}
+                required
+              />
+            </label>
+            <div className="wb-settings-form-actions">
+              <Button type="submit" loading={passwordSaving} disabled={passwordSaving}>
+                Change password
+              </Button>
             </div>
-            <div>
-              <dt>Session token</dt>
-              <dd className="wb-settings-mono">
-                {token ? <Mono truncate="middle" max={20}>{token}</Mono> : '—'}
-                {token && <CopyButton value={token} label="Copy session token" />}
-              </dd>
-            </div>
-          </dl>
+            {passwordMessage && (
+              <p
+                className={`wb-profile-message wb-profile-message-${passwordMessage.tone}`}
+                role={passwordMessage.tone === 'error' ? 'alert' : 'status'}
+                aria-live={passwordMessage.tone === 'error' ? 'assertive' : 'polite'}
+              >
+                {passwordMessage.text}
+              </p>
+            )}
+          </form>
+
           <div className="wb-settings-actions">
             <Button variant="danger" onClick={onLogout}>
               Sign out
@@ -317,25 +501,24 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
         </Card>
 
         <Card>
-          <h3 className="wb-settings-title">Server</h3>
+          <h3 className="wb-settings-title">About</h3>
           <dl className="wb-settings-list">
             <div>
-              <dt>API base</dt>
-              <dd className="wb-settings-mono"><Mono>/api</Mono></dd>
+              <dt>App</dt>
+              <dd>Whereabouts</dd>
             </div>
             <div>
-              <dt>WebSocket</dt>
-              <dd className="wb-settings-mono"><Mono>/ws/stream</Mono></dd>
+              <dt>Version</dt>
+              <dd>{APP_VERSION}</dd>
             </div>
             <div>
-              <dt>Build</dt>
-              <dd>v0.1</dd>
+              <dt>Server</dt>
+              <dd className="wb-settings-mono">
+                <Mono>{serverUrl}</Mono>
+                <CopyButton value={serverUrl} label="Copy server URL" />
+              </dd>
             </div>
           </dl>
-          <p className="wb-settings-note">
-            More settings — member invitations, family management, and feature
-            flags — will appear here as the backend grows.
-          </p>
         </Card>
       </div>
     </div>

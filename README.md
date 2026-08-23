@@ -299,7 +299,7 @@ Setting `PLATFORM_ADMIN_EMAIL` **closes open registration**.
    **Users** — every account, including people with no family; create,
    assign, change role, reset password.
    **APK** — download the Android APK.
-   **Settings** — session and API endpoints.
+   **Settings** — your account (name, password, photo) and this server.
 
 ### Invite codes
 
@@ -482,6 +482,7 @@ For a fully private map, host your own tiles. The simplest option is
 | POST | `/auth/refresh` | Rotate refresh token |
 | GET | `/me` | Signed-in profile |
 | PATCH | `/me` | Update display name and/or phone |
+| PATCH | `/me/password` | Change password (requires current password) |
 | GET | `/me/contacts` | List emergency contacts |
 | POST | `/me/contacts` | Add an emergency contact |
 | DELETE | `/me/contacts/{id}` | Remove an emergency contact |

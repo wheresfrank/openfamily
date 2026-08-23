@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/whereabouts/whereabouts/backend/internal/auth"
 	"github.com/whereabouts/whereabouts/backend/internal/middleware"
 	"github.com/whereabouts/whereabouts/backend/internal/models"
 	"github.com/whereabouts/whereabouts/backend/internal/sms"
@@ -114,6 +115,83 @@ func (s *Server) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logAudit(r.Context(), claims.UserID, "", "profile.update", "updated profile", clientIP(r))
 	writeJSON(w, http.StatusOK, user)
+}
+
+func validatePasswordChange(current, newPassword string) error {
+	if current == "" || newPassword == "" {
+		return errors.New("current_password and new_password are required")
+	}
+	if len(newPassword) < minPasswordLength {
+		return fmt.Errorf("password must be at least %d characters", minPasswordLength)
+	}
+	if current == newPassword {
+		return errors.New("new password must be different from the current password")
+	}
+	return nil
+}
+
+// ChangeMyPassword replaces the caller's password after verifying the current
+// one. A wrong current password is 400, not 401: clients that refresh on 401
+// must not treat this as a dead session.
+func (s *Server) ChangeMyPassword(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	var req struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := validatePasswordChange(req.CurrentPassword, req.NewPassword); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var hash string
+	err := s.Pool.QueryRow(r.Context(), `SELECT password_hash FROM users WHERE id = $1`, claims.UserID).Scan(&hash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "profile not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load profile")
+		return
+	}
+
+	ok, err := auth.VerifyPassword(req.CurrentPassword, hash)
+	if err != nil && !errors.Is(err, auth.ErrInvalidPassword) {
+		writeError(w, http.StatusInternalServerError, "failed to verify password")
+		return
+	}
+	if err != nil || !ok {
+		writeError(w, http.StatusBadRequest, "current password is incorrect")
+		return
+	}
+
+	newHash, err := auth.HashPassword(req.NewPassword)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to hash password")
+		return
+	}
+	command, err := s.Pool.Exec(r.Context(),
+		`UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2`,
+		newHash, claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update password")
+		return
+	}
+	if command.RowsAffected() == 0 {
+		writeError(w, http.StatusNotFound, "profile not found")
+		return
+	}
+
+	s.logAudit(r.Context(), claims.UserID, "", "profile.password_changed", "changed password", clientIP(r))
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) userProfileByID(r *http.Request, userID string) (models.User, error) {
