@@ -160,7 +160,7 @@ func (s *Server) IngestLocation(w http.ResponseWriter, r *http.Request) {
 		auditFamilyID = *dbFamilyID
 	}
 	s.logAudit(r.Context(), ownerID, auditFamilyID, "location_ingest",
-		fmt.Sprintf("device=%s lat=%f lon=%f", req.DeviceID, req.Lat, req.Lon), clientIP(r))
+		fmt.Sprintf("device=%s", req.DeviceID), clientIP(r))
 
 	// Evaluate geofences for the device owner against the new point in a
 	// goroutine so the client's ack is not delayed by evaluation. A background

@@ -48,6 +48,10 @@ func (s *Server) AdminStream(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+	if !s.tokenVersionMatches(r.Context(), claims.UserID, claims.TokenVersion) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	// Platform admin gate (re-read from the DB, never trust the JWT).
 	var platformAdmin bool

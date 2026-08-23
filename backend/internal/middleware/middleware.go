@@ -46,6 +46,30 @@ func RequireAuth(tm *auth.TokenManager) func(http.Handler) http.Handler {
 	}
 }
 
+// RequireTokenVersion rejects JWTs whose ver claim does not match users.token_version.
+// Run after RequireAuth. Logout, password change, and admin reset bump the column
+// so outstanding access and refresh tokens die immediately.
+func RequireTokenVersion(pool *pgxpool.Pool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims := ClaimsFromContext(r.Context())
+			if claims == nil {
+				http.Error(w, `{"error":"unauthenticated"}`, http.StatusUnauthorized)
+				return
+			}
+			var version int
+			err := pool.QueryRow(r.Context(),
+				`SELECT token_version FROM users WHERE id = $1`, claims.UserID,
+			).Scan(&version)
+			if err != nil || version != claims.TokenVersion {
+				http.Error(w, `{"error":"invalid or expired token"}`, http.StatusUnauthorized)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // RequirePlatformAdmin enforces the platform-admin privilege boundary. It must
 // run after RequireAuth (so claims are present). It re-reads the platform_admin
 // flag from the database on every request — never trusting the JWT — so a

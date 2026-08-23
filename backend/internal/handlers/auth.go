@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/whereabouts/whereabouts/backend/internal/auth"
+	"github.com/whereabouts/whereabouts/backend/internal/middleware"
 	"github.com/whereabouts/whereabouts/backend/internal/models"
 )
 
@@ -39,6 +40,9 @@ type tokenPair struct {
 // a code is still honored if present (so joining a family works in open mode),
 // and a missing code creates an unassigned account as before.
 func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
+	if !s.allowAuth(w, authIPKey("register", clientIP(r)), registerPerIP, registerWindow) {
+		return
+	}
 	var req registerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
@@ -116,22 +120,28 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 
 // Login verifies credentials (and TOTP when enabled) and returns a token pair.
 func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
+	if !s.allowAuth(w, authIPKey("login", clientIP(r)), loginPerIP, loginWindow) {
+		return
+	}
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	if !s.allowAuth(w, authEmailKey(req.Email), loginPerEmail, loginWindow) {
+		return
+	}
 
 	var user models.User
 	err := s.Pool.QueryRow(r.Context(), `
-		SELECT id, family_id, email, name, role, password_hash, COALESCE(totp_secret, ''), totp_enabled, created_at, updated_at
+		SELECT id, family_id, email, name, role, password_hash, COALESCE(totp_secret, ''), totp_enabled, token_version, created_at, updated_at
 		FROM users WHERE email = $1`, req.Email,
 	).Scan(&user.ID, &user.FamilyID, &user.Email, &user.Name, &user.Role,
-		&user.PasswordHash, &user.TOTPSecret, &user.TOTPEnabled, &user.CreatedAt, &user.UpdatedAt)
+		&user.PasswordHash, &user.TOTPSecret, &user.TOTPEnabled, &user.TokenVersion, &user.CreatedAt, &user.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
-		// Avoid leaking which emails exist.
-		s.logAudit(r.Context(), "", "", "auth.login_failed", "login failed for "+req.Email+" (unknown email)", clientIP(r))
+		// Avoid leaking which emails exist — same HTTP body and audit text.
+		s.logAudit(r.Context(), "", "", "auth.login_failed", "login failed", clientIP(r))
 		writeError(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
@@ -142,14 +152,14 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 
 	ok, err := auth.VerifyPassword(req.Password, user.PasswordHash)
 	if err != nil || !ok {
-		s.logAudit(r.Context(), user.ID, "", "auth.login_failed", "login failed for "+req.Email+" (bad password)", clientIP(r))
+		s.logAudit(r.Context(), user.ID, "", "auth.login_failed", "login failed", clientIP(r))
 		writeError(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
 
 	if user.TOTPEnabled {
 		if req.TOTPCode == "" || !auth.ValidateTOTPWithSkew(user.TOTPSecret, req.TOTPCode, 1) {
-			s.logAudit(r.Context(), user.ID, "", "auth.login_failed", "login failed for "+req.Email+" (bad totp)", clientIP(r))
+			s.logAudit(r.Context(), user.ID, "", "auth.login_failed", "login failed", clientIP(r))
 			writeError(w, http.StatusUnauthorized, "invalid totp code")
 			return
 		}
@@ -165,6 +175,9 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 
 // Refresh rotates a refresh token into a new token pair.
 func (s *Server) Refresh(w http.ResponseWriter, r *http.Request) {
+	if !s.allowAuth(w, authIPKey("refresh", clientIP(r)), refreshPerIP, refreshWindow) {
+		return
+	}
 	var req struct {
 		RefreshToken string `json:"refresh_token"`
 	}
@@ -181,10 +194,10 @@ func (s *Server) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	var user models.User
 	err = s.Pool.QueryRow(r.Context(), `
-		SELECT id, family_id, email, name, role, totp_enabled, created_at, updated_at
+		SELECT id, family_id, email, name, role, totp_enabled, token_version, created_at, updated_at
 		FROM users WHERE id = $1`, claims.UserID,
 	).Scan(&user.ID, &user.FamilyID, &user.Email, &user.Name, &user.Role,
-		&user.TOTPEnabled, &user.CreatedAt, &user.UpdatedAt)
+		&user.TOTPEnabled, &user.TokenVersion, &user.CreatedAt, &user.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, http.StatusUnauthorized, "user no longer exists")
 		return
@@ -193,8 +206,28 @@ func (s *Server) Refresh(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to load user")
 		return
 	}
+	if claims.TokenVersion != user.TokenVersion {
+		writeError(w, http.StatusUnauthorized, "invalid refresh token")
+		return
+	}
 
 	s.issueTokens(w, user)
+}
+
+// Logout bumps token_version so every outstanding access and refresh token
+// for this user is rejected. The client still clears local storage.
+func (s *Server) Logout(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	if err := s.bumpTokenVersion(r.Context(), claims.UserID); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to log out")
+		return
+	}
+	s.logAudit(r.Context(), claims.UserID, "", "auth.logout", "logged out", clientIP(r))
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) issueTokens(w http.ResponseWriter, user models.User) {
@@ -202,12 +235,12 @@ func (s *Server) issueTokens(w http.ResponseWriter, user models.User) {
 	if user.FamilyID != nil {
 		familyID = *user.FamilyID
 	}
-	access, err := s.TM.IssueAccess(user.ID, familyID)
+	access, err := s.TM.IssueAccess(user.ID, familyID, user.TokenVersion)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to issue access token")
 		return
 	}
-	refresh, err := s.TM.IssueRefresh(user.ID, familyID)
+	refresh, err := s.TM.IssueRefresh(user.ID, familyID, user.TokenVersion)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to issue refresh token")
 		return

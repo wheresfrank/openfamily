@@ -75,6 +75,10 @@ func (s *Server) Stream(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+	if !s.tokenVersionMatches(r.Context(), claims.UserID, claims.TokenVersion) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	// Resolve the caller's current family from the database (the JWT family
 	// claim can go stale when a user joins or creates a family).

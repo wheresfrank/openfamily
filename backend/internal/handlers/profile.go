@@ -190,7 +190,89 @@ func (s *Server) ChangeMyPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, err := s.Pool.Exec(r.Context(),
+		`UPDATE users SET token_version = token_version + 1, updated_at = now() WHERE id = $1`,
+		claims.UserID); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to invalidate sessions")
+		return
+	}
+
 	s.logAudit(r.Context(), claims.UserID, "", "profile.password_changed", "changed password", clientIP(r))
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func deleteAccountBlocked(role models.Role, adminCount, memberCount int) bool {
+	return role == models.RoleAdmin && adminCount <= 1 && memberCount > 1
+}
+
+// DeleteMe removes the caller's account and cascaded location, device, and
+// contact rows. The last admin of a family that still has other members must
+// promote someone first. If they are the only member, the family is dissolved.
+func (s *Server) DeleteMe(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+
+	tx, err := s.Pool.Begin(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to begin transaction")
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	var familyID *string
+	var role models.Role
+	if err := tx.QueryRow(r.Context(), `
+		SELECT family_id, role FROM users WHERE id = $1 FOR UPDATE`, claims.UserID,
+	).Scan(&familyID, &role); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, http.StatusUnauthorized, "unauthenticated")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
+
+	auditFamily := ""
+	if familyID != nil {
+		auditFamily = *familyID
+		var lockedFamily string
+		if err := tx.QueryRow(r.Context(), `
+			SELECT id FROM families WHERE id = $1 FOR UPDATE`, *familyID).Scan(&lockedFamily); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to lock family")
+			return
+		}
+		var adminCount, memberCount int
+		if err := tx.QueryRow(r.Context(), `
+			SELECT COUNT(*) FILTER (WHERE role = 'admin'), COUNT(*)
+			FROM users WHERE family_id = $1`, *familyID).Scan(&adminCount, &memberCount); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to count family members")
+			return
+		}
+		if deleteAccountBlocked(role, adminCount, memberCount) {
+			writeError(w, http.StatusConflict, "cannot delete the last admin while others remain in the family")
+			return
+		}
+		if role == models.RoleAdmin && memberCount <= 1 {
+			if _, err := tx.Exec(r.Context(), `DELETE FROM families WHERE id = $1`, *familyID); err != nil {
+				writeError(w, http.StatusInternalServerError, "failed to dissolve family")
+				return
+			}
+		}
+	}
+
+	if _, err := tx.Exec(r.Context(), `DELETE FROM users WHERE id = $1`, claims.UserID); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to delete account")
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to commit")
+		return
+	}
+
+	s.logAudit(r.Context(), "", auditFamily, "auth.account_deleted", "deleted account", clientIP(r))
 	w.WriteHeader(http.StatusNoContent)
 }
 
