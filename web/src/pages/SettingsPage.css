@@ -125,10 +125,44 @@
   color: var(--text);
 }
 .wb-settings-mono {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-family: var(--font-mono);
   font-size: var(--font-sm);
   color: var(--purple-dark);
   word-break: break-all;
+}
+.wb-settings-section {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-4) 0 0;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.wb-settings-section-title {
+  margin: 0;
+  font-size: var(--font-md);
+  font-weight: 600;
+}
+.wb-settings-section-help {
+  margin: 0;
+  font-size: var(--font-sm);
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+.wb-settings-readonly {
+  margin: 0;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  font-size: var(--font-md);
+  color: var(--text);
+}
+.wb-settings-form-actions {
+  display: flex;
+  gap: var(--space-3);
 }
 .wb-settings-actions {
   display: flex;

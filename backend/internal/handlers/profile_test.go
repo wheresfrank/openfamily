@@ -263,3 +263,41 @@ func TestUpdateMeUnauthenticated(t *testing.T) {
 		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
 	}
 }
+
+func TestChangeMyPasswordUnauthenticated(t *testing.T) {
+	srv := &Server{}
+	r := chi.NewRouter()
+	r.Patch("/me/password", srv.ChangeMyPassword)
+	req := httptest.NewRequest(http.MethodPatch, "/me/password", strings.NewReader(`{"current_password":"old-password","new_password":"new-password"}`))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestValidatePasswordChange(t *testing.T) {
+	tests := []struct {
+		name    string
+		current string
+		next    string
+		wantErr bool
+	}{
+		{name: "ok", current: "old-password", next: "new-password", wantErr: false},
+		{name: "missing current", current: "", next: "new-password", wantErr: true},
+		{name: "missing new", current: "old-password", next: "", wantErr: true},
+		{name: "too short", current: "old-password", next: "short", wantErr: true},
+		{name: "unchanged", current: "same-password", next: "same-password", wantErr: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validatePasswordChange(tc.current, tc.next)
+			if tc.wantErr && err == nil {
+				t.Fatalf("validatePasswordChange(%q, %q) = nil, want error", tc.current, tc.next)
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("validatePasswordChange(%q, %q) = %v, want nil", tc.current, tc.next, err)
+			}
+		})
+	}
+}
