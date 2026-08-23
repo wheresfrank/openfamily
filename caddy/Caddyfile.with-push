@@ -1,0 +1,17 @@
+# Production Caddyfile: API + ntfy UnifiedPush, both with automatic HTTPS.
+#
+# Set in .env:
+#   SITE_ADDRESS=whereabouts.example.com
+#   PUSH_ADDRESS=push.example.com
+#   NTFY_BASE_URL=https://push.example.com
+#   CADDYFILE=Caddyfile.with-push
+
+{$SITE_ADDRESS:localhost} {
+	encode gzip
+	reverse_proxy api:8080
+}
+
+{$PUSH_ADDRESS} {
+	encode gzip
+	reverse_proxy ntfy:80
+}
