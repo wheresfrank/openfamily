@@ -326,6 +326,22 @@ it in `APK_DIR`.
 Because this repository is private, set `APK_GITHUB_TOKEN` in `.env` to a
 fine-grained PAT with **Contents: Read**, then recreate the API container.
 
+Release APKs are signed with a dedicated upload keystore so Android can
+install each new build as an in-place update. CI requires these repository
+secrets:
+
+- `ANDROID_KEYSTORE_BASE64` — base64-encoded `upload-keystore.jks`
+- `ANDROID_KEYSTORE_PASSWORD` — keystore and key password
+- `ANDROID_KEY_ALIAS` — key alias (`upload`)
+
+`versionCode` is the workflow `run_number` (`flutter build apk --build-number`).
+Bump `version:` in `app/pubspec.yaml` only when you want the user-visible
+`versionName` to change.
+
+Keep a backup of `app/android/upload-keystore.jks` and
+`app/android/key.properties` (both gitignored). Losing the keystore means
+users have to uninstall before they can install a newly signed APK.
+
 One generic APK works for every deployment because of the runtime server URL
 screen.
 
