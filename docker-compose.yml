@@ -9,10 +9,11 @@ services:
       # Local dev: ":80" (HTTP only). Production: your domain, e.g.
       # "whereabouts.example.com" (Caddy provisions Let's Encrypt automatically).
       SITE_ADDRESS: ${SITE_ADDRESS:-:80}
-      # Optional: public address for ntfy (UnifiedPush). Leave empty to skip.
+      # Optional: public address for ntfy (UnifiedPush). Leave empty locally.
+      # Production: PUSH_ADDRESS=push.example.com and CADDYFILE=Caddyfile.with-push.
       PUSH_ADDRESS: ${PUSH_ADDRESS:-}
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/${CADDYFILE:-Caddyfile}:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -66,6 +67,11 @@ services:
         condition: service_healthy
     expose:
       - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
 
   postgres:
     image: timescale/timescaledb-ha:pg16
@@ -87,14 +93,17 @@ services:
     restart: unless-stopped
     command: serve
     environment:
-      # Public base URL the app uses to reach ntfy. Set to your PUSH_ADDRESS
-      # (https://...) in production so UnifiedPush works over TLS.
-      NTFY_BASE_URL: ${NTFY_BASE_URL:-http://localhost:2586}
+      # Public base URL the app uses to reach ntfy. Production must be https://
+      # on PUSH_ADDRESS (see caddy/Caddyfile.with-push). Local default is
+      # loopback-only so the topic server is not on the public internet.
+      NTFY_BASE_URL: ${NTFY_BASE_URL:-http://127.0.0.1:2586}
     volumes:
       - ntfy_cache:/var/cache/ntfy
       - ntfy_etc:/etc/ntfy
+    expose:
+      - "80"
     ports:
-      - "2586:80"
+      - "127.0.0.1:2586:80"
 
 volumes:
   caddy_data:

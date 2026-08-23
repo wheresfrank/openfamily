@@ -3,12 +3,12 @@
 # SITE_ADDRESS: the public address for the API (e.g. "whereabouts.example.com"
 # for production with automatic HTTPS, or ":80" for local HTTP-only dev).
 #
-# ntfy (UnifiedPush) is exposed directly on its own port for now. To put it
-# behind Caddy with TLS in production, add a second site block, e.g.:
-#
-#   push.example.com {
-#       reverse_proxy ntfy:80
-#   }
+# ntfy is NOT published on the public internet in docker-compose.yml (loopback
+# only). For production UnifiedPush over TLS, set:
+#   PUSH_ADDRESS=push.example.com
+#   NTFY_BASE_URL=https://push.example.com
+#   CADDYFILE=Caddyfile.with-push
+# and use caddy/Caddyfile.with-push.
 
 {$SITE_ADDRESS:localhost} {
 	encode gzip
