@@ -31,6 +31,7 @@ analytics SDK, and no Google Play Services requirement on Android.
 - [Features](#features)
 - [Compared to](#compared-to)
 - [Quick start](#quick-start)
+- [Family setup](#family-setup)
 - [Mobile apps](#mobile-apps)
 - [Web admin panel](#web-admin-panel)
 - [Self-hosting map tiles](#self-hosting-map-tiles)
@@ -41,6 +42,7 @@ analytics SDK, and no Google Play Services requirement on Android.
 - [Development](#development)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
+- [License](#license)
 
 ## Why self-host this
 
@@ -203,6 +205,22 @@ Install the APK from the admin panel's **APK** page, or run from source
 (see [Mobile apps](#mobile-apps)). On first launch, enter the server URL
 if it was not baked in at build time.
 
+Public internet deployments: follow [docs/self-hosting.md](docs/self-hosting.md)
+before you invite anyone.
+
+## Family setup
+
+1. Install the Android APK (admin **Builds** page or the latest GitHub Release).
+2. Enter your server URL (for example `https://whereabouts.example.com`).
+3. Create or join a family (invite code if the operator closed registration).
+4. Allow **Always** location and notifications. On Android, grant the battery
+   exemption under Settings → Background updates.
+5. Install [ntfy](https://ntfy.sh/) so SOS, geofence, and check-in alerts
+   arrive when Whereabouts is closed.
+
+Privacy details: [PRIVACY.md](PRIVACY.md). Operator hardening:
+[docs/self-hosting.md](docs/self-hosting.md).
+
 ## Mobile apps
 
 The Flutter app (`app/`) covers Android and iOS: onboarding, the live map,
@@ -233,19 +251,13 @@ in the stack.
 
 By default the street layer is the public OSM tile server. The optional
 satellite layer defaults to Esri World Imagery (still not Google). Both
-receive the map viewport on every pan/zoom. For a private deployment,
-self-host tiles and pass:
+receive the map viewport on every pan/zoom.
 
-```bash
-flutter run \
-  --dart-define=WHEREABOUTS_API_URL=https://whereabouts.example.com \
-  --dart-define=WHEREABOUTS_TILE_URL=https://tiles.example.com/{z}/{x}/{y}.png \
-  --dart-define=WHEREABOUTS_SATELLITE_TILE_URL=https://tiles.example.com/sat/{z}/{y}/{x}
-```
-
-`WHEREABOUTS_TILE_URL` is the street layer;
-`WHEREABOUTS_SATELLITE_TILE_URL` is satellite. Both use `{z}` / `{x}` / `{y}`
-placeholders (the ArcGIS-style satellite template swaps `{y}` / `{x}`).
+Operators override that without rebuilding the APK by setting `TILE_URL` and
+`SATELLITE_TILE_URL` in `.env` (returned on `GET /config`). Custom Flutter
+builds can still pass `--dart-define=WHEREABOUTS_TILE_URL=…`. Both templates
+use `{z}` / `{x}` / `{y}` (the ArcGIS-style satellite template swaps
+`{y}` / `{x}`). See [docs/self-hosting.md](docs/self-hosting.md).
 
 ### Background location
 
@@ -418,6 +430,8 @@ For a fully private map, host your own tiles. The simplest option is
 | `INSECURE_HTTP` | `false` | Opt-out of TLS (trusted private networks only) |
 | `VERBOSE_PUSH` | `false` | Include the user's name in push payloads |
 | `NTFY_BASE_URL` | *(empty)* | Public ntfy origin advertised on `GET /config` |
+| `TILE_URL` | OSM public tiles | Street `{z}/{x}/{y}` template on `GET /config` |
+| `SATELLITE_TILE_URL` | Esri public tiles | Satellite template on `GET /config` |
 | `PLATFORM_ADMIN_EMAIL` | *(empty)* | First platform admin; also closes open registration |
 | `PLATFORM_ADMIN_PASSWORD` | *(empty)* | Password for the auto-created admin account |
 | `APNS_KEY_FILE` | *(empty)* | APNs `.p8` key (empty disables APNs) |
@@ -595,7 +609,7 @@ web admin panel.
 Not in this release (ideas, not promises):
 
 - Adaptive, battery-aware tracking driven by activity recognition
-- Driving reports / trip summaries (the Settings toggle is a stub)
+- Driving reports / trip summaries
 - Passkeys (WebAuthn)
 - End-to-end encryption of location (conflicts with server-side geofences)
 - Crash detection
@@ -613,8 +627,12 @@ Issues and pull requests are welcome. Please:
 2. Match the existing Go / Flutter / TypeScript style in the tree you touch.
 3. Do not commit secrets, `.env`, or APNs keys.
 
-A `LICENSE` file has not been published yet. If you need a license to
-package or redistribute Whereabouts, open an issue.
+Report security issues privately — see [SECURITY.md](SECURITY.md).
+
+## License
+
+Whereabouts is licensed under the [GNU Affero General Public License
+v3.0](LICENSE).
 
 ## Acknowledgments
 
