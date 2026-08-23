@@ -4,8 +4,8 @@ import '../services/join_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
 
-/// The Join a Circle flow, reached from the map's `+` action sheet, the
-/// Circle switcher's `+` chip, and onboarding.
+/// The join-a-family flow, reached from the map's `+` action sheet, the
+/// family switcher's `+` chip, and onboarding.
 ///
 /// Accepts an alphanumeric invite code and validates it against the server —
 /// an invalid/unknown code shows a clear error (no false success).
@@ -163,7 +163,7 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
             if (widget.onDone != null) {
               widget.onDone!();
             } else {
-              Navigator.of(context).pop();
+              Navigator.of(context).pop(true);
             }
           },
           child: const Text('Done'),

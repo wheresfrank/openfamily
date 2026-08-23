@@ -49,6 +49,7 @@ type User struct {
 	PasswordHash string    `json:"-"`
 	TOTPSecret   string    `json:"-"`
 	TOTPEnabled  bool      `json:"totp_enabled"`
+	Phone        *string   `json:"phone,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }

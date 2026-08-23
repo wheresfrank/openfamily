@@ -18,6 +18,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/whereabouts/whereabouts/backend/internal/middleware"
 	"github.com/whereabouts/whereabouts/backend/internal/models"
+	"github.com/whereabouts/whereabouts/backend/internal/sms"
 )
 
 const (
@@ -64,7 +65,7 @@ func (s *Server) GetMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, user)
 }
 
-// UpdateMe changes the authenticated user's display name.
+// UpdateMe changes the authenticated user's display name and/or phone.
 func (s *Server) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.ClaimsFromContext(r.Context())
 	if claims == nil {
@@ -72,42 +73,71 @@ func (s *Server) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Name string `json:"name"`
+		Name  *string `json:"name"`
+		Phone *string `json:"phone"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	name, err := normalizeProfileName(req.Name)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+	if req.Name == nil && req.Phone == nil {
+		writeError(w, http.StatusBadRequest, "provide name or phone")
 		return
 	}
-	user, err := s.userProfileByID(r, claims.UserID, name)
+	var name *string
+	if req.Name != nil {
+		n, err := normalizeProfileName(*req.Name)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		name = &n
+	}
+	updatePhone := req.Phone != nil
+	phone := ""
+	if updatePhone {
+		normalized, err := sms.NormalizeE164(*req.Phone)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		phone = normalized
+	}
+	user, err := s.updateMe(r, claims.UserID, name, updatePhone, phone)
 	if err != nil {
+		if isUniqueViolation(err) {
+			writeError(w, http.StatusConflict, "phone number already in use")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "failed to update profile")
 		return
 	}
-	s.logAudit(r.Context(), claims.UserID, "", "profile.update", "updated profile name", clientIP(r))
+	s.logAudit(r.Context(), claims.UserID, "", "profile.update", "updated profile", clientIP(r))
 	writeJSON(w, http.StatusOK, user)
 }
 
-func (s *Server) userProfileByID(r *http.Request, userID string, updateName ...string) (models.User, error) {
-	ctx := r.Context()
+func (s *Server) userProfileByID(r *http.Request, userID string) (models.User, error) {
 	var user models.User
-	if len(updateName) > 0 {
-		err := s.Pool.QueryRow(ctx, `
-			UPDATE users SET name = $1, updated_at = now() WHERE id = $2
-			RETURNING id, family_id, email, name, role, totp_enabled, created_at, updated_at`,
-			updateName[0], userID).Scan(&user.ID, &user.FamilyID, &user.Email, &user.Name, &user.Role,
-			&user.TOTPEnabled, &user.CreatedAt, &user.UpdatedAt)
-		return user, err
-	}
-	err := s.Pool.QueryRow(ctx, `
-		SELECT id, family_id, email, name, role, totp_enabled, created_at, updated_at
+	err := s.Pool.QueryRow(r.Context(), `
+		SELECT id, family_id, email, name, phone, role, totp_enabled, created_at, updated_at
 		FROM users WHERE id = $1`, userID).
-		Scan(&user.ID, &user.FamilyID, &user.Email, &user.Name, &user.Role,
+		Scan(&user.ID, &user.FamilyID, &user.Email, &user.Name, &user.Phone, &user.Role,
 			&user.TOTPEnabled, &user.CreatedAt, &user.UpdatedAt)
+	return user, err
+}
+
+func (s *Server) updateMe(r *http.Request, userID string, name *string, updatePhone bool, phone string) (models.User, error) {
+	var user models.User
+	err := s.Pool.QueryRow(r.Context(), `
+		UPDATE users SET
+			name = COALESCE($1, name),
+			phone = CASE WHEN $2 THEN NULLIF($3, '') ELSE phone END,
+			updated_at = now()
+		WHERE id = $4
+		RETURNING id, family_id, email, name, phone, role, totp_enabled, created_at, updated_at`,
+		name, updatePhone, phone, userID,
+	).Scan(&user.ID, &user.FamilyID, &user.Email, &user.Name, &user.Phone, &user.Role,
+		&user.TOTPEnabled, &user.CreatedAt, &user.UpdatedAt)
 	return user, err
 }
 
@@ -117,6 +147,7 @@ type profileOut struct {
 	ID              string      `json:"id"`
 	Name            string      `json:"name"`
 	Email           string      `json:"email"`
+	Phone           *string     `json:"phone,omitempty"`
 	Role            models.Role `json:"role"`
 	HasAvatar       bool        `json:"has_avatar"`
 	AvatarVersion   int64       `json:"avatar_version"`
@@ -136,13 +167,14 @@ func (s *Server) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	var profile profileOut
 	err := s.Pool.QueryRow(r.Context(), `
-		SELECT id, name, email, role, avatar_data IS NOT NULL, avatar_version, avatar_updated_at
+		SELECT id, name, email, phone, role, avatar_data IS NOT NULL, avatar_version, avatar_updated_at
 		FROM users
 		WHERE id = $1`, claims.UserID,
 	).Scan(
 		&profile.ID,
 		&profile.Name,
 		&profile.Email,
+		&profile.Phone,
 		&profile.Role,
 		&profile.HasAvatar,
 		&profile.AvatarVersion,

@@ -64,6 +64,11 @@ type Config struct {
 	// modes.
 	VerbosePush bool
 
+	// NtfyBaseURL is the public ntfy origin (no trailing slash) exposed by
+	// GET /config so a generic APK can register UnifiedPush without a
+	// dart-define. Empty means the client should skip ntfy-specific hints.
+	NtfyBaseURL string
+
 	// APNs push notification credentials (optional; empty KeyFile disables APNs).
 	APNsKeyFile    string
 	APNsKeyID      string
@@ -107,6 +112,17 @@ type Config struct {
 	// (the repo's Flutter app). The build is only attempted when the flutter
 	// binary is on PATH (exec.LookPath).
 	FlutterAppDir string
+
+	// Twilio credentials. Empty AccountSID, AuthToken, or From disables SMS;
+	// in-app push and WebSocket alerts still work.
+	TwilioAccountSID string
+	TwilioAuthToken  string
+	TwilioFrom       string
+
+	// PublicBaseURL is the https origin used in SMS share links
+	// (https://example.com/alerts/share/{token}). Empty or non-https falls
+	// back to putting lat/lon in the SMS body.
+	PublicBaseURL string
 }
 
 // Load reads configuration from the environment, applying sensible defaults.
@@ -124,6 +140,7 @@ func Load() Config {
 		TLSBehindProxy:        getenvBool("TLS_BEHIND_PROXY", false),
 		InsecureHTTP:          getenvBool("INSECURE_HTTP", false),
 		VerbosePush:           getenvBool("VERBOSE_PUSH", false),
+		NtfyBaseURL:           strings.TrimRight(getenv("NTFY_BASE_URL", ""), "/"),
 		APNsKeyFile:           getenv("APNS_KEY_FILE", ""),
 		APNsKeyID:             getenv("APNS_KEY_ID", ""),
 		APNsTeamID:            getenv("APNS_TEAM_ID", ""),
@@ -135,6 +152,10 @@ func Load() Config {
 		APKGitHubRepo:         getenv("APK_GITHUB_REPO", ""),
 		APKGitHubToken:        getenv("APK_GITHUB_TOKEN", ""),
 		FlutterAppDir:         getenv("FLUTTER_APP_DIR", "./app"),
+		TwilioAccountSID:      getenv("TWILIO_ACCOUNT_SID", ""),
+		TwilioAuthToken:       getenv("TWILIO_AUTH_TOKEN", ""),
+		TwilioFrom:            getenv("TWILIO_FROM", ""),
+		PublicBaseURL:         strings.TrimRight(getenv("PUBLIC_BASE_URL", ""), "/"),
 	}
 }
 

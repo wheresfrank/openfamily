@@ -21,6 +21,7 @@ import (
 	handlers "github.com/whereabouts/whereabouts/backend/internal/handlers"
 	mid "github.com/whereabouts/whereabouts/backend/internal/middleware"
 	"github.com/whereabouts/whereabouts/backend/internal/push"
+	"github.com/whereabouts/whereabouts/backend/internal/sms"
 	web "github.com/whereabouts/whereabouts/backend/web"
 )
 
@@ -64,6 +65,15 @@ func main() {
 	})
 	srv := handlers.New(pool, tm, dispatcher)
 	srv.VerbosePush = cfg.VerbosePush
+	srv.NtfyBaseURL = cfg.NtfyBaseURL
+	srv.APNsConfigured = cfg.APNsKeyFile != ""
+	srv.SMS = sms.New(sms.Config{
+		AccountSID: cfg.TwilioAccountSID,
+		AuthToken:  cfg.TwilioAuthToken,
+		From:       cfg.TwilioFrom,
+	})
+	srv.AlertLimit = sms.NewLimiter()
+	srv.PublicBaseURL = cfg.PublicBaseURL
 	srv.AllowedOrigin = cfg.AllowedOrigin
 	srv.APKDir = cfg.APKDir
 	srv.APKGitHubRepo = cfg.APKGitHubRepo
@@ -93,6 +103,8 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
+	r.Get("/config", srv.GetConfig)
+	r.Get("/alerts/share/{token}", srv.ShareAlert)
 
 	// Auth (unauthenticated).
 	r.Post("/auth/register", srv.Register)
@@ -126,6 +138,8 @@ func main() {
 
 		r.Post("/families", srv.CreateFamily)
 		r.Get("/family", srv.GetFamily)
+		r.Patch("/family", srv.RenameFamily)
+		r.Post("/family/leave", srv.LeaveFamily)
 		r.Get("/family/members", srv.ListMembers)
 		r.Get("/family/members/{id}/avatar", srv.GetFamilyMemberAvatar)
 		r.Get("/family/members/{id}/history", srv.GetMemberHistory)
@@ -147,8 +161,13 @@ func main() {
 
 		r.Post("/devices", srv.RegisterDevice)
 		r.Get("/devices", srv.ListDevices)
+		r.Patch("/devices/{id}", srv.UpdateDevice)
 
 		r.Post("/locations", srv.IngestLocation)
+		r.Post("/alerts/check-in", srv.PostCheckIn)
+		r.Post("/alerts/help", srv.PostHelp)
+		r.Post("/alerts/sos", srv.PostSOS)
+		r.Post("/alerts/{id}/resolve", srv.ResolveAlert)
 	})
 
 	// Platform admin API, namespaced under /api/admin/* so it never collides

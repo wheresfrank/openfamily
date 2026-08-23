@@ -12,7 +12,9 @@ import '../services/battery_optimization_service.dart';
 import '../services/family_service.dart';
 import '../services/location_reporter.dart';
 import '../services/location_service.dart';
+import '../services/location_sharing_service.dart';
 import '../services/permission_service.dart';
+import '../services/push_service.dart';
 import '../services/token_storage.dart';
 import '../theme/app_theme.dart';
 import '../utils/member_clustering.dart';
@@ -37,7 +39,7 @@ const double kApproxZoneRadiusMeters = 300.0;
 /// The map-first home screen.
 ///
 /// A full-bleed live map is the background — it extends behind *everything*.
-/// A Circle switcher floats at the top, and member avatar bubbles are pinned to
+/// A family name chip floats at the top, and member avatar bubbles are pinned to
 /// their locations (clustered and fanned out when near each other).
 ///
 /// The bottom control bar — a large, dominant SOS button plus the Places /
@@ -80,6 +82,7 @@ class _MapScreenState extends State<MapScreen>
   final LocationReporter _reporter = LocationReporter();
   String _familyName = 'Family';
   String? _userId;
+  bool _hasFamily = true;
 
   /// True while the first family/members fetch is in flight.
   bool _loading = true;
@@ -109,16 +112,12 @@ class _MapScreenState extends State<MapScreen>
     _familyService.onUserId = _onUserId;
     _load();
     _checkLocation();
-    // Fire-and-forget: reporting must not block the UI. The reporter handles
-    // its own errors (including the location-off case) internally.
-    _reporter.start();
-    // Start background location reporting only after the first frame, when the
-    // activity is visible. Starting a `location` foreground service during
-    // startup (before the app is in the foreground) is rejected on Android 15+.
+    _initLocationSharing();
+    PushService.sync();
+    // One-time Android battery-optimization guidance (keeps background
+    // updates alive when the app is closed). No-op elsewhere. Runs after the
+    // first frame so the activity is visible.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      BackgroundLocationService.start();
-      // One-time Android battery-optimization guidance (keeps background
-      // updates alive when the app is closed). No-op elsewhere.
       _suggestBatteryOptimization();
     });
   }
@@ -152,10 +151,28 @@ class _MapScreenState extends State<MapScreen>
         _familyName = name;
         _members = members;
         _membersListenable.value = members;
+        _hasFamily = true;
         _loading = false;
       });
       if (_mapReady) _fitToMembers();
       await _familyService.start();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      if (e.status == 404) {
+        setState(() {
+          _hasFamily = false;
+          _familyName = 'No family';
+          _members = <Member>[];
+          _membersListenable.value = const <Member>[];
+          _loading = false;
+          _error = null;
+        });
+        return;
+      }
+      setState(() {
+        _loading = false;
+        _error = _friendlyError(e);
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -243,6 +260,7 @@ class _MapScreenState extends State<MapScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    LocationSharingService.enabled.removeListener(_onSharingChanged);
     _reporter.stop();
     _familyService.dispose();
     _cameraAnim?.dispose();
@@ -273,7 +291,38 @@ class _MapScreenState extends State<MapScreen>
     } catch (_) {
       // Ignore sync failures; the reporter's own 401→refresh path recovers.
     }
-    _reporter.start();
+    if (LocationSharingService.enabled.value) {
+      _reporter.start();
+    }
+  }
+
+  Future<void> _initLocationSharing() async {
+    await LocationSharingService.load();
+    if (!mounted) return;
+    LocationSharingService.enabled.addListener(_onSharingChanged);
+    _applyLocationSharing(startBackgroundAfterFrame: true);
+  }
+
+  void _onSharingChanged() {
+    _applyLocationSharing(startBackgroundAfterFrame: false);
+  }
+
+  void _applyLocationSharing({required bool startBackgroundAfterFrame}) {
+    if (LocationSharingService.enabled.value) {
+      _reporter.start();
+      if (startBackgroundAfterFrame) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (LocationSharingService.enabled.value) {
+            BackgroundLocationService.start();
+          }
+        });
+      } else {
+        BackgroundLocationService.start();
+      }
+    } else {
+      _reporter.stop();
+      BackgroundLocationService.stop();
+    }
   }
 
   /// Members with the caller's own member relabeled as "You".
@@ -384,7 +433,7 @@ class _MapScreenState extends State<MapScreen>
     _expandedClusters.retainAll(validIds);
   }
 
-  /// Frames all members of the current circle.
+  /// Frames all members of the current family.
   void _fitToMembers() {
     final List<Member> members =
         _liveMembers().where((Member m) => m.position != null).toList();
@@ -449,9 +498,13 @@ class _MapScreenState extends State<MapScreen>
   }
 
   void _openJoinCircle() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const JoinCircleScreen()));
+    Navigator.of(context)
+        .push(
+      MaterialPageRoute<bool>(builder: (_) => const JoinCircleScreen()),
+    )
+        .then((bool? joined) {
+      if (joined == true && mounted) _load();
+    });
   }
 
   void _openCheckIn() {
@@ -483,7 +536,7 @@ class _MapScreenState extends State<MapScreen>
                 color: AppColors.purple,
               ),
               title: const Text('Check In'),
-              subtitle: const Text('Share your location with your Circle'),
+              subtitle: const Text('Share your location with your family'),
               onTap: () {
                 Navigator.of(context).pop();
                 _openCheckIn();
@@ -495,7 +548,7 @@ class _MapScreenState extends State<MapScreen>
                 color: AppColors.purple,
               ),
               title: const Text('Help Alert'),
-              subtitle: const Text('Ask your Circle for help'),
+              subtitle: const Text('Ask your family for help'),
               onTap: () {
                 Navigator.of(context).pop();
                 _openHelpAlert();
@@ -508,7 +561,7 @@ class _MapScreenState extends State<MapScreen>
               ),
               title: const Text('Invite'),
               subtitle: const Text(
-                'Send Code to invite someone to your circle',
+                'Send a code to invite someone to your family',
               ),
               onTap: () {
                 Navigator.of(context).pop();
@@ -611,7 +664,7 @@ class _MapScreenState extends State<MapScreen>
               child: _LoadErrorCard(message: _error!, onRetry: _load),
             ),
 
-          // Top: Circle switcher, with a location-off re-prompt banner below it
+          // Top: family name, with a location-off re-prompt banner below it
           // when the user skipped location during onboarding.
           Positioned(
             top: 0,
@@ -627,7 +680,7 @@ class _MapScreenState extends State<MapScreen>
                       circles: [_familyName],
                       selectedIndex: 0,
                       onSelected: (_) {},
-                      onJoinCircle: _openJoinCircle,
+                      onJoinCircle: _hasFamily ? null : _openJoinCircle,
                       alignment: Alignment.centerLeft,
                     ),
                   ),

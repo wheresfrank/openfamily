@@ -126,6 +126,39 @@ class ApiClient {
     return data as Map<String, dynamic>;
   }
 
+  /// POST /families → create a family (caller becomes admin).
+  static Future<Map<String, dynamic>> createFamily(String name) async {
+    final dynamic data = await _send(
+      'POST',
+      _uri('/families'),
+      body: <String, dynamic>{'name': name},
+    );
+    return data as Map<String, dynamic>;
+  }
+
+  /// PATCH /family → rename the caller's family (admin only).
+  static Future<void> renameFamily(String name) async {
+    await _send(
+      'PATCH',
+      _uri('/family'),
+      body: <String, dynamic>{'name': name},
+    );
+  }
+
+  /// POST /family/leave → leave the current family.
+  static Future<void> leaveFamily() async {
+    await _send('POST', _uri('/family/leave'));
+  }
+
+  /// PATCH /family/members/{id}/role → change a member's role (admin only).
+  static Future<void> updateMemberRole(String memberId, String role) async {
+    await _send(
+      'PATCH',
+      _uri('/family/members/${Uri.encodeComponent(memberId)}/role'),
+      body: <String, dynamic>{'role': role},
+    );
+  }
+
   /// POST /auth/login → the token pair.
   static Future<Map<String, dynamic>> login({
     required String email,
@@ -178,6 +211,34 @@ class ApiClient {
     if (appVersion != null) body['app_version'] = appVersion;
     final dynamic data = await _send('POST', _uri('/devices'), body: body);
     return data as Map<String, dynamic>;
+  }
+
+  /// GET /config → public ntfy/APNs settings for the generic APK.
+  static Future<Map<String, dynamic>> getPushConfig() async {
+    final dynamic data = await _send('GET', _uri('/config'), auth: false);
+    return data as Map<String, dynamic>;
+  }
+
+  /// PATCH /devices/{id} with push credentials. Empty strings clear them.
+  static Future<void> updateDevicePush({
+    required String deviceId,
+    String? pushToken,
+    String? unifiedpushEndpoint,
+  }) async {
+    final String id = deviceId.trim();
+    if (id.isEmpty) {
+      throw ArgumentError.value(deviceId, 'deviceId', 'must not be empty');
+    }
+    final Map<String, dynamic> body = <String, dynamic>{};
+    if (pushToken != null) body['push_token'] = pushToken;
+    if (unifiedpushEndpoint != null) {
+      body['unifiedpush_endpoint'] = unifiedpushEndpoint;
+    }
+    await _send(
+      'PATCH',
+      _uri('/devices/${Uri.encodeComponent(id)}'),
+      body: body,
+    );
   }
 
   /// GET /api/profile → the authenticated user's private profile information.

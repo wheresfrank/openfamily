@@ -34,6 +34,9 @@ services:
       # Caddy terminates TLS in front of the API.
       TLS_BEHIND_PROXY: ${TLS_BEHIND_PROXY:-true}
       VERBOSE_PUSH: ${VERBOSE_PUSH:-false}
+      # Advertised to the app via GET /config so a generic APK can register
+      # UnifiedPush without a dart-define.
+      NTFY_BASE_URL: ${NTFY_BASE_URL:-http://localhost:2586}
       # APNs (iOS push). Empty disables APNs; Android still works via ntfy.
       # To enable iOS push, add a volume mount to this service:
       #   volumes:
@@ -44,6 +47,12 @@ services:
       APNS_TEAM_ID: ${APNS_TEAM_ID:-}
       APNS_TOPIC: ${APNS_TOPIC:-}
       APNS_PRODUCTION: ${APNS_PRODUCTION:-false}
+      # Optional Twilio SMS for family alerts. Empty disables SMS; in-app
+      # push and WebSocket still work.
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM: ${TWILIO_FROM:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       # Directory the admin panel caches the GitHub Release APK into. The APK
       # is built in CI and published as a release asset; the server fetches it
       # on download (it does not build APKs).

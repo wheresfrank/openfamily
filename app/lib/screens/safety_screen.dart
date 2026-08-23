@@ -259,7 +259,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
           padding: EdgeInsets.fromLTRB(20, 8, 20, 8),
           child: Text(
             'Emergency contacts receive your SOS alerts with your location. '
-            'They do not need the app or to be in your Circle.',
+            'They do not need the app or to be in your family.',
             style: TextStyle(fontSize: 13, color: AppColors.textMuted),
           ),
         ),

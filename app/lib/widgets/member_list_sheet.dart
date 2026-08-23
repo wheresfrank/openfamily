@@ -254,7 +254,7 @@ class _PeopleHeaderDelegate extends SliverPersistentHeaderDelegate {
 }
 
 /// A compact, overlapping snapshot of up to three members. The identities are
-/// visible without repeating the circle name or creating a separate avatar bar.
+/// visible without repeating the family name or creating a separate avatar bar.
 class _AvatarStack extends StatelessWidget {
   const _AvatarStack({required this.members});
 

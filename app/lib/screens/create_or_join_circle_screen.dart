@@ -6,7 +6,7 @@ import 'create_circle_screen.dart';
 import 'join_circle_screen.dart';
 import 'map_screen.dart';
 
-/// Onboarding step: create a new Circle or join an existing one with an
+/// Onboarding step: create a new family or join an existing one with an
 /// invite code.
 class CreateOrJoinCircleScreen extends StatelessWidget {
   const CreateOrJoinCircleScreen({super.key});
@@ -15,7 +15,7 @@ class CreateOrJoinCircleScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create or join a Circle'),
+        title: const Text('Create or join a family'),
         automaticallyImplyLeading: false,
         bottom: const OnboardingStepIndicator(currentStep: 3),
       ),
@@ -26,14 +26,14 @@ class CreateOrJoinCircleScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'A Circle is the group of people you share your location with.',
+                'A family is the group of people you share your location with.',
                 style: TextStyle(fontSize: 15, color: AppColors.textMuted),
               ),
               const SizedBox(height: 24),
               _OptionCard(
                 icon: Icons.add_circle_outline,
-                title: 'Create a New Circle',
-                subtitle: 'Start a new Circle for your family.',
+                title: 'Create a new family',
+                subtitle: 'Start a new family to share locations.',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const CreateCircleScreen(),
@@ -43,7 +43,7 @@ class CreateOrJoinCircleScreen extends StatelessWidget {
               const SizedBox(height: 16),
               _OptionCard(
                 icon: Icons.group_add_outlined,
-                title: 'Join a Circle',
+                title: 'Join a family',
                 subtitle: 'Enter an invite code from a family member.',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(

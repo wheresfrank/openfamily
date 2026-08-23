@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/whereabouts/whereabouts/backend/internal/auth"
 	"github.com/whereabouts/whereabouts/backend/internal/push"
+	"github.com/whereabouts/whereabouts/backend/internal/sms"
 )
 
 // Server holds shared dependencies for all handlers.
@@ -22,6 +23,23 @@ type Server struct {
 	// user ("A family member arrived at School"); when true, they also include
 	// the user's name ("Mom arrived at School").
 	VerbosePush bool
+
+	// NtfyBaseURL is the public ntfy origin advertised by GET /config.
+	NtfyBaseURL string
+
+	// APNsConfigured is true when the operator set an APNs key file. The
+	// client uses this to skip iOS token registration when APNs cannot work.
+	APNsConfigured bool
+
+	// SMS sends optional Twilio messages. A no-op dispatcher is used when
+	// Twilio is unset so alerts still work in-app.
+	SMS sms.Dispatcher
+
+	// AlertLimit rate-limits SOS and similar fan-out per user.
+	AlertLimit *sms.Limiter
+
+	// PublicBaseURL is the https origin used to build SMS share links.
+	PublicBaseURL string
 
 	// AllowedOrigin is the single cross-origin origin allowed for the WebSocket
 	// stream (empty = same-origin only). It mirrors config.AllowedOrigin.

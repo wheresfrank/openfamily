@@ -4,8 +4,11 @@ import 'package:local_auth/local_auth.dart' show BiometricType;
 import '../services/auth_service.dart';
 import '../services/battery_optimization_service.dart';
 import '../services/biometric_service.dart';
+import '../services/location_sharing_service.dart';
+import '../services/push_service.dart';
 import '../theme/app_theme.dart';
 import 'profile_screen.dart';
+import 'families_screen.dart';
 import 'welcome_screen.dart';
 
 /// The Settings screen. Account profile is server-backed; the remaining
@@ -19,7 +22,9 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _locationSharing = true;
+  bool _locationSharingLoading = true;
   bool _notifications = true;
+  bool _notificationsLoading = true;
   bool _driveDetection = true;
   bool _loggingOut = false;
   final BiometricService _biometricService = BiometricService.instance;
@@ -33,6 +38,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadBiometricSettings();
+    _loadLocationSharing();
+    _loadPushNotifications();
+  }
+
+  Future<void> _loadPushNotifications() async {
+    final bool enabled = await PushService.load();
+    if (!mounted) return;
+    setState(() {
+      _notifications = enabled;
+      _notificationsLoading = false;
+    });
+  }
+
+  Future<void> _setPushNotifications(bool enabled) async {
+    setState(() => _notifications = enabled);
+    await PushService.setEnabled(enabled);
+  }
+
+  Future<void> _loadLocationSharing() async {
+    final bool enabled = await LocationSharingService.load();
+    if (!mounted) return;
+    setState(() {
+      _locationSharing = enabled;
+      _locationSharingLoading = false;
+    });
+  }
+
+  Future<void> _setLocationSharing(bool enabled) async {
+    setState(() => _locationSharing = enabled);
+    await LocationSharingService.setEnabled(enabled);
   }
 
   Future<void> _loadBiometricSettings() async {
@@ -193,10 +228,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
             ),
           ),
-          const ListTile(
-            leading: Icon(Icons.group_outlined, color: AppColors.purple),
-            title: Text('Circles'),
-            trailing: Icon(Icons.chevron_right, color: AppColors.textMuted),
+          ListTile(
+            leading: const Icon(Icons.group_outlined, color: AppColors.purple),
+            title: const Text('Family'),
+            trailing:
+                const Icon(Icons.chevron_right, color: AppColors.textMuted),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const FamiliesScreen()),
+            ),
           ),
           const Divider(height: 1),
           const _SectionHeader('Privacy & Security'),
@@ -226,8 +265,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             secondary:
                 const Icon(Icons.location_on_outlined, color: AppColors.purple),
             title: const Text('Location sharing'),
+            subtitle: const Text(
+              'When off, this device stops reporting your position.',
+            ),
             value: _locationSharing,
-            onChanged: (v) => setState(() => _locationSharing = v),
+            onChanged: _locationSharingLoading ? null : _setLocationSharing,
           ),
           if (BatteryOptimizationService.isSupported)
             ListTile(
@@ -257,8 +299,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             secondary: const Icon(Icons.notifications_outlined,
                 color: AppColors.purple),
             title: const Text('Push notifications'),
+            subtitle: const Text(
+              'ntfy on Android, APNs on iOS. Off unregisters this device.',
+            ),
             value: _notifications,
-            onChanged: (v) => setState(() => _notifications = v),
+            onChanged: _notificationsLoading ? null : _setPushNotifications,
           ),
           const Divider(height: 1),
           const _SectionHeader('About'),

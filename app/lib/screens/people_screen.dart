@@ -7,7 +7,7 @@ import '../widgets/member_tile.dart';
 import 'invite_screen.dart';
 import 'member_profile_screen.dart';
 
-/// The dedicated, full-screen home for a circle's family members.
+/// The dedicated, full-screen home for a family's members.
 ///
 /// This is the replacement for the old map drawer: a proper [Scaffold] with an
 /// app bar (mirroring Places / Safety), reached from the map's bottom
@@ -26,7 +26,7 @@ class PeopleScreen extends StatelessWidget {
     this.onInvite,
   });
 
-  /// The circle / family name, shown in the roster header.
+  /// The family name, shown in the roster header.
   final String circleName;
 
   /// Live family members from the map screen's single family subscription.
@@ -110,7 +110,7 @@ class PeopleScreen extends StatelessWidget {
   }
 }
 
-/// The roster header: which circle is shown and how many members it has.
+/// The roster header: which family is shown and how many members it has.
 class _RosterHeader extends StatelessWidget {
   const _RosterHeader({required this.circleName, required this.count});
 
@@ -151,7 +151,7 @@ class _RosterHeader extends StatelessWidget {
   }
 }
 
-/// Shown when the circle has no members yet — invites someone to see them on
+/// Shown when the family has no members yet — invites someone to see them on
 /// the map.
 class _EmptyPeople extends StatelessWidget {
   const _EmptyPeople({required this.circleName, required this.onInvite});
