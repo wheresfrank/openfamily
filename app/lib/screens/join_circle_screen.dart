@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/api_client.dart';
 import '../services/join_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
@@ -55,16 +56,26 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
       _submitting = true;
       _error = null;
     });
-    final bool ok = await JoinService.join(code);
-    if (!mounted) return;
-    setState(() {
-      _submitting = false;
-      if (ok) {
-        _joined = true;
-      } else {
-        _error = 'That code isn\'t valid. Check it and try again.';
-      }
-    });
+    try {
+      final bool ok = await JoinService.join(code);
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        if (ok) {
+          _joined = true;
+        } else {
+          _error = 'That code isn\'t valid. Check it and try again.';
+        }
+      });
+    } on SessionExpiredException {
+      rethrow;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = 'Could not join. Check your connection and try again.';
+      });
+    }
   }
 
   @override

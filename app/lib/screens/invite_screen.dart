@@ -49,6 +49,7 @@ class _InviteScreenState extends State<InviteScreen> {
         }
         return;
       }
+      if (!mounted) return;
       setState(() => _code = code);
     }
     try {

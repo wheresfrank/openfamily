@@ -216,6 +216,7 @@ class _MapScreenState extends State<MapScreen>
     // Mark it shown up front so a prompt that is dismissed or errors out never
     // nags again.
     await BatteryOptimizationService.markSuggested();
+    if (!mounted) return;
 
     final bool? open = await showDialog<bool>(
       context: context,
