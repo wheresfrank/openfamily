@@ -21,7 +21,7 @@
 }
 .wb-cmd-input-wrap:focus-within {
   border-color: var(--purple);
-  box-shadow: 0 0 0 3px rgba(108, 43, 217, 0.12);
+  box-shadow: 0 0 0 3px var(--ring);
   color: var(--text);
 }
 

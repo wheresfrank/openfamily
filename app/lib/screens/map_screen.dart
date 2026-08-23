@@ -519,59 +519,52 @@ class _MapScreenState extends State<MapScreen>
   }
 
   void _showAddActions() {
+    final ColorScheme colors = Theme.of(context).colorScheme;
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(
-                Icons.check_circle_outline,
-                color: AppColors.purple,
-              ),
-              title: const Text('Check In'),
-              subtitle: const Text('Share your location with your family'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _openCheckIn();
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.campaign_outlined,
-                color: AppColors.purple,
-              ),
-              title: const Text('Help Alert'),
-              subtitle: const Text('Ask your family for help'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _openHelpAlert();
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.person_add_alt_1,
-                color: AppColors.purple,
-              ),
-              title: const Text('Invite'),
-              subtitle: const Text(
-                'Send a code to invite someone to your family',
-              ),
-              onTap: () {
-                Navigator.of(context).pop();
-                _openAddPerson();
-              },
-            ),
-          ],
-        ),
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _AddActionTile(
+                  icon: Icons.check_circle_outline,
+                  title: 'Check In',
+                  subtitle: 'Share your location with your family',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openCheckIn();
+                  },
+                ),
+                _AddActionTile(
+                  icon: Icons.campaign_outlined,
+                  title: 'Help Alert',
+                  subtitle: 'Ask your family for help',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openHelpAlert();
+                  },
+                ),
+                _AddActionTile(
+                  icon: Icons.person_add_alt_1,
+                  title: 'Invite',
+                  subtitle: 'Send a code to invite someone to your family',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openAddPerson();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -731,8 +724,6 @@ class _MapScreenState extends State<MapScreen>
             child: Center(
               child: FloatingActionButton(
                 onPressed: _showAddActions,
-                backgroundColor: AppColors.purple,
-                foregroundColor: Colors.white,
                 tooltip: 'Add — Check In / Help Alert / Invite',
                 child: const Icon(Icons.add),
               ),
@@ -763,6 +754,63 @@ class _MapScreenState extends State<MapScreen>
   }
 }
 
+/// One row in the map `+` sheet. Icon and copy share a vertical center so
+/// a two-line subtitle does not leave the glyph hanging on the title.
+class _AddActionTile extends StatelessWidget {
+  const _AddActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(icon, color: BrandTheme.of(context).accentInk, size: 28),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Interpolates between two [LatLng]s for smooth camera animation.
 class _LatLngTween extends Tween<LatLng> {
   _LatLngTween({required LatLng begin, required LatLng end})
@@ -787,7 +835,7 @@ class _LayerToggle extends StatelessWidget {
     return Tooltip(
       message: isSatellite ? 'Switch to standard map' : 'Switch to satellite',
       child: Material(
-        color: Colors.white,
+        color: BrandTheme.of(context).sheet,
         shape: const CircleBorder(),
         elevation: 3,
         child: InkWell(
@@ -798,7 +846,7 @@ class _LayerToggle extends StatelessWidget {
             child: Icon(
               isSatellite ? Icons.map : Icons.satellite_alt,
               size: 22,
-              color: AppColors.purple,
+              color: BrandTheme.of(context).accentInk,
             ),
           ),
         ),
@@ -819,15 +867,19 @@ class _LocateButton extends StatelessWidget {
     return Tooltip(
       message: 'Center on my location',
       child: Material(
-        color: Colors.white,
+        color: BrandTheme.of(context).sheet,
         shape: const CircleBorder(),
         elevation: 3,
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: onTap,
-          child: const Padding(
-            padding: EdgeInsets.all(10),
-            child: Icon(Icons.my_location, size: 22, color: AppColors.purple),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Icon(
+              Icons.my_location,
+              size: 22,
+              color: BrandTheme.of(context).accentInk,
+            ),
           ),
         ),
       ),
@@ -909,7 +961,7 @@ class _LocationOffBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: BrandTheme.of(context).sheet,
       elevation: 3,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
@@ -918,11 +970,14 @@ class _LocationOffBanner extends StatelessWidget {
           children: [
             const Icon(Icons.location_off, color: AppColors.statusOrange),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Location sharing is off, so your family can\'t see where you '
                 'are.',
-                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -946,7 +1001,7 @@ class _LoadErrorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Material(
-        color: AppColors.surface,
+        color: BrandTheme.of(context).sheet,
         elevation: 4,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -963,9 +1018,9 @@ class _LoadErrorCard extends StatelessWidget {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.textMuted,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 16),

@@ -5,7 +5,8 @@
   height: 100%;
   min-height: 320px;
   position: relative;
-  background: var(--surface-soft);
+  background-color: var(--surface-soft);
+  background-image: none;
   overflow: hidden;
 }
 .wb-maparea-loading {
@@ -43,7 +44,7 @@
   align-items: center;
   justify-content: center;
   background: var(--surface-soft);
-  color: var(--purple);
+  color: var(--accent-ink);
 }
 .wb-maparea-placeholder-title {
   margin: 0 0 var(--space-2);

@@ -399,7 +399,7 @@ class _BiometricLockView extends StatelessWidget {
                             child: const Icon(
                               Icons.fingerprint,
                               size: 52,
-                              color: Colors.white,
+                              color: AppColors.onAccent,
                             ),
                           ),
                         ),

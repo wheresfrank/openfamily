@@ -87,7 +87,7 @@ class MapBottomBar extends StatelessWidget {
                   // Safety — a white circular icon button, matching the others.
                   _FloatingIconButton(
                     icon: Icons.shield_outlined,
-                    label: 'Safety',
+                    label: 'Emergency contacts',
                     onTap: onSafety,
                   ),
                 ],
@@ -138,23 +138,17 @@ class _SosButton extends StatelessWidget {
           onTap: onTap,
           child: Container(
             height: MapBottomBar.sosHeight,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Only the "SOS" word is drawn. The `sos` glyph icon already
-                // renders the letters "SOS", so drawing both would read the
-                // word twice — keep just the text.
-                Text(
-                  'SOS',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 22,
-                    letterSpacing: 2,
-                  ),
-                ),
-              ],
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: const Text(
+              'SOS',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 22,
+                height: 1,
+              ),
             ),
           ),
         ),
@@ -164,7 +158,7 @@ class _SosButton extends StatelessWidget {
 }
 
 /// A small circular icon button floating over the map (Places, Safety,
-/// Settings). A white disc with a purple glyph and a soft shadow, which is how
+/// Settings). A themed disc with a lime glyph and a soft shadow, which is how
 /// every secondary map control reads consistently.
 class _FloatingIconButton extends StatelessWidget {
   const _FloatingIconButton({
@@ -182,7 +176,7 @@ class _FloatingIconButton extends StatelessWidget {
     return Tooltip(
       message: label,
       child: Material(
-        color: Colors.white,
+        color: BrandTheme.of(context).sheet,
         shape: const CircleBorder(),
         elevation: 3,
         child: InkWell(
@@ -190,7 +184,7 @@ class _FloatingIconButton extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Icon(icon, color: AppColors.purple, size: 22),
+            child: Icon(icon, color: BrandTheme.of(context).accentInk, size: 22),
           ),
         ),
       ),

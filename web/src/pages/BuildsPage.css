@@ -50,7 +50,7 @@
   padding: var(--space-3);
   border-radius: var(--radius-xs);
   background: var(--surface-soft);
-  color: var(--purple);
+  color: var(--accent-ink);
   font-size: var(--font-sm);
   margin-bottom: var(--space-4);
 }

@@ -153,7 +153,7 @@ export function MemberList({
                 </span>
               </span>
               {m.movement !== "none" ? (
-                <span className="wb-member-row-mover" style={{ color: "var(--purple)" }}>
+                <span className="wb-member-row-mover" style={{ color: "var(--accent-ink)" }}>
                   <MovementGlyph movement={m.movement} size={20} />
                 </span>
               ) : null}

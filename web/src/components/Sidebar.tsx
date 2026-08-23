@@ -24,8 +24,8 @@ export function Sidebar({ active, onNavigate, footer }: SidebarProps) {
             <circle cx="12" cy="10.3" r="2.7" fill="#fff" />
             <defs>
               <linearGradient id="wb-grad" x1="4" y1="2.5" x2="20" y2="21.5" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#6c2bd9" />
-                <stop offset="1" stopColor="#e91e8c" />
+                <stop stopColor="var(--accent)" />
+                <stop offset="1" stopColor="var(--spark)" />
               </linearGradient>
             </defs>
           </svg>

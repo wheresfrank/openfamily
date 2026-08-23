@@ -34,8 +34,8 @@
   justify-content: center;
   font-size: var(--font-sm);
   font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, var(--purple), var(--pink));
+  color: var(--on-accent);
+  background: linear-gradient(135deg, var(--accent), var(--spark));
   flex: 0 0 auto;
 }
 .wb-group-meta {
@@ -93,7 +93,7 @@
   justify-content: center;
   font-size: var(--font-xs);
   font-weight: 700;
-  color: var(--purple);
+  color: var(--accent-ink);
   background: var(--surface-soft-2);
   flex: 0 0 auto;
 }
@@ -155,7 +155,7 @@
   font-size: var(--font-md);
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--purple);
+  color: var(--accent-ink);
 }
 .wb-invite-hint {
   font-size: var(--font-xs);

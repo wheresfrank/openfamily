@@ -13,6 +13,7 @@ import {
   uploadProfileAvatar,
 } from '../lib/api'
 import type { Profile } from '../lib/types'
+import { ThemeToggle } from '../components/ThemeToggle'
 import { Button, Card, CopyButton, Mono, Spinner } from '../components/primitives'
 import './pages.css'
 import './SettingsPage.css'
@@ -304,11 +305,19 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
       <div className="wb-page-header">
         <div>
           <h1 className="wb-page-title">Settings</h1>
-          <p className="wb-page-subtitle">Your account on this server.</p>
+          <p className="wb-page-subtitle">Appearance, account, and this server.</p>
         </div>
       </div>
 
       <div className="wb-settings-grid">
+        <Card>
+          <h3 className="wb-settings-title">Appearance</h3>
+          <p className="wb-settings-section-help">
+            System follows this device. Light is Ice. Dark is Night.
+          </p>
+          <ThemeToggle />
+        </Card>
+
         <Card>
           <h3 className="wb-settings-title">Account</h3>
 

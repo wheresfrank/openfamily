@@ -8,7 +8,9 @@ import '../services/biometric_service.dart';
 import '../services/location_sharing_service.dart';
 import '../services/push_service.dart';
 import '../services/server_config.dart';
+import '../services/theme_preference.dart';
 import '../theme/app_theme.dart';
+import '../widgets/dot_grid.dart';
 import 'profile_screen.dart';
 import 'families_screen.dart';
 import 'server_config_screen.dart';
@@ -323,9 +325,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: [
-          const _SectionHeader('Account'),
+      body: DotGridBackground(
+        child: ListView(
+          children: [
+            const _SectionHeader('Account'),
           ListTile(
             leading: const Icon(Icons.person_outline, color: AppColors.purple),
             title: const Text('Profile'),
@@ -356,8 +359,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Icon(Icons.chevron_right, color: AppColors.textMuted),
             onTap: _changeServer,
           ),
-          const Divider(height: 1),
-          const _SectionHeader('Privacy & Security'),
+            const Divider(height: 1),
+            const _SectionHeader('Appearance'),
+            const _AppearanceTile(),
+            const Divider(height: 1),
+            const _SectionHeader('Privacy & Security'),
           SwitchListTile(
             secondary: const Icon(
               Icons.fingerprint,
@@ -435,16 +441,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             enabled: !_loggingOut && !_deletingAccount,
             onTap: _logout,
           ),
-          ListTile(
-            leading: const Icon(Icons.delete_forever, color: AppColors.sosRed),
-            title: const Text(
-              'Delete account',
-              style: TextStyle(color: AppColors.sosRed),
+            ListTile(
+              leading: const Icon(Icons.delete_forever, color: AppColors.sosRed),
+              title: const Text(
+                'Delete account',
+                style: TextStyle(color: AppColors.sosRed),
+              ),
+              enabled: !_loggingOut && !_deletingAccount,
+              onTap: _deleteAccount,
             ),
-            enabled: !_loggingOut && !_deletingAccount,
-            onTap: _deleteAccount,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -461,13 +468,75 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: 1,
-          color: AppColors.textMuted,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
+    );
+  }
+}
+
+class _AppearanceTile extends StatelessWidget {
+  const _AppearanceTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<ThemePreference>(
+      valueListenable: ThemePreferenceService.preference,
+      builder: (context, preference, _) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Theme',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                preference == ThemePreference.system
+                    ? 'Following this device. Light is Ice, dark is Night.'
+                    : preference == ThemePreference.light
+                        ? 'Ice. This device setting is ignored.'
+                        : 'Night. This device setting is ignored.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<ThemePreference>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment<ThemePreference>(
+                    value: ThemePreference.system,
+                    label: Text('System'),
+                    icon: Icon(Icons.brightness_auto, size: 18),
+                  ),
+                  ButtonSegment<ThemePreference>(
+                    value: ThemePreference.light,
+                    label: Text('Light'),
+                    icon: Icon(Icons.light_mode_outlined, size: 18),
+                  ),
+                  ButtonSegment<ThemePreference>(
+                    value: ThemePreference.dark,
+                    label: Text('Dark'),
+                    icon: Icon(Icons.dark_mode_outlined, size: 18),
+                  ),
+                ],
+                selected: <ThemePreference>{preference},
+                onSelectionChanged: (Set<ThemePreference> next) {
+                  if (next.isEmpty) return;
+                  ThemePreferenceService.setPreference(next.first);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

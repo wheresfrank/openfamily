@@ -45,7 +45,7 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
                 d="M12 2.5c4.4 0 8 3.5 8 7.8 0 5.6-8 11.2-8 11.2s-8-5.6-8-11.2c0-4.3 3.6-7.8 8-7.8Z"
                 fill="#fff"
               />
-              <circle cx="12" cy="10.3" r="2.7" fill="#6c2bd9" />
+              <circle cx="12" cy="10.3" r="2.7" fill="var(--on-accent)" />
             </svg>
           </span>
           <span className="wb-login-wordmark">Whereabouts</span>

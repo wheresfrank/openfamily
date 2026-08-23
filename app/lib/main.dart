@@ -9,6 +9,7 @@ import 'services/auth_service.dart';
 import 'services/background_location_service.dart';
 import 'services/push_service.dart';
 import 'services/server_config.dart';
+import 'services/theme_preference.dart';
 import 'services/tile_config.dart';
 import 'services/token_storage.dart';
 import 'theme/app_theme.dart';
@@ -18,11 +19,12 @@ import 'widgets/biometric_app_lock.dart';
 /// session expiry.
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Plugin callbacks must be registered before the first frame so a
   // UnifiedPush/APNs token arriving at launch is not dropped.
   PushService.initialize();
+  await ThemePreferenceService.load();
   runApp(const WhereaboutsApp());
 }
 
@@ -70,16 +72,23 @@ class _WhereaboutsAppState extends State<WhereaboutsApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Whereabouts',
-      debugShowCheckedModeBanner: false,
-      navigatorKey: navigatorKey,
-      theme: buildAppTheme(),
-      builder: (context, child) => BiometricAppLock(
-        onLogout: _handleBiometricLogout,
-        child: child ?? const SizedBox.shrink(),
-      ),
-      home: const _SessionGate(),
+    return ValueListenableBuilder<ThemePreference>(
+      valueListenable: ThemePreferenceService.preference,
+      builder: (context, preference, _) {
+        return MaterialApp(
+          title: 'Whereabouts',
+          debugShowCheckedModeBanner: false,
+          navigatorKey: navigatorKey,
+          theme: buildLightTheme(),
+          darkTheme: buildDarkTheme(),
+          themeMode: preference.themeMode,
+          builder: (context, child) => BiometricAppLock(
+            onLogout: _handleBiometricLogout,
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: const _SessionGate(),
+        );
+      },
     );
   }
 }
