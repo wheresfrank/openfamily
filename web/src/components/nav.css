@@ -157,8 +157,8 @@
   justify-content: center;
   font-size: var(--font-xs);
   font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, var(--purple), var(--pink));
+  color: var(--on-accent);
+  background: linear-gradient(135deg, var(--accent), var(--spark));
 }
 .wb-account-email {
   font-size: var(--font-sm);

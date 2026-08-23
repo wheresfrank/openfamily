@@ -57,7 +57,7 @@ const RECENTER_ZOOM = 15;
 
 /** Per-group accent palette (each family gets a distinct color). */
 const GROUP_PALETTE = [
-  "#6c2bd9",
+  "#8fd400",
   "#e91e8c",
   "#0a84ff",
   "#34c759",
@@ -151,8 +151,8 @@ function buildMembers(raws: RawMember[], colors: Map<string, string>, now: numbe
       r,
       fid,
       fname,
-      colors.get(fid) ?? "#6c2bd9",
-      memberColors.get(r.id ?? "") ?? "#6c2bd9",
+      colors.get(fid) ?? "#8fd400",
+      memberColors.get(r.id ?? "") ?? "#8fd400",
       now,
     );
   });

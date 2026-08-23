@@ -108,7 +108,7 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
                   child: const Icon(
                     Icons.fingerprint,
                     size: 48,
-                    color: Colors.white,
+                    color: AppColors.onAccent,
                   ),
                 ),
               ),
@@ -118,7 +118,7 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       fontWeight: FontWeight.w800,
-                      color: AppColors.purple,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
               ),
               const SizedBox(height: 8),

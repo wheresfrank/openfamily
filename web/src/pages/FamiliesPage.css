@@ -34,8 +34,8 @@
   justify-content: center;
   font-size: var(--font-sm);
   font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, var(--purple), var(--pink));
+  color: var(--on-accent);
+  background: linear-gradient(135deg, var(--accent), var(--spark));
   flex: 0 0 auto;
 }
 .wb-group-meta {

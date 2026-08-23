@@ -296,7 +296,7 @@ function HistoryMap({ history }: { history: MemberHistory }) {
       {trail.length >= 2 && (
         <Polyline
           positions={trail}
-          pathOptions={{ color: '#6c2bd9', weight: 4, opacity: 0.85 }}
+          pathOptions={{ color: '#8fd400', weight: 4, opacity: 0.85 }}
         />
       )}
       {visits.map((v, i) => (
@@ -307,7 +307,7 @@ function HistoryMap({ history }: { history: MemberHistory }) {
           pathOptions={{
             color: '#fff',
             weight: 2,
-            fillColor: v.kind === 'place' ? '#6c2bd9' : '#af52de',
+            fillColor: v.kind === 'place' ? '#8fd400' : '#af52de',
             fillOpacity: 1,
           }}
         />

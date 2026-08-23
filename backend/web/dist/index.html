@@ -3,9 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Mirrors --paper. A meta tag cannot read a custom property. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#EEF2F6" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1C1E22" />
     <title>Whereabouts Admin</title>
-    <script type="module" crossorigin src="/admin/assets/index-2W8nSv63.js"></script>
-    <link rel="stylesheet" crossorigin href="/admin/assets/index-BRJHPouh.css">
+    <script>
+      (function () {
+        var pref = 'system'
+        try { pref = localStorage.getItem('wb-theme') || 'system' } catch (e) {}
+        var dark = pref === 'dark' || (pref !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+      })()
+    </script>
+    <script type="module" crossorigin src="/admin/assets/index-BW58NuSC.js"></script>
+    <link rel="stylesheet" crossorigin href="/admin/assets/index-9Cq5dLS5.css">
   </head>
   <body>
     <div id="root"></div>

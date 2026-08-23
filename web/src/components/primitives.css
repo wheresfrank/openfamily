@@ -42,8 +42,8 @@
 }
 
 .wb-btn-primary {
-  background: var(--purple);
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
   box-shadow: var(--shadow-sm);
 }
 .wb-btn-primary:hover:not(:disabled) {

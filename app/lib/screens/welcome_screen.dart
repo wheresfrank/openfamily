@@ -71,7 +71,7 @@ class WelcomeScreen extends StatelessWidget {
                       child: const Icon(
                         Icons.fingerprint,
                         size: 60,
-                        color: Colors.white,
+                        color: AppColors.onAccent,
                       ),
                     ),
                   ),
@@ -81,7 +81,7 @@ class WelcomeScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.w800,
-                          color: AppColors.purple,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                   ),
                   const SizedBox(height: 8),

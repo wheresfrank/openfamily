@@ -22,7 +22,9 @@
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  background: var(--surface-soft);
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--dot-color) 0.55px, transparent 0.55px);
+  background-size: var(--dot-cell) var(--dot-cell);
   /* Contain Leaflet pane z-indexes (400–1000) so they cannot cover the top bar. */
   z-index: 1;
 }

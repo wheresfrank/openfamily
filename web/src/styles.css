@@ -13,11 +13,17 @@
 @import './pages/BuildsPage.css';
 @import './pages/SettingsPage.css';
 
-:root {
-  /* Brand */
-  --purple: #6c2bd9;
-  --purple-dark: #4c1d95;
-  --pink: #e91e8c;
+:root,
+[data-theme="light"] {
+  /* Ice — lime on blue-grey paper. --purple aliases stay for older rules. */
+  --accent: #8fd400;
+  --accent-dark: #78b400;
+  --on-accent: #111827;
+  --spark: #c6e86a;
+  --sky: #0284c7;
+  --purple: var(--accent);
+  --purple-dark: var(--accent-dark);
+  --pink: var(--spark);
 
   /* Member status — vivid accents (dots, charts) */
   --status-green: #2ecc71;
@@ -52,24 +58,25 @@
   --sos-red: #e53935;
   --sos-intense-red: #d50000;
 
-  /* Surfaces */
-  --surface: #ffffff;
-  --surface-soft: #f7f2fd;
-  --surface-soft-2: #ede3fb;
-  /* Active/hover surface roles — distinct from each other and from the neutral
-     soft surface so the active nav item never reads the same as a hovered one. */
-  --surface-hover: #f1eafc;
-  --surface-active: #e7d9f9;
-  --surface-active-fg: var(--purple);
+  /* Surfaces — Ice paper, not a lime wash. */
+  --paper: #eef2f6;
+  --surface: #f8fafc;
+  --surface-soft: #e8eef4;
+  --surface-soft-2: #d7e0ea;
+  --surface-hover: #e4ebf2;
+  --surface-active: #d7e0ea;
+  --surface-active-fg: var(--text);
+  --dot-color: rgba(15, 23, 42, 0.12);
+  --dot-cell: 6px;
 
   /* Text */
-  --text: #1a1a1a;
-  --text-muted: #6e6e73;
-  --text-faint: #9a9aa0;
+  --text: #111827;
+  --text-muted: #54707c;
+  --text-faint: #7b8d97;
 
   /* Lines */
-  --border: #e8e8ec;
-  --border-strong: #d8d8de;
+  --border: #c9d4df;
+  --border-strong: #b4c2cf;
 
   /* Radii — keyed to elevation: 6px for small/inline, 12px for surfaces,
      16px for floating overlays. No other stops. */
@@ -87,7 +94,7 @@
   --font-3xl: 28px;  /* hero / login aside title */
 
   /* Focus ring */
-  --ring: rgba(108, 43, 217, 0.35);
+  --ring: color-mix(in srgb, var(--accent) 40%, transparent);
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -95,6 +102,8 @@
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
 
   /* Type */
+  --on-hero: #111827;
+
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
@@ -111,8 +120,63 @@
   --space-10: 40px;
 }
 
+[data-theme="dark"] {
+  --accent: #a3e635;
+  --accent-dark: #84cc16;
+  --on-accent: #111827;
+  --spark: #d9f99d;
+  --sky: #7dd3fc;
+  --purple: var(--accent);
+  --purple-dark: var(--accent-dark);
+  --pink: var(--spark);
+
+  --status-green-fg: #6ee7a8;
+  --status-green-bg: #163526;
+  --status-green-border: #245c40;
+  --status-orange-fg: #fbbf24;
+  --status-orange-bg: #3d2a10;
+  --status-orange-border: #6b4a16;
+  --status-red-fg: #fca5a5;
+  --status-red-bg: #3f1614;
+  --status-red-border: #7f1d1d;
+  --status-purple-fg: #d8b4fe;
+  --status-purple-bg: #2e1a44;
+  --status-purple-border: #5b21b6;
+  --status-grey-fg: #d4d4d8;
+  --status-grey-bg: #27272a;
+  --status-grey-border: #3f3f46;
+  --status-pink-fg: #f9a8d4;
+  --status-pink-bg: #3f1d32;
+  --status-pink-border: #9d174d;
+
+  --paper: #1c1e22;
+  --surface: #2a2d33;
+  --surface-soft: #23262b;
+  --surface-soft-2: #3f444c;
+  --surface-hover: #353a42;
+  --surface-active: #3f444c;
+  --surface-active-fg: var(--text);
+  --dot-color: rgba(255, 255, 255, 0.16);
+
+  --text: #f4f5f7;
+  --text-muted: #9ca3af;
+  --text-faint: #7b8190;
+  --border: #3f444c;
+  --border-strong: #545b66;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
 * {
   box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 html,
@@ -125,13 +189,15 @@ body,
 body {
   font-family: var(--font-sans);
   color: var(--text);
-  background: var(--surface);
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--dot-color) 0.55px, transparent 0.55px);
+  background-size: var(--dot-cell) var(--dot-cell);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 a {
-  color: var(--purple);
+  color: var(--sky);
   text-decoration: none;
 }
 

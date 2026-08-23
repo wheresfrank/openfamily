@@ -46,12 +46,11 @@ class MemberListSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        // A quiet neutral surface deliberately lets the map remain the
-        // primary visual. Purple is reserved for meaningful actions/status.
-        color: Color(0xFFFFFEFF),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
+      decoration: BoxDecoration(
+        // Quiet Ice / Night paper. Lime stays on actions, not this sheet.
+        color: BrandTheme.of(context).sheet,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: const [
           BoxShadow(
             color: Color(0x22000000),
             blurRadius: 16,
