@@ -53,10 +53,9 @@ monetize the result. Whereabouts is the opposite posture:
 - **Maps are OpenStreetMap, not Google.** The app renders OSM tiles with
   [flutter_map](https://docs.fleaflet.dev/); the admin panel uses
   [Leaflet](https://leafletjs.com/). There is no Google Maps SDK and no
-  Google Places. Named places live in your Postgres. Address search, when
-  you turn it on, is [Nominatim](https://nominatim.org/) (OSM’s geocoder).
-  Point the app at your own tile server so pan/zoom does not even hit the
-  public OSM or Esri endpoints.
+  Google Places. Named places live in your Postgres. Point the app at your
+  own tile server so pan/zoom does not even hit the public OSM or Esri
+  endpoints.
 - **iOS push is honest.** Apple requires APNs. Payloads carry no coordinates;
   the app fetches the real content from *your* server over TLS.
 
@@ -90,7 +89,7 @@ who share a home, not for vehicles, tools, or public sharing.
 - Server-side geofencing with a 60-second debounce so jitter at the boundary
   does not spam notifications
 - Role-gated: children can see places, only admins and members can edit them
-- Optional address search via a self-hosted Nominatim instance (off by default)
+- Save a place by dropping a pin on the map
 
 ### Safety
 
@@ -247,20 +246,6 @@ flutter run \
 `WHEREABOUTS_TILE_URL` is the street layer;
 `WHEREABOUTS_SATELLITE_TILE_URL` is satellite. Both use `{z}` / `{x}` / `{y}`
 placeholders (the ArcGIS-style satellite template swaps `{y}` / `{x}`).
-
-### Geocoding
-
-Address search and reverse geocoding in the place picker use
-[Nominatim](https://nominatim.org/) (OpenStreetMap’s geocoder), not Google
-Places, and are **off by default**. Enable them against your own Nominatim:
-
-```bash
-flutter run \
-  --dart-define=WHEREABOUTS_API_URL=https://whereabouts.example.com \
-  --dart-define=WHEREABOUTS_NOMINATIM_URL=https://nominatim.example.com
-```
-
-Without that URL the picker still works by tapping the map.
 
 ### Background location
 
@@ -435,7 +420,6 @@ For a fully private map, host your own tiles. The simplest option is
 | `WHEREABOUTS_API_URL` | *(empty)* | Backend base URL (runtime screen if unset) |
 | `WHEREABOUTS_TILE_URL` | OSM public tiles | Street tile URL template |
 | `WHEREABOUTS_SATELLITE_TILE_URL` | ArcGIS public tiles | Satellite tile URL template |
-| `WHEREABOUTS_NOMINATIM_URL` | *(empty)* | Nominatim base URL (geocoding off when empty) |
 
 ## Security
 
@@ -595,7 +579,6 @@ Not in this release (ideas, not promises):
 
 - Adaptive, battery-aware tracking driven by activity recognition
 - Driving reports / trip summaries (the Settings toggle is a stub)
-- Self-hosted Nominatim as part of Compose
 - Passkeys (WebAuthn)
 - End-to-end encryption of location (conflicts with server-side geofences)
 - Crash detection
@@ -621,8 +604,7 @@ package or redistribute Whereabouts, open an issue.
 - [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors for
   the map data (© ODbL)
 - [flutter_map](https://docs.fleaflet.dev/) and [Leaflet](https://leafletjs.com/)
-  for rendering it, and [Nominatim](https://nominatim.org/) for optional
-  address search
+  for rendering it
 - [ntfy](https://ntfy.sh/) and [UnifiedPush](https://unifiedpush.org/) for
   Google-free Android notifications
 - [TimescaleDB](https://www.timescale.com/) and [PostGIS](https://postgis.net/)
