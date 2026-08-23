@@ -18,6 +18,9 @@ abstract final class AppColors {
   /// Ink on a lime fill. White on lime fails AA.
   static const Color onAccent = Color(0xFF111827);
 
+  /// Lime dark enough to use as a glyph or label on Ice paper (AA).
+  static const Color accentInk = Color(0xFF3F6212);
+
   /// Second stop on brand washes (login, marks).
   static const Color spark = Color(0xFFC6E86A);
 
@@ -67,6 +70,7 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
     required this.sheet,
     required this.dot,
     required this.accent,
+    required this.accentInk,
     required this.onAccent,
     required this.spark,
   });
@@ -76,6 +80,7 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
     sheet: AppColors.iceSurface,
     dot: AppColors.iceDot,
     accent: AppColors.accent,
+    accentInk: AppColors.accentInk,
     onAccent: AppColors.onAccent,
     spark: AppColors.spark,
   );
@@ -85,6 +90,7 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
     sheet: AppColors.nightSurface,
     dot: AppColors.nightDot,
     accent: AppColors.accentBright,
+    accentInk: AppColors.accentBright,
     onAccent: AppColors.onAccent,
     spark: Color(0xFFD9F99D),
   );
@@ -93,6 +99,8 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
   final Color sheet;
   final Color dot;
   final Color accent;
+  /// Lime used as a glyph or label — darker on Ice, bright on Night.
+  final Color accentInk;
   final Color onAccent;
   final Color spark;
 
@@ -106,6 +114,7 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
     Color? sheet,
     Color? dot,
     Color? accent,
+    Color? accentInk,
     Color? onAccent,
     Color? spark,
   }) {
@@ -114,6 +123,7 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
       sheet: sheet ?? this.sheet,
       dot: dot ?? this.dot,
       accent: accent ?? this.accent,
+      accentInk: accentInk ?? this.accentInk,
       onAccent: onAccent ?? this.onAccent,
       spark: spark ?? this.spark,
     );
@@ -127,6 +137,7 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
       sheet: Color.lerp(sheet, other.sheet, t) ?? sheet,
       dot: Color.lerp(dot, other.dot, t) ?? dot,
       accent: Color.lerp(accent, other.accent, t) ?? accent,
+      accentInk: Color.lerp(accentInk, other.accentInk, t) ?? accentInk,
       onAccent: Color.lerp(onAccent, other.onAccent, t) ?? onAccent,
       spark: Color.lerp(spark, other.spark, t) ?? spark,
     );
@@ -229,6 +240,16 @@ ThemeData _buildTheme({
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: primary,
       foregroundColor: AppColors.onAccent,
+    ),
+    listTileTheme: ListTileThemeData(
+      iconColor: brand.accentInk,
+      textColor: onSurface,
+      titleTextStyle: TextStyle(
+        color: onSurface,
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+      ),
+      subtitleTextStyle: TextStyle(color: muted, fontSize: 14),
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {

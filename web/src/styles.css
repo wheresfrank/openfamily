@@ -18,6 +18,7 @@
   /* Ice — lime on blue-grey paper. --purple aliases stay for older rules. */
   --accent: #8fd400;
   --accent-dark: #78b400;
+  --accent-ink: #3f6212;
   --on-accent: #111827;
   --spark: #c6e86a;
   --sky: #0284c7;
@@ -129,6 +130,7 @@
 [data-theme="dark"] {
   --accent: #a3e635;
   --accent-dark: #84cc16;
+  --accent-ink: #a3e635;
   --on-accent: #111827;
   --spark: #d9f99d;
   --sky: #7dd3fc;

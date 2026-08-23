@@ -190,7 +190,7 @@ class _FloatingIconButton extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Icon(icon, color: BrandTheme.of(context).accent, size: 22),
+            child: Icon(icon, color: BrandTheme.of(context).accentInk, size: 22),
           ),
         ),
       ),

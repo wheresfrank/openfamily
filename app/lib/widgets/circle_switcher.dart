@@ -118,10 +118,10 @@ class _SingleCircleContext extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.group_outlined,
                           size: 19,
-                          color: AppColors.purple,
+                          color: BrandTheme.of(context).accentInk,
                         ),
                         const SizedBox(width: 7),
                         ConstrainedBox(
@@ -158,10 +158,13 @@ class _SingleCircleContext extends StatelessWidget {
                       child: InkWell(
                         customBorder: const CircleBorder(),
                         onTap: onJoinCircle,
-                        child: const SizedBox(
+                        child: SizedBox(
                           width: 44,
                           height: 44,
-                          child: Icon(Icons.add, color: AppColors.purple),
+                          child: Icon(
+                            Icons.add,
+                            color: BrandTheme.of(context).accentInk,
+                          ),
                         ),
                       ),
                     ),
@@ -227,20 +230,20 @@ class _JoinChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.purple.withValues(alpha: 0.12),
+          color: BrandTheme.of(context).accentInk.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.add, size: 18, color: AppColors.purple),
-            SizedBox(width: 4),
+            Icon(Icons.add, size: 18, color: BrandTheme.of(context).accentInk),
+            const SizedBox(width: 4),
             Text(
               'Join a family',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.purple,
+                color: BrandTheme.of(context).accentInk,
               ),
             ),
           ],

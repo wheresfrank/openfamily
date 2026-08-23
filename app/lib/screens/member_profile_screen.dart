@@ -283,7 +283,7 @@ class _DayDetailButton extends StatelessWidget {
             children: [
               Icon(
                 Icons.location_on,
-                color: BrandTheme.of(context).accent,
+                color: BrandTheme.of(context).accentInk,
                 size: 24,
               ),
               const SizedBox(width: 12),
@@ -293,7 +293,7 @@ class _DayDetailButton extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: BrandTheme.of(context).accent,
+                    color: BrandTheme.of(context).accentInk,
                   ),
                 ),
               ),

@@ -93,7 +93,7 @@
   justify-content: center;
   font-size: var(--font-xs);
   font-weight: 700;
-  color: var(--purple);
+  color: var(--accent-ink);
   background: var(--surface-soft-2);
   flex: 0 0 auto;
 }
@@ -155,7 +155,7 @@
   font-size: var(--font-md);
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--purple);
+  color: var(--accent-ink);
 }
 .wb-invite-hint {
   font-size: var(--font-xs);

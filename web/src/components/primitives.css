@@ -157,7 +157,7 @@
   align-items: center;
   justify-content: center;
   background: var(--surface-soft);
-  color: var(--purple);
+  color: var(--accent-ink);
   margin-bottom: var(--space-4);
 }
 .wb-empty-title {
@@ -263,7 +263,7 @@
 .wb-copy-btn-md { width: 30px; height: 30px; }
 .wb-copy-btn:hover {
   background: var(--surface-hover);
-  color: var(--purple);
+  color: var(--accent-ink);
   border-color: var(--border);
 }
 .wb-copy-btn:focus-visible {

@@ -48,7 +48,7 @@
   flex: 1 1 auto;
 }
 .wb-stat-value-green { color: #1c8a4f; }
-.wb-stat-value-purple { color: var(--purple); }
+.wb-stat-value-purple { color: var(--accent-ink); }
 .wb-stat-skeleton {
   display: inline-block;
   width: 48px;

@@ -519,59 +519,52 @@ class _MapScreenState extends State<MapScreen>
   }
 
   void _showAddActions() {
+    final ColorScheme colors = Theme.of(context).colorScheme;
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: BrandTheme.of(context).sheet,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(
-                Icons.check_circle_outline,
-                color: AppColors.purple,
-              ),
-              title: const Text('Check In'),
-              subtitle: const Text('Share your location with your family'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _openCheckIn();
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.campaign_outlined,
-                color: AppColors.purple,
-              ),
-              title: const Text('Help Alert'),
-              subtitle: const Text('Ask your family for help'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _openHelpAlert();
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.person_add_alt_1,
-                color: AppColors.purple,
-              ),
-              title: const Text('Invite'),
-              subtitle: const Text(
-                'Send a code to invite someone to your family',
-              ),
-              onTap: () {
-                Navigator.of(context).pop();
-                _openAddPerson();
-              },
-            ),
-          ],
-        ),
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _AddActionTile(
+                  icon: Icons.check_circle_outline,
+                  title: 'Check In',
+                  subtitle: 'Share your location with your family',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openCheckIn();
+                  },
+                ),
+                _AddActionTile(
+                  icon: Icons.campaign_outlined,
+                  title: 'Help Alert',
+                  subtitle: 'Ask your family for help',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openHelpAlert();
+                  },
+                ),
+                _AddActionTile(
+                  icon: Icons.person_add_alt_1,
+                  title: 'Invite',
+                  subtitle: 'Send a code to invite someone to your family',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _openAddPerson();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -761,6 +754,63 @@ class _MapScreenState extends State<MapScreen>
   }
 }
 
+/// One row in the map `+` sheet. Icon and copy share a vertical center so
+/// a two-line subtitle does not leave the glyph hanging on the title.
+class _AddActionTile extends StatelessWidget {
+  const _AddActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(icon, color: BrandTheme.of(context).accentInk, size: 28),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colors.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Interpolates between two [LatLng]s for smooth camera animation.
 class _LatLngTween extends Tween<LatLng> {
   _LatLngTween({required LatLng begin, required LatLng end})
@@ -796,7 +846,7 @@ class _LayerToggle extends StatelessWidget {
             child: Icon(
               isSatellite ? Icons.map : Icons.satellite_alt,
               size: 22,
-              color: BrandTheme.of(context).accent,
+              color: BrandTheme.of(context).accentInk,
             ),
           ),
         ),
@@ -828,7 +878,7 @@ class _LocateButton extends StatelessWidget {
             child: Icon(
               Icons.my_location,
               size: 22,
-              color: BrandTheme.of(context).accent,
+              color: BrandTheme.of(context).accentInk,
             ),
           ),
         ),

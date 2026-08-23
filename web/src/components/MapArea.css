@@ -44,7 +44,7 @@
   align-items: center;
   justify-content: center;
   background: var(--surface-soft);
-  color: var(--purple);
+  color: var(--accent-ink);
 }
 .wb-maparea-placeholder-title {
   margin: 0 0 var(--space-2);
