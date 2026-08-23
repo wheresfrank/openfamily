@@ -28,6 +28,11 @@ class GeocodingService {
     'WHEREABOUTS_NOMINATIM_URL',
   );
 
+  /// Whether address search / reverse-geocode is available. False by default
+  /// so the place picker can fall back to pin-drop without pretending search
+  /// works.
+  static bool get isEnabled => baseUrl.isNotEmpty;
+
   static const String _userAgent =
       'whereabouts/0.1 (self-hosted family location tracker)';
 

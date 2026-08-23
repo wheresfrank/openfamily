@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -81,21 +82,35 @@ type queryRower interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
+// nullableUUID returns nil when id is empty so PostgreSQL receives NULL
+// instead of ''. places.id is UUID, and '' is invalid input for that type —
+// which is what made CreatePlace fail with "failed to check place overlap"
+// even when the family had no other places.
+func nullableUUID(id string) any {
+	if id == "" {
+		return nil
+	}
+	return id
+}
+
 // placeOverlaps reports whether a circle at (lon, lat) with the given radius
 // overlaps any other place's circle in the family (excluding excludeID). Two
 // circles overlap when the distance between their centers is less than the sum
 // of their radii, computed with ST_DWithin on geography (meters).
+//
+// excludeID is the place being updated (empty on create). Empty is sent as
+// NULL so the UUID comparison does not try to cast ''.
 func (s *Server) placeOverlaps(ctx context.Context, q queryRower, familyID, excludeID string, lon, lat, radius float64) (bool, error) {
 	var overlaps bool
 	err := q.QueryRow(ctx, `
 		SELECT EXISTS(
 			SELECT 1 FROM places p
 			WHERE p.family_id = $1
-			  AND p.id <> $2
+			  AND p.id IS DISTINCT FROM $2::uuid
 			  AND p.geom IS NOT NULL
 			  AND p.radius_meters IS NOT NULL
 			  AND ST_DWithin(p.geom::geography, ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography, p.radius_meters + $5)
-		)`, familyID, excludeID, lon, lat, radius).Scan(&overlaps)
+		)`, familyID, nullableUUID(excludeID), lon, lat, radius).Scan(&overlaps)
 	return overlaps, err
 }
 
@@ -265,6 +280,7 @@ func (s *Server) CreatePlace(w http.ResponseWriter, r *http.Request) {
 	// Reject if the new place's circle overlaps an existing place's circle.
 	overlaps, err := s.placeOverlaps(r.Context(), tx, familyID, "", req.Lon, req.Lat, *req.RadiusMeters)
 	if err != nil {
+		slog.Error("place overlap check failed", "err", err)
 		writeError(w, http.StatusInternalServerError, "failed to check place overlap")
 		return
 	}
@@ -433,6 +449,7 @@ func (s *Server) UpdatePlace(w http.ResponseWriter, r *http.Request) {
 	if radius != nil {
 		overlaps, err := s.placeOverlaps(r.Context(), tx, familyID, id, lon, lat, *radius)
 		if err != nil {
+			slog.Error("place overlap check failed", "err", err, "place_id", id)
 			writeError(w, http.StatusInternalServerError, "failed to check place overlap")
 			return
 		}

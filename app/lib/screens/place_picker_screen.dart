@@ -11,14 +11,16 @@ import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 
 /// A map-first place picker: a full-bleed map with a drop-pin fixed at the
-/// center (drag the map to move the pin), an address field to enter/confirm
-/// the address, and a radius control (250 ft – 2 mi).
+/// center (drag the map to move the pin), an optional address label, and a
+/// radius control (250 ft – 2 mi).
 ///
 /// The map defaults to the user's CURRENT location (via [LocationService]),
-/// falling back to a neutral world view when location is unavailable. Typing
-/// an address forward-geocodes it (moving the pin/map), and dropping the pin
-/// reverse-geocodes the coordinate back into the address field — both via a
-/// configurable self-hosted Nominatim instance ([GeocodingService]).
+/// falling back to a neutral world view when location is unavailable. Address
+/// search is optional: when a self-hosted Nominatim instance is configured
+/// ([GeocodingService.isEnabled]), typing an address moves the pin and
+/// dropping the pin reverse-geocodes into the address field. Without that
+/// add-on, the pin itself is the source of truth — save works with just a
+/// name and the dropped coordinate.
 ///
 /// Pops with the resulting [Place] (lat/lon + radius + address), or `null`
 /// when cancelled.
@@ -137,10 +139,11 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
   /// Called as the map moves; debounces reverse geocoding so we only hit the
   /// service once the user has stopped dragging (i.e. "dropped" the pin).
   /// Programmatic moves (locate/search) update the pin but skip reverse
-  /// geocoding.
+  /// geocoding. When geocoding is off, the pin is the source of truth and we
+  /// skip the lookup entirely.
   void _onMapMoved(LatLng center, bool hasGesture) {
     setState(() => _position = center);
-    if (!hasGesture) return;
+    if (!hasGesture || !GeocodingService.isEnabled) return;
     _reverseTimer?.cancel();
     _reverseTimer = Timer(const Duration(milliseconds: 600), () {
       _reverseGeocode(center);
@@ -152,6 +155,11 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
     if (!mounted || address == null) return;
     _address.text = address;
     _address.selection = TextSelection.collapsed(offset: _address.text.length);
+  }
+
+  String _formatCoordinates(LatLng position) {
+    return '${position.latitude.toStringAsFixed(5)}, '
+        '${position.longitude.toStringAsFixed(5)}';
   }
 
   String _formatRadius(double meters) {
@@ -259,6 +267,33 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                     ),
                   ),
                 ),
+                // Live coordinates so pin-drop is usable without address search.
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  top: 12,
+                  child: IgnorePointer(
+                    child: Center(
+                      child: Material(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          child: Text(
+                            _formatCoordinates(_position),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 // "Use my location" affordance, shown while locating or as a
                 // way to re-center after the user has dragged away.
                 Positioned(
@@ -306,36 +341,52 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                   TextField(
                     controller: _address,
                     textCapitalization: TextCapitalization.words,
-                    textInputAction: TextInputAction.search,
-                    onSubmitted: _searchAddress,
+                    textInputAction: GeocodingService.isEnabled
+                        ? TextInputAction.search
+                        : TextInputAction.done,
+                    onSubmitted: GeocodingService.isEnabled
+                        ? _searchAddress
+                        : null,
                     decoration: InputDecoration(
-                      labelText: 'Address',
+                      labelText: GeocodingService.isEnabled
+                          ? 'Address'
+                          : 'Address (optional)',
                       hintText: 'e.g. 123 Maple St',
                       prefixIcon: const Icon(Icons.place_outlined),
                       border: const OutlineInputBorder(),
-                      suffixIcon: _searching
-                          ? const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                      suffixIcon: !GeocodingService.isEnabled
+                          ? null
+                          : _searching
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                )
+                              : IconButton(
+                                  icon: const Icon(Icons.search),
+                                  tooltip: 'Search address',
+                                  onPressed: () =>
+                                      _searchAddress(_address.text),
                                 ),
-                              ),
-                            )
-                          : IconButton(
-                              icon: const Icon(Icons.search),
-                              tooltip: 'Search address',
-                              onPressed: () => _searchAddress(_address.text),
-                            ),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Type an address to move the pin, or drag the map — the '
-                    'address fills in automatically.',
-                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  Text(
+                    GeocodingService.isEnabled
+                        ? 'Type an address to move the pin, or drag the map — '
+                            'the address fills in automatically.'
+                        : 'Drag the map to drop a pin, then save. Address '
+                            'search needs a geocoding add-on — you can still '
+                            'save the pin, and type a label here if you want.',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Row(
