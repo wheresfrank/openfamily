@@ -95,16 +95,18 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
   Future<void> _rename() async {
     final FamilyInfo? family = _family;
     if (family == null || !_isAdmin) return;
-    final TextEditingController controller =
-        TextEditingController(text: family.name);
+    // Capture the draft in a local so we don't dispose a TextEditingController
+    // while the dialog's exit transition and IME are still running.
+    String draft = family.name;
     final String? name = await showDialog<String>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: const Text('Rename family'),
-        content: TextField(
-          controller: controller,
+        content: TextFormField(
+          initialValue: family.name,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
+          onChanged: (String value) => draft = value,
           decoration: const InputDecoration(
             labelText: 'Family name',
             border: OutlineInputBorder(),
@@ -116,13 +118,13 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            onPressed: () => Navigator.of(context).pop(draft.trim()),
             child: const Text('Save'),
           ),
         ],
       ),
     );
-    controller.dispose();
+    if (!mounted) return;
     if (name == null || name.isEmpty || name == family.name) return;
     setState(() => _busy = true);
     try {
@@ -195,7 +197,7 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
     setState(() => _busy = true);
     try {
       await ApiClient.leaveFamily();
@@ -388,17 +390,16 @@ class _NoFamily extends StatelessWidget {
           const SizedBox(height: 24),
           FilledButton(
             onPressed: () async {
+              String draft = '';
               final String? name = await showDialog<String>(
                 context: context,
                 builder: (BuildContext context) {
-                  final TextEditingController controller =
-                      TextEditingController();
                   return AlertDialog(
                     title: const Text('Create a family'),
-                    content: TextField(
-                      controller: controller,
+                    content: TextFormField(
                       autofocus: true,
                       textCapitalization: TextCapitalization.words,
+                      onChanged: (String value) => draft = value,
                       decoration: const InputDecoration(
                         labelText: 'Family name (optional)',
                         hintText: 'My Family',
@@ -412,7 +413,7 @@ class _NoFamily extends StatelessWidget {
                       ),
                       FilledButton(
                         onPressed: () =>
-                            Navigator.of(context).pop(controller.text.trim()),
+                            Navigator.of(context).pop(draft.trim()),
                         child: const Text('Create'),
                       ),
                     ],
