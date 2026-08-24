@@ -17,6 +17,11 @@ import (
 const (
 	maxTSSkew = 5 * time.Minute
 	maxTSAge  = 15 * time.Minute
+
+	// Ingest throttle per user. Normal reporters emit a point every few
+	// seconds; the cap only trips on runaway loops or deliberate flooding.
+	ingestPerWindow = 120
+	ingestWindow    = time.Minute
 )
 
 // IngestLocation stores a single location point for a device owned by the
@@ -25,6 +30,10 @@ func (s *Server) IngestLocation(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.ClaimsFromContext(r.Context())
 	if claims == nil {
 		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	if s.LocationLimit != nil && !s.LocationLimit.Allow("loc:"+claims.UserID, ingestPerWindow, ingestWindow) {
+		writeError(w, http.StatusTooManyRequests, "too many location reports")
 		return
 	}
 
