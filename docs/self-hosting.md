@@ -48,7 +48,10 @@ A key in `TILE_URL` is visible to every phone.
 ## Optional SMS
 
 Set `TWILIO_*` and `PUBLIC_BASE_URL=https://whereabouts.example.com` so SOS
-messages carry a share link instead of raw coordinates.
+messages carry a share link instead of raw coordinates. The same values can
+be saved on the admin **Settings** page; a saved row overrides empty env
+values without restarting. Emergency contacts appear in the app only when
+SMS is configured.
 
 ## Backups and disk encryption
 

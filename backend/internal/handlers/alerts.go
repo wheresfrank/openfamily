@@ -297,7 +297,7 @@ func (s *Server) pushFamilyAlert(ctx context.Context, familyID, senderID, title,
 }
 
 func (s *Server) smsFamily(ctx context.Context, familyID, senderID, body string) {
-	if s.SMS == nil || !s.SMS.Enabled() || familyID == "" {
+	if !s.SMSEnabled() || familyID == "" {
 		return
 	}
 	rows, err := s.Pool.Query(ctx, `
@@ -314,14 +314,14 @@ func (s *Server) smsFamily(ctx context.Context, familyID, senderID, body string)
 		if err := rows.Scan(&phone); err != nil {
 			continue
 		}
-		if err := s.SMS.Send(ctx, phone, body); err != nil {
+		if err := s.sendSMS(ctx, phone, body); err != nil {
 			slog.Error("alert: sms family", "err", err)
 		}
 	}
 }
 
 func (s *Server) smsEmergencyContacts(ctx context.Context, senderID, body string) {
-	if s.SMS == nil || !s.SMS.Enabled() {
+	if !s.SMSEnabled() {
 		return
 	}
 	rows, err := s.Pool.Query(ctx, `
@@ -336,14 +336,14 @@ func (s *Server) smsEmergencyContacts(ctx context.Context, senderID, body string
 		if err := rows.Scan(&phone); err != nil {
 			continue
 		}
-		if err := s.SMS.Send(ctx, phone, body); err != nil {
+		if err := s.sendSMS(ctx, phone, body); err != nil {
 			slog.Error("alert: sms contact", "err", err)
 		}
 	}
 }
 
 func (s *Server) shareURL(token string) string {
-	base := strings.TrimRight(s.PublicBaseURL, "/")
+	base := strings.TrimRight(s.publicBaseURL(), "/")
 	if !strings.HasPrefix(strings.ToLower(base), "https://") {
 		return ""
 	}

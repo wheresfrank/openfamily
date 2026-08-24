@@ -1,6 +1,6 @@
-// Settings page — signed-in account (photo, name, password) and a short About
-// block for this server. Developer endpoints and session tokens stay out of
-// the public UI.
+// Settings page — signed-in account (photo, name, password), Twilio SMS,
+// and a short About block for this server. Developer endpoints and session
+// tokens stay out of the public UI.
 
 import React from 'react'
 import {
@@ -15,6 +15,7 @@ import {
 import type { Profile } from '../lib/types'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { Button, Card, CopyButton, Mono, Spinner } from '../components/primitives'
+import { TwilioSettingsCard } from './TwilioSettingsCard'
 import './pages.css'
 import './SettingsPage.css'
 
@@ -305,18 +306,22 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
       <div className="wb-page-header">
         <div>
           <h1 className="wb-page-title">Settings</h1>
-          <p className="wb-page-subtitle">Appearance, account, and this server.</p>
+          <p className="wb-page-subtitle">Appearance, account, SMS, and this server.</p>
         </div>
       </div>
 
       <div className="wb-settings-grid">
-        <Card>
-          <h3 className="wb-settings-title">Appearance</h3>
-          <p className="wb-settings-section-help">
-            System follows this device. Light is Ice. Dark is Night.
-          </p>
-          <ThemeToggle />
-        </Card>
+        <div className="wb-settings-col">
+          <Card>
+            <h3 className="wb-settings-title">Appearance</h3>
+            <p className="wb-settings-section-help">
+              System follows this device. Light is Ice. Dark is Night.
+            </p>
+            <ThemeToggle />
+          </Card>
+
+          <TwilioSettingsCard />
+        </div>
 
         <Card>
           <h3 className="wb-settings-title">Account</h3>
@@ -509,9 +514,9 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
           </div>
         </Card>
 
-        <Card>
+        <Card className="wb-settings-wide">
           <h3 className="wb-settings-title">About</h3>
-          <dl className="wb-settings-list">
+          <dl className="wb-settings-list wb-settings-list-row">
             <div>
               <dt>App</dt>
               <dd>Whereabouts</dd>

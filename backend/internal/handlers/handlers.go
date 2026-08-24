@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/whereabouts/whereabouts/backend/internal/auth"
@@ -31,9 +32,15 @@ type Server struct {
 	// client uses this to skip iOS token registration when APNs cannot work.
 	APNsConfigured bool
 
+	// SMSEnv is the process environment fallback used when no admin
+	// settings row exists (or a field on that row is empty).
+	SMSEnv sms.Settings
+
 	// SMS sends optional Twilio messages. A no-op dispatcher is used when
-	// Twilio is unset so alerts still work in-app.
-	SMS sms.Dispatcher
+	// Twilio is unset so alerts still work in-app. Replaced at runtime when
+	// an admin saves settings; readers must use SMSEnabled/sendSMS.
+	smsMu sync.RWMutex
+	SMS   sms.Dispatcher
 
 	// AlertLimit rate-limits SOS and similar fan-out per user.
 	AlertLimit *sms.Limiter

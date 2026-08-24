@@ -66,4 +66,26 @@ void main() {
     await tester.pumpWidget(_bar(const <String, VoidCallback>{}));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('hides emergency contacts when onSafety is omitted', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: MapBottomBar(
+            onSos: null,
+            onPeople: null,
+            onPlaces: null,
+            onSettings: null,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.shield_outlined), findsNothing);
+    expect(find.byIcon(Icons.people_alt_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.place_outlined), findsOneWidget);
+    expect(find.text('SOS'), findsOneWidget);
+  });
 }

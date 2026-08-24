@@ -83,13 +83,17 @@ class MapBottomBar extends StatelessWidget {
                     label: 'Places',
                     onTap: onPlaces,
                   ),
-                  const SizedBox(width: 6),
-                  // Safety — a white circular icon button, matching the others.
-                  _FloatingIconButton(
-                    icon: Icons.shield_outlined,
-                    label: 'Emergency contacts',
-                    onTap: onSafety,
-                  ),
+                  if (onSafety != null) ...[
+                    const SizedBox(width: 6),
+                    // Safety — emergency contacts. Hidden when the server
+                    // cannot send SMS, because those contacts would not
+                    // be notified.
+                    _FloatingIconButton(
+                      icon: Icons.shield_outlined,
+                      label: 'Emergency contacts',
+                      onTap: onSafety,
+                    ),
+                  ],
                 ],
               ),
             ),

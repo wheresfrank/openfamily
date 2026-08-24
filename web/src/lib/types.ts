@@ -113,6 +113,16 @@ export interface HistoryVisit {
   kind: HistoryVisitKind
 }
 
+/** Effective Twilio SMS settings from GET /api/admin/settings/sms. */
+export interface SmsSettings {
+  configured: boolean
+  account_sid: string
+  auth_token_set: boolean
+  from: string
+  public_base_url: string
+  source: 'settings' | 'environment'
+}
+
 export interface MemberHistory {
   user_id: string
   from: string

@@ -99,8 +99,8 @@ who share a home, not for vehicles, tools, or public sharing.
   with slide-to-cancel; practice mode; “I'm safe” follow-up
 - **Help** — a non-emergency ping to the family only (no emergency contacts)
 - **Check in** — “I'm here” with an optional note
-- Emergency contacts who receive SOS even without the app
-- Optional Twilio SMS; in-app push and WebSocket still work without it
+- Emergency contacts who receive SOS even without the app (shown only when SMS is configured)
+- Optional Twilio SMS from admin Settings or `TWILIO_*`; in-app push and WebSocket still work without it
 - A public 24-hour share page for an alert (token in the SMS, no login)
 
 ### History
@@ -490,7 +490,7 @@ For a fully private map, host your own tiles. The simplest option is
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/healthz` | Health check |
-| GET | `/config` | Public ntfy base URL and whether APNs is configured |
+| GET | `/config` | Public ntfy, tile URLs, and whether APNs / SMS are configured |
 | POST | `/auth/register` | Create account |
 | POST | `/auth/login` | Password + optional TOTP → token pair |
 | POST | `/auth/refresh` | Rotate refresh token |
@@ -556,6 +556,7 @@ All routes require a platform admin. The SPA at `/admin` calls these under
 | GET | `/api/admin/apk` | Download the latest Android APK (GitHub Release, cached in `APK_DIR`) |
 | POST | `/api/admin/apk/build` | Optional on-server build (needs Flutter) |
 | GET | `/api/admin/apk/status` | Poll that build |
+| GET / PUT / DELETE | `/api/admin/settings/sms` | Twilio SMS settings (token never returned) |
 | WS | `/api/admin/ws` | Live positions across all families |
 
 </details>

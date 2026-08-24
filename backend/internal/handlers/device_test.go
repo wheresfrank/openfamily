@@ -50,6 +50,9 @@ func TestGetConfig(t *testing.T) {
 	if !strings.Contains(body, `"apns_configured":true`) {
 		t.Errorf("missing apns_configured: %s", body)
 	}
+	if !strings.Contains(body, `"sms_configured":false`) {
+		t.Errorf("missing sms_configured: %s", body)
+	}
 }
 
 func TestUpdateDeviceUnauthenticated(t *testing.T) {

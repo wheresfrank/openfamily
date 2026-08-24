@@ -1,0 +1,72 @@
+package sms
+
+import (
+	"errors"
+	"net/url"
+	"strings"
+)
+
+// Settings is the effective Twilio configuration used to send SMS.
+// Environment values are the fallback; a saved admin row overrides any
+// field that is non-empty.
+type Settings struct {
+	AccountSID    string
+	AuthToken     string
+	From          string
+	PublicBaseURL string
+}
+
+// ErrInvalidPublicBaseURL is returned when the share-link origin is not https.
+var ErrInvalidPublicBaseURL = errors.New("public base URL must be an https origin, e.g. https://whereabouts.example.com")
+
+// Merge prefers non-empty stored fields over env. When no settings row
+// exists, env is used as-is so existing TWILIO_* deploys keep working.
+func Merge(env Settings, stored Settings, storedPresent bool) Settings {
+	if !storedPresent {
+		return env
+	}
+	out := env
+	if strings.TrimSpace(stored.AccountSID) != "" {
+		out.AccountSID = stored.AccountSID
+	}
+	if stored.AuthToken != "" {
+		out.AuthToken = stored.AuthToken
+	}
+	if strings.TrimSpace(stored.From) != "" {
+		out.From = stored.From
+	}
+	if strings.TrimSpace(stored.PublicBaseURL) != "" {
+		out.PublicBaseURL = stored.PublicBaseURL
+	}
+	return out
+}
+
+// Enabled is true when SID, token, and from are all set.
+func (s Settings) Enabled() bool {
+	return strings.TrimSpace(s.AccountSID) != "" &&
+		strings.TrimSpace(s.AuthToken) != "" &&
+		strings.TrimSpace(s.From) != ""
+}
+
+// Config returns the dispatcher credentials.
+func (s Settings) Config() Config {
+	return Config{
+		AccountSID: s.AccountSID,
+		AuthToken:  s.AuthToken,
+		From:       s.From,
+	}
+}
+
+// NormalizePublicBaseURL trims a trailing slash and requires https when set.
+// Empty input clears the value (returns "", nil).
+func NormalizePublicBaseURL(raw string) (string, error) {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return "", nil
+	}
+	u, err := url.Parse(s)
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return "", ErrInvalidPublicBaseURL
+	}
+	return strings.TrimRight(s, "/"), nil
+}

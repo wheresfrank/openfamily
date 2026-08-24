@@ -9,12 +9,32 @@
   .wb-settings-grid { grid-template-columns: 1fr; }
 }
 
+.wb-settings-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.wb-settings-wide {
+  grid-column: 1 / -1;
+}
+.wb-settings-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+}
+.wb-settings-title-row .wb-settings-title {
+  margin: 0;
+}
 .wb-settings-title {
   margin: 0 0 var(--space-4);
   font-size: var(--font-lg);
   font-weight: 600;
 }
-.wb-settings-title + .wb-settings-section-help {
+.wb-settings-title + .wb-settings-section-help,
+.wb-settings-title-row + .wb-settings-section-help {
   margin: calc(var(--space-4) * -1) 0 var(--space-4);
 }
 .wb-profile-avatar-section {
@@ -105,15 +125,33 @@
   border: 0;
 }
 .wb-settings-list {
-  margin: 0 0 var(--space-4);
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+.wb-settings-list-row {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--space-6);
 }
 .wb-settings-list div {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+}
+.wb-settings-list-row div {
+  flex: 1 1 0;
+}
+.wb-settings-list-row div:last-child {
+  flex: 2 1 0;
+}
+@media (max-width: 640px) {
+  .wb-settings-list-row {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
 }
 .wb-settings-list dt {
   font-size: var(--font-xs);
@@ -143,6 +181,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+.wb-settings-section-flush {
+  margin-bottom: 0;
 }
 .wb-settings-section-title {
   margin: 0;
