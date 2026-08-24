@@ -1,7 +1,9 @@
-// Left navigation sidebar.
+// Left navigation sidebar. Regular users (app-parity permissions) see only
+// the routes they may use; server-admin routes stay hidden for them.
 
 import React from 'react'
-import { ROUTES, type RouteKey } from '../lib/routes'
+import { ROUTES, routesFor, type RouteKey } from '../lib/routes'
+import { useMe } from '../lib/me'
 import './nav.css'
 
 interface SidebarProps {
@@ -12,6 +14,12 @@ interface SidebarProps {
 }
 
 export function Sidebar({ active, onNavigate, footer }: SidebarProps) {
+  const { isPlatformAdmin } = useMe()
+  const visibleRoutes = React.useMemo(
+    () => (isPlatformAdmin ? ROUTES : routesFor(false)),
+    [isPlatformAdmin],
+  )
+
   return (
     <aside className="wb-sidebar" aria-label="Main navigation">
       <div className="wb-brand">
@@ -31,11 +39,11 @@ export function Sidebar({ active, onNavigate, footer }: SidebarProps) {
           </svg>
         </span>
         <span className="wb-brand-name">Whereabouts</span>
-        <span className="wb-brand-sub">Admin</span>
+        {isPlatformAdmin && <span className="wb-brand-sub">Admin</span>}
       </div>
 
       <nav className="wb-nav">
-        {ROUTES.map((r) => {
+        {visibleRoutes.map((r) => {
           const isActive = r.key === active
           return (
             <a

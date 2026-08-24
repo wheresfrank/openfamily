@@ -51,7 +51,16 @@ func normalizeProfileName(name string) (string, error) {
 	return name, nil
 }
 
-// GetMe returns the authenticated user's editable account profile.
+// meOut is the /me response: the account profile plus the platform-admin
+// flag so clients (the web panel) can gate server-admin surfaces without a
+// probe request against the admin API.
+type meOut struct {
+	models.User
+	PlatformAdmin bool `json:"platform_admin"`
+}
+
+// GetMe returns the authenticated user's editable account profile, including
+// whether the account is a platform admin.
 func (s *Server) GetMe(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.ClaimsFromContext(r.Context())
 	if claims == nil {
@@ -63,7 +72,14 @@ func (s *Server) GetMe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to load profile")
 		return
 	}
-	writeJSON(w, http.StatusOK, user)
+	var platformAdmin bool
+	if err := s.Pool.QueryRow(r.Context(),
+		`SELECT platform_admin FROM users WHERE id = $1`, claims.UserID,
+	).Scan(&platformAdmin); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load role")
+		return
+	}
+	writeJSON(w, http.StatusOK, meOut{User: user, PlatformAdmin: platformAdmin})
 }
 
 // UpdateMe changes the authenticated user's display name and/or phone.

@@ -53,17 +53,18 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
         <div className="wb-login-aside-body">
           <h2 className="wb-login-aside-title">Self-hosted family location, in your control.</h2>
           <p className="wb-login-aside-text">
-            Manage groups, oversee members, and build the Android app — all from
-            one admin console.
+            See your family on the live map, revisit their day, and manage your
+            circle — the same things you can do in the mobile apps. Server
+            administrators also get user, build, and server-wide tools.
           </p>
         </div>
-        <div className="wb-login-aside-foot">Whereabouts Admin · v0.1</div>
+        <div className="wb-login-aside-foot">Whereabouts · v0.1</div>
       </aside>
 
       <main className="wb-login-main">
         <div className="wb-login-card">
           <h1 className="wb-login-h1">Sign in</h1>
-          <p className="wb-login-sub">Use your administrator account to continue.</p>
+          <p className="wb-login-sub">Use your Whereabouts account to continue.</p>
 
           <form ref={formRef} onSubmit={submit} className="wb-login-form" noValidate>
             <div className="wb-field">

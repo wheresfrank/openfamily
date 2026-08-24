@@ -10,7 +10,12 @@
 // It can be driven two ways:
 //   1. Shell-fed data: pass `groups` + `members` (the shell owns fetching/WS).
 //   2. Self-sufficient: pass a `token` (and optionally `apiBase`) and it will
-//      fetch `/api/admin/families` + `/api/admin/members` and stream `/ws/stream`.
+//      fetch + stream its own data.
+//
+// Self-sufficient mode honors a `scope`:
+//   - 'admin'  → /api/admin/* endpoints + /api/admin/ws (server-wide view).
+//   - 'family' → /family* endpoints + /ws/stream, i.e. exactly what the
+//     mobile apps consume, scoped to the signed-in user's own circle.
 //
 // Status/movement derivation and clustering are ported 1:1 from the Flutter app
 // (app/lib/services/member_mapper.dart, app/lib/utils/member_clustering.dart).
@@ -32,7 +37,8 @@ import { clusterBubbleIcon, memberBubbleIcon } from "./memberBubble";
 import { GroupSwitcher } from "./groupSwitcher";
 import { MemberCard } from "./MemberCard";
 import { MemberList } from "./memberList";
-import { getAdminMemberAvatar } from "../lib/api";
+import { getAdminMemberAvatar, getFamilyMemberAvatar } from "../lib/api";
+import type { FamilyPlace, MyFamily } from "../lib/types";
 import { useMemberAvatarUrls } from "../lib/useMemberAvatarUrls";
 import {
   applyLocationUpdate,
@@ -97,6 +103,12 @@ const MEMBER_PALETTE = [
 ];
 
 export interface MapViewProps {
+  /**
+   * Which API surface the map consumes in self-managed mode. 'admin' uses the
+   * server-wide platform-admin endpoints; 'family' mirrors the mobile apps by
+   * using the family-scoped endpoints for the signed-in user's own circle.
+   */
+  scope?: "admin" | "family";
   /** Families to show in the group switcher. Required when not self-fetching. */
   groups?: Group[];
   /** Pre-derived members (shell-fed mode). When omitted, `token` is used to fetch. */
@@ -202,6 +214,7 @@ async function fetchBlob(url: string, token: string): Promise<Blob> {
 
 export function MapView(props: MapViewProps): JSX.Element {
   const {
+    scope = "admin",
     groups: groupsProp,
     members: membersProp,
     token,
@@ -240,12 +253,20 @@ export function MapView(props: MapViewProps): JSX.Element {
       // The portal's normal same-origin route goes through the shared API
       // client, preserving its one-time 401 refresh/replay behavior. A custom
       // API base remains supported for embedded/standalone map consumers.
-      if (isSameOriginApi(apiBase)) return getAdminMemberAvatar(memberId);
+      if (isSameOriginApi(apiBase)) {
+        return scope === "family"
+          ? getFamilyMemberAvatar(memberId)
+          : getAdminMemberAvatar(memberId);
+      }
       if (!token) return Promise.reject(new Error("Missing access token"));
       const base = resolveBase(apiBase);
-      return fetchBlob(`${base}/api/admin/members/${encodeURIComponent(memberId)}/avatar`, token);
+      const path =
+        scope === "family"
+          ? `/family/members/${encodeURIComponent(memberId)}/avatar`
+          : `/api/admin/members/${encodeURIComponent(memberId)}/avatar`;
+      return fetchBlob(`${base}${path}`, token);
     },
-    [apiBase, token],
+    [apiBase, token, scope],
   );
   const fetchedAvatarUrls = useMemberAvatarUrls(avatarSources, loadMemberAvatar, {
     enabled: selfManaged && Boolean(token),
@@ -318,9 +339,11 @@ export function MapView(props: MapViewProps): JSX.Element {
     const base = resolveBase(apiBase);
 
     const connect = (): void => {
-      // Platform-admin stream: broadcasts live location updates across ALL
-      // families (the family-scoped /ws/stream only covers the caller's own).
-      const url = `${toWsBase(base)}/api/admin/ws`;
+      // 'admin' streams the platform-admin socket (live updates across ALL
+      // families); 'family' streams the caller's own circle, matching /ws/stream
+      // in the mobile apps. Frame shapes are identical.
+      const streamPath = scope === "family" ? "/ws/stream" : "/api/admin/ws";
+      const url = `${toWsBase(base)}${streamPath}`;
       try {
         // The access token is sent as the Sec-WebSocket-Protocol subprotocol,
         // matching the app's existing stream handshake.
@@ -380,11 +403,37 @@ export function MapView(props: MapViewProps): JSX.Element {
       setLoading(true);
       setError(null);
       try {
-        const [g, raw, places] = await Promise.all([
-          fetchJson<Group[]>(`${base}/api/admin/families`, token),
-          fetchJson<RawMember[]>(`${base}/api/admin/members`, token),
-          fetchJson<Place[]>(`${base}/api/admin/places`, token),
-        ]);
+        let g: Group[];
+        let raw: RawMember[];
+        let places: Place[];
+        if (scope === "family") {
+          // App-parity surface: one group (the caller's own circle), its
+          // members, and its shared places.
+          const [fam, mems, famPlaces] = await Promise.all([
+            fetchJson<MyFamily>(`${base}/family`, token),
+            fetchJson<RawMember[]>(`${base}/family/members`, token),
+            fetchJson<FamilyPlace[]>(`${base}/family/places`, token),
+          ]);
+          g = [{ id: fam.id, name: fam.name, created_at: fam.created_at }];
+          raw = mems.map((m) => ({ ...m, family_id: fam.id, family_name: fam.name }));
+          places = famPlaces.map((p) => ({
+            id: p.id,
+            familyId: p.family_id,
+            familyName: fam.name,
+            name: p.name,
+            type: p.type,
+            lat: p.lat,
+            lon: p.lon,
+            radiusMeters: p.radius_meters ?? null,
+            address: p.address,
+          }));
+        } else {
+          [g, raw, places] = await Promise.all([
+            fetchJson<Group[]>(`${base}/api/admin/families`, token),
+            fetchJson<RawMember[]>(`${base}/api/admin/members`, token),
+            fetchJson<Place[]>(`${base}/api/admin/places`, token),
+          ]);
+        }
         if (cancelled) return;
         setFetchedGroups(g);
         const colors = assignGroupColors(g);
@@ -407,7 +456,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       if (reconnectTimer) clearTimeout(reconnectTimer);
       ws?.close();
     };
-  }, [selfManaged, token, apiBase, reloadKey]);
+  }, [selfManaged, token, apiBase, scope, reloadKey]);
 
   /* ----------------------------- staleness timer ----------------------------- */
   useEffect(() => {

@@ -152,3 +152,9 @@
     grid-template-rows: minmax(280px, 1fr) minmax(200px, 40%);
   }
 }
+
+/* Read-only family label shown to non-admin viewers (their own circle). */
+.wb-history-family-name {
+  margin: 0;
+  padding-top: 6px;
+}
