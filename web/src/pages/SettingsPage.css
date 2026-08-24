@@ -278,3 +278,29 @@
     flex-direction: column;
   }
 }
+
+/* ---- Server updates card (ServerUpdateCard) ---- */
+.wb-update-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: var(--space-3) 0;
+}
+.wb-update-ref {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.wb-update-log {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  max-height: 240px;
+  overflow: auto;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  font-size: var(--font-xs, 12px);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

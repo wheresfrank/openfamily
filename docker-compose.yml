@@ -63,15 +63,24 @@ services:
       APK_DIR: ${APK_DIR:-/data/apk}
       APK_GITHUB_REPO: ${APK_GITHUB_REPO:-wheresfrank/whereabouts}
       APK_GITHUB_TOKEN: ${APK_GITHUB_TOKEN:-}
+      # In-admin "Update server" button: the API proxies to the updater sidecar
+      # below (same shared token). Leave UPDATER_TOKEN empty to disable server
+      # self-update entirely.
+      UPDATER_URL: http://updater:8081
+      UPDATER_TOKEN: ${UPDATER_TOKEN:-}
+      # File where the updater records the deployed git ref; read at runtime so
+      # the admin panel can show which commit is running.
+      DEPLOY_REF_FILE: /data/deploy/deployed-ref
     volumes:
       - ./apk:/data/apk
+      - deploy_meta:/data/deploy
     depends_on:
       postgres:
         condition: service_healthy
     expose:
       - "8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null"]
+      test: ["CMD-SHELL", "wget -qO- \"http://127.0.0.1$${HTTP_ADDR}/healthz\" >/dev/null"]
       interval: 10s
       timeout: 3s
       retries: 6
@@ -108,9 +117,38 @@ services:
     ports:
       - "127.0.0.1:2586:80"
 
+  # Sidecar that powers the in-admin "Update server" button. It mounts the
+  # compose project (the git clone) and the host Docker socket so it can run
+  # "git pull" + "docker compose up -d --build" on behalf of the API, which
+  # cannot update itself from inside its own container.
+  #
+  # SECURITY: mounting docker.sock grants root-equivalent access to the host.
+  # This service is internal-only (no published ports) and every endpoint
+  # requires X-Updater-Token to match UPDATER_TOKEN. Set a long random token
+  # (openssl rand -hex 32), or leave UPDATER_TOKEN empty to disable updates.
+  updater:
+    build: ./updater
+    restart: unless-stopped
+    environment:
+      UPDATER_TOKEN: ${UPDATER_TOKEN:-}
+      REPO_DIR: /repo
+      DATA_DIR: /data
+      # Shared with the api service so it can read the deployed git ref.
+      DEPLOY_REF_FILE: /data/deploy/deployed-ref
+    volumes:
+      - .:/repo
+      - /var/run/docker.sock:/var/run/docker.sock
+      - updater_data:/data
+      - deploy_meta:/data/deploy
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
   caddy_data:
   caddy_config:
   pgdata:
   ntfy_cache:
   ntfy_etc:
+  deploy_meta:
+  updater_data:

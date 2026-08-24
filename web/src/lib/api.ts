@@ -18,6 +18,7 @@ import type {
   Profile,
   Role,
   SmsSettings,
+  UpdateStatus,
 } from './types'
 
 const API_BASE = '/api'
@@ -89,6 +90,8 @@ interface RequestOptions {
   noAuth?: boolean
   /** Expect a binary response instead of JSON. */
   binary?: boolean
+  /** Expect a plain-text response instead of JSON. */
+  text?: boolean
   /** Override the default Accept header. */
   accept?: string
 }
@@ -158,6 +161,10 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   if (opts.binary) {
     // Caller wants the raw blob.
     return (await res.blob()) as unknown as T
+  }
+  if (opts.text) {
+    // Caller wants plain text (e.g. the updater log tail).
+    return (await res.text()) as unknown as T
   }
   return (await res.json()) as T
 }
@@ -432,4 +439,20 @@ export function updateSmsSettings(input: {
 
 export function clearSmsSettings(): Promise<SmsSettings> {
   return request<SmsSettings>('/api/admin/settings/sms', { method: 'DELETE' })
+}
+
+// ---- Server self-update (platform admin) ----
+
+export function getUpdateStatus(): Promise<UpdateStatus> {
+  return request<UpdateStatus>('/api/admin/update/status')
+}
+
+/** Asks the updater sidecar to pull and rebuild; poll getUpdateStatus after. */
+export function applyServerUpdate(): Promise<{ status: string }> {
+  return request<{ status: string }>('/api/admin/update/apply', { method: 'POST' })
+}
+
+/** Tail of the updater's log (text/plain) for live progress display. */
+export function getUpdateLog(): Promise<string> {
+  return request<string>('/api/admin/update/log', { text: true, accept: 'text/plain' })
 }

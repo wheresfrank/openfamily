@@ -17,6 +17,7 @@ import { useMe } from '../lib/me'
 import type { Profile } from '../lib/types'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { Button, Card, CopyButton, Mono, Spinner } from '../components/primitives'
+import { ServerUpdateCard } from './ServerUpdateCard'
 import { TwilioSettingsCard } from './TwilioSettingsCard'
 import './pages.css'
 import './SettingsPage.css'
@@ -328,6 +329,10 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
           {/* Twilio SMS is a server-wide setting: platform admins only. The
               apps never expose it to regular users either. */}
           {isPlatformAdmin && <TwilioSettingsCard />}
+
+          {/* Self-update lives here too: it restarts the server the panel is
+              served from, so only platform admins see the card. */}
+          {isPlatformAdmin && <ServerUpdateCard />}
         </div>
 
         <Card>

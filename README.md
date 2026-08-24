@@ -311,7 +311,8 @@ Setting `PLATFORM_ADMIN_EMAIL` **closes open registration**.
    **Users** — every account, including people with no family; create,
    assign, change role, reset password.
    **APK** — download the Android APK.
-   **Settings** — your account (name, password, photo) and this server.
+   **Settings** — your account (name, password, photo), this server, and
+   server updates (see [Updating the server](#updating-the-server)).
 
 ### Invite codes
 
@@ -356,6 +357,45 @@ users have to uninstall before they can install a newly signed APK.
 
 One generic APK works for every deployment because of the runtime server URL
 screen.
+
+### Updating the server
+
+The admin **Settings → Server updates** card shows the commit the server is
+running and whether a newer commit exists upstream, with an **Update now**
+button that pulls the latest code and rebuilds/recreates changed containers —
+no shell access required.
+
+The button is powered by the `updater` sidecar (docker-compose service), which
+mounts the compose project directory and the Docker socket and runs
+`git pull --ff-only` followed by `docker compose up -d --build` on behalf of
+the API, which cannot update itself from inside its own container.
+
+To enable it, set a long random shared token in `.env`:
+
+```bash
+UPDATER_TOKEN=$(openssl rand -hex 32)
+```
+
+then `docker compose up -d --build` once more (this builds the sidecar). The
+token must be identical on both sides; compose wires it to both services.
+Leave it empty to disable self-update entirely — the card still reports
+versions and tells you the manual commands. The updater listens only on the
+internal Docker network (no published ports) and rejects every request without
+the token.
+
+Notes:
+
+- **Security:** mounting `/var/run/docker.sock` is root-equivalent host access.
+  That is inherent to in-panel updates; the sidecar is internal-only,
+  token-gated, runs exactly two fixed commands, and update triggers are
+  audit-logged as `admin.update_apply`.
+- Local changes in the clone make `git pull --ff-only` fail loudly rather than
+  silently clobbering them; resolve and re-run the button.
+- If the sidecar's own image changed, its container may be recreated mid-run;
+  the card then reports the run as *interrupted*. Verify container health and
+  press the button again.
+- Without the sidecar enabled you can always update manually:
+  `git pull && docker compose up -d --build`.
 
 ## Self-hosting map tiles
 
@@ -557,6 +597,9 @@ All routes require a platform admin. The SPA at `/admin` calls these under
 | POST | `/api/admin/apk/build` | Optional on-server build (needs Flutter) |
 | GET | `/api/admin/apk/status` | Poll that build |
 | GET / PUT / DELETE | `/api/admin/settings/sms` | Twilio SMS settings (token never returned) |
+| GET | `/api/admin/update/status` | Deployed vs. latest commit; updater availability |
+| POST | `/api/admin/update/apply` | Pull + rebuild + rolling restart (needs the updater sidecar) |
+| GET | `/api/admin/update/log` | Tail of the updater's log |
 | WS | `/api/admin/ws` | Live positions across all families |
 
 </details>
