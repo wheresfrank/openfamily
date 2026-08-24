@@ -15,6 +15,8 @@ import '../services/location_service.dart';
 import '../services/location_sharing_service.dart';
 import '../services/permission_service.dart';
 import '../services/push_service.dart';
+import '../services/server_features.dart';
+import '../services/tile_config.dart';
 import '../services/token_storage.dart';
 import '../theme/app_theme.dart';
 import '../utils/member_clustering.dart';
@@ -43,8 +45,9 @@ const double kApproxZoneRadiusMeters = 300.0;
 /// their locations (clustered and fanned out when near each other).
 ///
 /// The bottom control bar — a large, dominant SOS button plus the Places /
-/// Safety / People destinations and a Settings gear pinned bottom-right
-/// — is FIXED and pinned to the very bottom of the screen, always visible.
+/// People destinations, optional Safety (when SMS is configured), and a
+/// Settings gear pinned bottom-right — is FIXED and pinned to the very
+/// bottom of the screen, always visible.
 /// The family member roster lives on a dedicated full-screen People destination
 /// (no drawer overlapping these controls). A `+` FAB floats above the bar and
 /// offers the Check In / Help Alert / Invite quick actions.
@@ -114,6 +117,7 @@ class _MapScreenState extends State<MapScreen>
     _checkLocation();
     _initLocationSharing();
     PushService.sync();
+    unawaited(_refreshServerFeatures());
     // One-time Android battery-optimization guidance (keeps background
     // updates alive when the app is closed). No-op elsewhere. Runs after the
     // first frame so the activity is visible.
@@ -295,6 +299,7 @@ class _MapScreenState extends State<MapScreen>
     if (LocationSharingService.enabled.value) {
       _reporter.start();
     }
+    await _refreshServerFeatures();
   }
 
   Future<void> _initLocationSharing() async {
@@ -481,6 +486,11 @@ class _MapScreenState extends State<MapScreen>
   void _openPlaces() {
     Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => const PlacesScreen()));
+  }
+
+  Future<void> _refreshServerFeatures() async {
+    await TileConfig.instance.refresh();
+    if (mounted) setState(() {});
   }
 
   void _openSafety() {
@@ -743,7 +753,9 @@ class _MapScreenState extends State<MapScreen>
                 onSos: _openSos,
                 onPeople: _openPeople,
                 onPlaces: _openPlaces,
-                onSafety: _openSafety,
+                onSafety: ServerFeatures.instance.smsConfigured
+                    ? _openSafety
+                    : null,
                 onSettings: _openSettings,
               ),
             ),

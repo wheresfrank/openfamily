@@ -4,6 +4,7 @@ import '../models/emergency_contact.dart';
 import '../services/api_client.dart';
 import '../services/contact_picker.dart';
 import '../services/emergency_contact_service.dart';
+import '../services/server_features.dart';
 import '../theme/app_theme.dart';
 
 /// The Safety screen. Manages emergency contacts (who receive SOS alerts).
@@ -15,10 +16,14 @@ class SafetyScreen extends StatefulWidget {
     super.key,
     this.contactService,
     this.contactPicker,
+    this.smsConfigured,
   });
 
   final EmergencyContactService? contactService;
   final ContactPicker? contactPicker;
+
+  /// When null, uses [ServerFeatures.smsConfigured].
+  final bool? smsConfigured;
 
   @override
   State<SafetyScreen> createState() => _SafetyScreenState();
@@ -37,8 +42,13 @@ class _SafetyScreenState extends State<SafetyScreen> {
     super.initState();
     _service = widget.contactService ?? EmergencyContactService();
     _picker = widget.contactPicker ?? NativeContactPicker();
-    _load();
+    if (_smsConfigured) {
+      _load();
+    }
   }
+
+  bool get _smsConfigured =>
+      widget.smsConfigured ?? ServerFeatures.instance.smsConfigured;
 
   Future<void> _load() async {
     setState(() {
@@ -232,6 +242,19 @@ class _SafetyScreenState extends State<SafetyScreen> {
   }
 
   Widget _buildBody() {
+    if (!_smsConfigured) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Emergency contacts get SOS by text message. This server '
+            'has not set up SMS yet, so those contacts would not be notified.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 15, color: AppColors.textMuted),
+          ),
+        ),
+      );
+    }
     if (_error != null) {
       return Center(
         child: Padding(

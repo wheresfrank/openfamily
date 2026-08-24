@@ -14,6 +14,7 @@ import type {
   MemberHistory,
   Profile,
   Role,
+  SmsSettings,
 } from './types'
 
 const API_BASE = '/api'
@@ -315,4 +316,21 @@ export function createInvite(
 /** Returns a blob; caller should trigger a download. */
 export function downloadApk(): Promise<Blob> {
   return request<Blob>('/api/admin/apk', { binary: true })
+}
+
+export function getSmsSettings(): Promise<SmsSettings> {
+  return request<SmsSettings>('/api/admin/settings/sms')
+}
+
+export function updateSmsSettings(input: {
+  account_sid: string
+  auth_token: string
+  from: string
+  public_base_url: string
+}): Promise<SmsSettings> {
+  return request<SmsSettings>('/api/admin/settings/sms', { method: 'PUT', body: input })
+}
+
+export function clearSmsSettings(): Promise<SmsSettings> {
+  return request<SmsSettings>('/api/admin/settings/sms', { method: 'DELETE' })
 }

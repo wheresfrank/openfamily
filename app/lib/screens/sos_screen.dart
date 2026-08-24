@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_client.dart';
 import '../services/location_reporter.dart';
 import '../services/location_service.dart';
+import '../services/server_features.dart';
 import '../theme/app_theme.dart';
 import 'safety_screen.dart';
 
@@ -19,7 +20,10 @@ import 'safety_screen.dart';
 /// * **I'm safe** resolves the last real SOS, including after leaving
 ///   and coming back.
 class SosScreen extends StatefulWidget {
-  const SosScreen({super.key});
+  const SosScreen({super.key, this.smsConfigured});
+
+  /// When null, uses [ServerFeatures.smsConfigured].
+  final bool? smsConfigured;
 
   @override
   State<SosScreen> createState() => _SosScreenState();
@@ -128,6 +132,9 @@ class _SosScreenState extends State<SosScreen> {
     setState(() => _phase = _SosPhase.idle);
   }
 
+  bool get _smsConfigured =>
+      widget.smsConfigured ?? ServerFeatures.instance.smsConfigured;
+
   Future<void> _openEmergencyContacts() async {
     await _markIntroSeen();
     if (!mounted) return;
@@ -177,9 +184,12 @@ class _SosScreenState extends State<SosScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Send SOS?'),
-          content: const Text(
-            'This alerts your family and emergency contacts with your '
-            'location. Use Practice if you only want to try the countdown.',
+          content: Text(
+            _smsConfigured
+                ? 'This alerts your family and emergency contacts with your '
+                    'location. Use Practice if you only want to try the countdown.'
+                : 'This alerts your family with your location. Use Practice '
+                    'if you only want to try the countdown.',
           ),
           actions: [
             TextButton(
@@ -355,6 +365,7 @@ class _SosScreenState extends State<SosScreen> {
         return const Center(child: CircularProgressIndicator());
       case _SosPhase.intro:
         return _IntroCard(
+          smsConfigured: _smsConfigured,
           onContinue: _continueFromIntro,
           onAddContacts: _openEmergencyContacts,
         );
@@ -419,8 +430,11 @@ class _SosScreenState extends State<SosScreen> {
           color: AppColors.statusGreen,
           title: 'SOS sent',
           subtitle: _error ??
-              'Your family and emergency contacts have been alerted with your location. '
-                  'Tap I\'m safe when you are.',
+              (_smsConfigured
+                  ? 'Your family and emergency contacts have been alerted with your location. '
+                      'Tap I\'m safe when you are.'
+                  : 'Your family has been alerted with your location. '
+                      'Tap I\'m safe when you are.'),
           actionLabel: 'I\'m safe',
           onAction: _imSafe,
           secondaryLabel: 'Done',
@@ -449,7 +463,9 @@ class _SosScreenState extends State<SosScreen> {
           icon: Icons.check_circle,
           color: AppColors.statusGreen,
           title: 'You\'re safe',
-          subtitle: 'Your family and emergency contacts were told you\'re safe.',
+          subtitle: _smsConfigured
+              ? 'Your family and emergency contacts were told you\'re safe.'
+              : 'Your family was told you\'re safe.',
           actionLabel: 'Done',
           onAction: () => Navigator.of(context).pop(),
         );
@@ -463,10 +479,12 @@ class _IntroCard extends StatelessWidget {
   const _IntroCard({
     required this.onContinue,
     required this.onAddContacts,
+    required this.smsConfigured,
   });
 
   final VoidCallback onContinue;
   final VoidCallback onAddContacts;
+  final bool smsConfigured;
 
   @override
   Widget build(BuildContext context) {
@@ -481,25 +499,31 @@ class _IntroCard extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'The red button sends a real alert to your family and any '
-          'emergency contacts, with your location.',
+          smsConfigured
+              ? 'The red button sends a real alert to your family and any '
+                  'emergency contacts, with your location.'
+              : 'The red button sends a real alert to your family, with your location.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 15, color: muted),
         ),
         const SizedBox(height: 10),
         Text(
-          'Practice runs the countdown only — nobody is notified. '
-          'The shield on the map is where you add emergency contacts, '
-          'not I\'m safe.',
+          smsConfigured
+              ? 'Practice runs the countdown only — nobody is notified. '
+                  'The shield on the map is where you add emergency contacts, '
+                  'not I\'m safe.'
+              : 'Practice runs the countdown only — nobody is notified.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 15, color: muted),
         ),
         const SizedBox(height: 24),
-        FilledButton(
-          onPressed: onAddContacts,
-          child: const Text('Add emergency contacts'),
-        ),
-        const SizedBox(height: 8),
+        if (smsConfigured) ...[
+          FilledButton(
+            onPressed: onAddContacts,
+            child: const Text('Add emergency contacts'),
+          ),
+          const SizedBox(height: 8),
+        ],
         TextButton(
           onPressed: onContinue,
           style: TextButton.styleFrom(

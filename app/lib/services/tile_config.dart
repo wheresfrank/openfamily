@@ -1,4 +1,5 @@
 import 'api_client.dart';
+import 'server_features.dart';
 
 /// Public OSM street tiles. Used until [GET /config] supplies an override.
 const String kDefaultStreetTileUrl =
@@ -33,6 +34,7 @@ class TileConfig {
       if (satellite != null && satellite.isNotEmpty) {
         satelliteUrl = satellite;
       }
+      ServerFeatures.instance.apply(cfg);
     } catch (_) {
       // Keep whatever we already have (defaults or a previous successful fetch).
     }

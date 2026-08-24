@@ -49,11 +49,13 @@ class _FakePicker implements ContactPicker {
 Widget _app({
   required EmergencyContactService service,
   ContactPicker? picker,
+  bool smsConfigured = true,
 }) {
   return MaterialApp(
     home: SafetyScreen(
       contactService: service,
       contactPicker: picker ?? _FakePicker(() async => null),
+      smsConfigured: smsConfigured,
     ),
   );
 }
@@ -166,5 +168,23 @@ void main() {
 
     expect(find.text('Mom'), findsNothing);
     expect(service.store, isEmpty);
+  });
+
+  testWidgets('hides contact editing when SMS is not configured', (
+    WidgetTester tester,
+  ) async {
+    final _FakeContactService service = _FakeContactService(
+      <EmergencyContact>[
+        const EmergencyContact(id: '1', name: 'Mom', phone: '4155550132'),
+      ],
+    );
+
+    await tester.pumpWidget(_app(service: service, smsConfigured: false));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mom'), findsNothing);
+    expect(find.text('Choose from contacts'), findsNothing);
+    expect(find.text('Type a name and number'), findsNothing);
+    expect(find.textContaining('has not set up SMS'), findsOneWidget);
   });
 }

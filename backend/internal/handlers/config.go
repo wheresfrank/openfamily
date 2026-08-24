@@ -7,7 +7,8 @@ import (
 )
 
 // GetConfig returns public runtime settings the generic APK needs without a
-// dart-define (ntfy origin and map tile templates). Auth is optional.
+// dart-define (ntfy origin, map tile templates, and whether SMS is on).
+// Auth is optional.
 func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	tileURL := s.TileURL
 	if tileURL == "" {
@@ -20,6 +21,7 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"ntfy_base_url":      s.NtfyBaseURL,
 		"apns_configured":    s.APNsConfigured,
+		"sms_configured":     s.SMSEnabled(),
 		"tile_url":           tileURL,
 		"satellite_tile_url": satelliteURL,
 	})

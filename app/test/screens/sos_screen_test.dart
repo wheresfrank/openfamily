@@ -9,6 +9,25 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
+  testWidgets('hides add emergency contacts when SMS is off',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: SosScreen(smsConfigured: false)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Add emergency contacts'), findsNothing);
+    expect(find.textContaining('your family, with your location'), findsOneWidget);
+  });
+
+  testWidgets('shows add emergency contacts when SMS is on',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: SosScreen(smsConfigured: true)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Add emergency contacts'), findsOneWidget);
+  });
+
   testWidgets('SOS success is not shown when the API fails',
       (WidgetTester tester) async {
     await tester.pumpWidget(const MaterialApp(home: SosScreen()));

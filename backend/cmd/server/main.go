@@ -69,14 +69,18 @@ func main() {
 	srv.TileURL = cfg.TileURL
 	srv.SatelliteTileURL = cfg.SatelliteTileURL
 	srv.APNsConfigured = cfg.APNsKeyFile != ""
-	srv.SMS = sms.New(sms.Config{
-		AccountSID: cfg.TwilioAccountSID,
-		AuthToken:  cfg.TwilioAuthToken,
-		From:       cfg.TwilioFrom,
-	})
+	srv.SMSEnv = sms.Settings{
+		AccountSID:    cfg.TwilioAccountSID,
+		AuthToken:     cfg.TwilioAuthToken,
+		From:          cfg.TwilioFrom,
+		PublicBaseURL: cfg.PublicBaseURL,
+	}
+	if err := srv.LoadSMSSettings(ctx); err != nil {
+		slog.Error("sms settings", "err", err)
+		os.Exit(1)
+	}
 	srv.AlertLimit = sms.NewLimiter()
 	srv.AuthLimit = sms.NewLimiter()
-	srv.PublicBaseURL = cfg.PublicBaseURL
 	srv.AllowedOrigin = cfg.AllowedOrigin
 	srv.APKDir = cfg.APKDir
 	srv.APKGitHubRepo = cfg.APKGitHubRepo
@@ -208,6 +212,10 @@ func main() {
 		r.Get("/api/admin/apk", srv.AdminDownloadAPK)
 		r.Post("/api/admin/apk/build", srv.AdminBuildAPK)
 		r.Get("/api/admin/apk/status", srv.AdminAPKStatus)
+
+		r.Get("/api/admin/settings/sms", srv.AdminGetSMSSettings)
+		r.Put("/api/admin/settings/sms", srv.AdminPutSMSSettings)
+		r.Delete("/api/admin/settings/sms", srv.AdminDeleteSMSSettings)
 	})
 
 	// Admin web panel (embedded static SPA) at /admin/*, served public. The page

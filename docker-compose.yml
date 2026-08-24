@@ -52,7 +52,7 @@ services:
       APNS_TOPIC: ${APNS_TOPIC:-}
       APNS_PRODUCTION: ${APNS_PRODUCTION:-false}
       # Optional Twilio SMS for family alerts. Empty disables SMS; in-app
-      # push and WebSocket still work.
+      # push and WebSocket still work. Admin Settings can override these.
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
       TWILIO_FROM: ${TWILIO_FROM:-}
