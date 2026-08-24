@@ -59,8 +59,22 @@ async function refreshTokens(): Promise<boolean> {
   }
 }
 
+// Paths that already match the Go server (no `/api` prefix). `/family` is
+// the same surface the mobile apps use; prepending `/api` 404s and the web
+// panel then thinks the signed-in user has no circle.
 function isRootApiPath(path: string): boolean {
-  return path.startsWith('/api') || path.startsWith('/auth') || path.startsWith('/me')
+  return (
+    path.startsWith('/api') ||
+    path.startsWith('/auth') ||
+    path.startsWith('/me') ||
+    path.startsWith('/family') ||
+    path.startsWith('/ws') ||
+    path.startsWith('/devices') ||
+    path.startsWith('/locations') ||
+    path.startsWith('/alerts') ||
+    path.startsWith('/config') ||
+    path.startsWith('/healthz')
+  )
 }
 
 interface RequestOptions {
@@ -267,6 +281,11 @@ export function createFamilyInviteCode(
   opts?: { role?: Role; max_uses?: number; expires_in_hours?: number },
 ): Promise<InviteCode> {
   return request<InviteCode>('/family/invites', { method: 'POST', body: opts ?? {} })
+}
+
+/** Creates a family and makes the caller its admin. App-parity (not the admin API). */
+export function createMyFamily(name: string): Promise<Family> {
+  return request<Family>('/families', { method: 'POST', body: { name } })
 }
 
 /** Joins a family by consuming an invite code. Only allowed while familyless. */
