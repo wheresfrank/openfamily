@@ -80,6 +80,18 @@ func TestPostSOSUnauthenticated(t *testing.T) {
 	}
 }
 
+func TestGetAlertUnauthenticated(t *testing.T) {
+	srv := &Server{}
+	r := chi.NewRouter()
+	r.Get("/alerts/{id}", srv.GetAlert)
+	req := httptest.NewRequest(http.MethodGet, "/alerts/abc", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
+
 func TestResolveAlertUnauthenticated(t *testing.T) {
 	srv := &Server{}
 	r := chi.NewRouter()

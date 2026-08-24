@@ -178,6 +178,7 @@ func main() {
 		r.Post("/alerts/check-in", srv.PostCheckIn)
 		r.Post("/alerts/help", srv.PostHelp)
 		r.Post("/alerts/sos", srv.PostSOS)
+		r.Get("/alerts/{id}", srv.GetAlert)
 		r.Post("/alerts/{id}/resolve", srv.ResolveAlert)
 	})
 

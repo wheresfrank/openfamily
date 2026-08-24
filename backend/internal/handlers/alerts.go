@@ -69,6 +69,43 @@ func (s *Server) PostSOS(w http.ResponseWriter, r *http.Request) {
 	s.postAlert(w, r, alertSOS, true, sosRateWindow)
 }
 
+// GetAlert returns one of the caller's alerts. The SOS screen uses this to
+// drop a stale "SOS sent" state when the row is gone or already resolved.
+func (s *Server) GetAlert(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	a, ok := s.loadOwnAlert(w, r, claims.UserID)
+	if !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, alertJSON{
+		ID: a.ID, Type: a.Type, Status: a.Status, Lat: a.Lat, Lon: a.Lon, Note: a.Note, CreatedAt: a.CreatedAt,
+	})
+}
+
+func (s *Server) loadOwnAlert(w http.ResponseWriter, r *http.Request, userID string) (alertRow, bool) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "alert id required")
+		return alertRow{}, false
+	}
+	var a alertRow
+	err := s.Pool.QueryRow(r.Context(), `
+		SELECT a.id, a.user_id, COALESCE(a.family_id, ''), a.type, a.status, a.lat, a.lon, COALESCE(a.note, ''),
+		       a.share_token, a.created_at, u.name
+		FROM alerts a JOIN users u ON u.id = a.user_id
+		WHERE a.id = $1 AND a.user_id = $2`, id, userID,
+	).Scan(&a.ID, &a.UserID, &a.FamilyID, &a.Type, &a.Status, &a.Lat, &a.Lon, &a.Note, &a.ShareToken, &a.CreatedAt, &a.SenderName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "alert not found")
+		return alertRow{}, false
+	}
+	return a, true
+}
+
 // ResolveAlert marks the caller's alert resolved and sends an "I'm safe" follow-up.
 func (s *Server) ResolveAlert(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.ClaimsFromContext(r.Context())
@@ -76,20 +113,8 @@ func (s *Server) ResolveAlert(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthenticated")
 		return
 	}
-	id := chi.URLParam(r, "id")
-	if id == "" {
-		writeError(w, http.StatusBadRequest, "alert id required")
-		return
-	}
-	var a alertRow
-	err := s.Pool.QueryRow(r.Context(), `
-		SELECT a.id, a.user_id, COALESCE(a.family_id, ''), a.type, a.status, a.lat, a.lon, COALESCE(a.note, ''),
-		       a.share_token, a.created_at, u.name
-		FROM alerts a JOIN users u ON u.id = a.user_id
-		WHERE a.id = $1 AND a.user_id = $2`, id, claims.UserID,
-	).Scan(&a.ID, &a.UserID, &a.FamilyID, &a.Type, &a.Status, &a.Lat, &a.Lon, &a.Note, &a.ShareToken, &a.CreatedAt, &a.SenderName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "alert not found")
+	a, ok := s.loadOwnAlert(w, r, claims.UserID)
+	if !ok {
 		return
 	}
 	if a.Status != alertStatusActive {
@@ -98,7 +123,7 @@ func (s *Server) ResolveAlert(w http.ResponseWriter, r *http.Request) {
 	}
 	if _, err := s.Pool.Exec(r.Context(), `
 		UPDATE alerts SET status = 'resolved', resolved_at = now() WHERE id = $1 AND user_id = $2`,
-		id, claims.UserID); err != nil {
+		a.ID, claims.UserID); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to resolve alert")
 		return
 	}
