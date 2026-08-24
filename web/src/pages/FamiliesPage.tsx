@@ -13,6 +13,7 @@
 import React from 'react'
 import {
   createFamily,
+  createMyFamily,
   createInvite,
   createFamilyInviteCode,
   deleteFamily,
@@ -1028,7 +1029,7 @@ function CreateOrJoinCard({ onDone }: { onDone: () => void }) {
     setBusy('create')
     setCreateError(null)
     try {
-      await createFamily(trimmed)
+      await createMyFamily(trimmed)
       onDone()
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : 'Failed to create family')
