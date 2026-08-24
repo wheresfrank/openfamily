@@ -185,6 +185,9 @@ class FamilyService {
       case 'location':
         _applyLocation(map);
         break;
+      case 'presence':
+        _applyPresence(map);
+        break;
       case 'avatar':
         _applyAvatar(map);
         break;
@@ -197,6 +200,20 @@ class FamilyService {
     final int index = _members.indexWhere((Member m) => m.id == id);
     if (index < 0) return;
     _members[index] = memberFromLocationUpdate(_members[index], map);
+    onMembersChanged?.call(_members);
+  }
+
+  /// Applies a `presence` liveness frame (no position change): refreshes the
+  /// member's "last seen" so a stationary but reporting member does not flip
+  /// to grey "stopped".
+  void _applyPresence(Map<String, dynamic> map) {
+    final String? id = map['user_id'] as String?;
+    if (id == null) return;
+    final int index = _members.indexWhere((Member m) => m.id == id);
+    if (index < 0) return;
+    final Member updated = memberFromPresenceUpdate(_members[index], map);
+    if (identical(updated, _members[index])) return;
+    _members[index] = updated;
     onMembersChanged?.call(_members);
   }
 

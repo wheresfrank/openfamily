@@ -74,6 +74,12 @@ type MemberWithLocation struct {
 	SpeedMPS        *float64   `json:"speed_mps,omitempty"`
 	MotionState     *string    `json:"motion_state,omitempty"`
 	AccuracyMeters  *float64   `json:"accuracy_meters,omitempty"`
+	// LastSeenAt is the most recent device heartbeat/ingest time across all of
+	// the member's devices. It can be newer than TS (the last stored
+	// position's timestamp) when the member is stationary and only heartbeats
+	// are arriving; clients use it to keep "last seen" fresh without moving
+	// the pin.
+	LastSeenAt *time.Time `json:"last_seen_at,omitempty"`
 }
 
 // InviteCode gates registration: a new user presents a valid, unexpired,

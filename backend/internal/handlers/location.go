@@ -3,10 +3,12 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/wheresfrank/openfamily/backend/internal/middleware"
 	"github.com/wheresfrank/openfamily/backend/internal/models"
 )
@@ -17,6 +19,21 @@ import (
 const (
 	maxTSSkew = 5 * time.Minute
 	maxTSAge  = 15 * time.Minute
+
+	// Ingest throttle per user. Normal reporters emit a point every few
+	// seconds; the cap only trips on runaway loops or deliberate flooding.
+	ingestPerWindow = 120
+	ingestWindow    = time.Minute
+
+	// stationaryDedupMeters is how close a new point must be to the stored
+	// last-known position for it to count as "not moved". Such points skip the
+	// locations INSERT (a phone parked at home would otherwise write a row per
+	// reporting interval — up to ~1440 rows/day) and instead only refresh
+	// devices.last_seen / member_positions.updated_at, then announce liveness
+	// with a `presence` WebSocket frame. The threshold is above typical GPS
+	// noise (~5-15 m) so jitter while standing still still dedups, but well
+	// below real movement.
+	stationaryDedupMeters = 25.0
 )
 
 // IngestLocation stores a single location point for a device owned by the
@@ -25,6 +42,10 @@ func (s *Server) IngestLocation(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.ClaimsFromContext(r.Context())
 	if claims == nil {
 		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	if s.LocationLimit != nil && !s.LocationLimit.Allow("loc:"+claims.UserID, ingestPerWindow, ingestWindow) {
+		writeError(w, http.StatusTooManyRequests, "too many location reports")
 		return
 	}
 
@@ -109,6 +130,57 @@ func (s *Server) IngestLocation(w http.ResponseWriter, r *http.Request) {
 	}
 	if lastTS != nil && !ts.After(*lastTS) {
 		writeError(w, http.StatusBadRequest, "ts is not newer than the user's last location")
+		return
+	}
+
+	// Load the stored last-known position for stationary dedup (below).
+	var mpLat, mpLon *float64
+	err = tx.QueryRow(r.Context(), `
+		SELECT lat, lon FROM member_positions WHERE user_id = $1`, ownerID,
+	).Scan(&mpLat, &mpLon)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusInternalServerError, "failed to check last position")
+		return
+	}
+
+	// Stationary dedup: the point is within GPS noise of the stored position,
+	// so storing it again adds no information. Keep the device's liveness fresh
+	// (devices.last_seen + member_positions.updated_at + battery), announce a
+	// `presence` frame to the family, and acknowledge with 200 so clients can
+	// distinguish it from a stored point (201). Geofence evaluation still runs:
+	// dwell/pending transitions are time-driven and must advance even while the
+	// user stands still. No audit entry — this fires per reporting interval and
+	// would flood the audit log with non-events.
+	if mpLat != nil && mpLon != nil &&
+		haversineMeters(*mpLat, *mpLon, req.Lat, req.Lon) < stationaryDedupMeters {
+		if _, err := tx.Exec(r.Context(), `
+			UPDATE devices SET last_seen = now() WHERE id = $1`, req.DeviceID); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to update device")
+			return
+		}
+		if _, err := tx.Exec(r.Context(), `
+			UPDATE member_positions
+			SET updated_at = now(), battery_pct = COALESCE($2, battery_pct)
+			WHERE user_id = $1`, ownerID, req.BatteryPct); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to update member position")
+			return
+		}
+		if err := tx.Commit(r.Context()); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to commit")
+			return
+		}
+
+		go func() {
+			evalCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			s.evaluateGeofences(evalCtx, ownerID, req.Lon, req.Lat, ts)
+		}()
+		go s.broadcastPresence(ownerID, ts, req.BatteryPct)
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"status": "deduplicated",
+			"ts":     ts,
+		})
 		return
 	}
 

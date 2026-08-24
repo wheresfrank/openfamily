@@ -82,6 +82,7 @@ func main() {
 	}
 	srv.AlertLimit = sms.NewLimiter()
 	srv.AuthLimit = sms.NewLimiter()
+	srv.LocationLimit = sms.NewLimiter()
 	srv.AllowedOrigin = cfg.AllowedOrigin
 	srv.APKDir = cfg.APKDir
 	srv.APKGitHubRepo = cfg.APKGitHubRepo
@@ -182,6 +183,7 @@ func main() {
 		r.Get("/audit", srv.ListAudit)
 
 		r.Post("/devices", srv.RegisterDevice)
+		r.Post("/devices/heartbeat", srv.HeartbeatDevice)
 		r.Get("/devices", srv.ListDevices)
 		r.Patch("/devices/{id}", srv.UpdateDevice)
 
@@ -304,10 +306,41 @@ func cors(allowedOrigin string) func(http.Handler) http.Handler {
 	}
 }
 
+// adminSPACSP is the Content-Security-Policy applied to every embedded admin
+// panel response. The panel is served public and authenticates with JWTs kept
+// in localStorage, so a strict script policy is the main defense-in-depth
+// against XSS turning into account takeover:
+//
+//   - script-src 'self'          only bundled assets may execute (no inline/eval),
+//     plus the pinned hash of the theme-bootstrap script embedded in
+//     dist/index.html (see admin_csp_test.go, which fails the build if that
+//     script changes without updating this hash)
+//   - style-src 'unsafe-inline'  React style attributes and leaflet inline styles
+//   - img-src https: data: blob: tile hosts come from server config, so any
+//     HTTPS image host must stay allowed
+//   - default-src 'self', object-src 'none', frame-ancestors 'none'
+const adminSPACSP = "default-src 'self'; " +
+	"script-src 'self' 'sha256-3+KRjeKvEdP+bglkPezOzH6i2TloyL+3eFCBV+90WH8='; " +
+	"style-src 'self' 'unsafe-inline'; " +
+	"img-src 'self' data: blob: https:; " +
+	"connect-src 'self'; " +
+	"font-src 'self' data:; " +
+	"object-src 'none'; " +
+	"base-uri 'self'; " +
+	"frame-ancestors 'none'"
+
+// setAdminSPAHeaders applies the headers shared by every admin panel response.
+func setAdminSPAHeaders(w http.ResponseWriter) {
+	w.Header().Set("Content-Security-Policy", adminSPACSP)
+	w.Header().Set("X-Frame-Options", "DENY")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+}
+
 // adminIndexHandler serves the embedded admin index.html (for /admin and
 // /admin/). The body is pre-read so it does not re-read the embed per request.
 func adminIndexHandler(index []byte) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
+		setAdminSPAHeaders(w)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = w.Write(index)
 	}
@@ -321,6 +354,7 @@ func adminIndexHandler(index []byte) http.HandlerFunc {
 func adminStaticHandler(fsys fs.FS, index []byte) http.HandlerFunc {
 	fileServer := http.StripPrefix("/admin/", http.FileServerFS(fsys))
 	return func(w http.ResponseWriter, r *http.Request) {
+		setAdminSPAHeaders(w)
 		// Sub-path below /admin/ (chi wildcard already ensured we are here).
 		p := strings.TrimPrefix(r.URL.Path, "/admin/")
 		if p == "" {

@@ -42,6 +42,7 @@ import type { FamilyPlace, MyFamily } from "../lib/types";
 import { useMemberAvatarUrls } from "../lib/useMemberAvatarUrls";
 import {
   applyLocationUpdate,
+  applyPresenceUpdate,
   avatarVersionFrom,
   deriveMember,
   refreshStaleness,
@@ -368,6 +369,12 @@ export function MapView(props: MapViewProps): JSX.Element {
           const f = frame as Extract<StreamFrame, { type: "location" }>;
           setFetchedMembers((prev) =>
             prev.map((m) => (m.id === f.user_id ? applyLocationUpdate(m, f, now) : m)),
+          );
+        } else if (frame.type === "presence") {
+          // Liveness without a position change (stationary dedup / heartbeat).
+          const f = frame as Extract<StreamFrame, { type: "presence" }>;
+          setFetchedMembers((prev) =>
+            prev.map((m) => (m.id === f.user_id ? applyPresenceUpdate(m, f, now) : m)),
           );
         } else if (frame.type === "avatar") {
           const f = frame as Extract<StreamFrame, { type: "avatar" }>;

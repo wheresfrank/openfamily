@@ -20,6 +20,12 @@ app/android/app/.cxx/
 
 # Env / secrets
 .env
+# Local deployment overrides (real hostnames, ports, topology) — never commit.
+docker-compose.override.yml
+
+# Tooling residue (Dart analysis-server caches, telemetry session ids)
+.dsh_home/
+.audit-run/
 
 # CI publishes the APK as a GitHub Release. The server caches it here; do not
 # commit the binary.

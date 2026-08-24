@@ -61,6 +61,12 @@ export interface LocationFields {
   motion_state?: string | null;
   /** Reported GPS accuracy in meters. */
   accuracy_meters?: number | null;
+  /**
+   * Freshest device heartbeat/ingest time across the member's devices
+   * (ISO-8601 or Unix seconds/ms). Newer than `ts` when the member is
+   * stationary and only heartbeats arrive.
+   */
+  last_seen_at?: number | string | null;
 }
 
 /**
@@ -145,6 +151,13 @@ export interface Member {
 export type StreamFrame =
   | { type: "members"; members: RawMember[] }
   | ({ type: "location"; user_id: string } & LocationFields)
+  | {
+      /** Liveness announcement without a position change (heartbeat/dedup). */
+      type: "presence";
+      user_id: string;
+      ts?: number | string | null;
+      battery_pct?: number | null;
+    }
   | {
       type: "avatar";
       user_id: string;

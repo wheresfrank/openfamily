@@ -49,6 +49,11 @@ type Server struct {
 	// AuthLimit rate-limits login, register, refresh, and family join.
 	AuthLimit *sms.Limiter
 
+	// LocationLimit rate-limits POST /locations ingest per user so a
+	// misbehaving or compromised client cannot flood the database. Nil
+	// (tests) disables the check.
+	LocationLimit *sms.Limiter
+
 	// TileURL and SatelliteTileURL are raster templates advertised on GET /config.
 	TileURL          string
 	SatelliteTileURL string

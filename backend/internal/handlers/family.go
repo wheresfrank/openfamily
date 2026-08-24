@@ -282,9 +282,14 @@ func (s *Server) ListMembers(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.Pool.Query(r.Context(), `
 		SELECT u.id, u.email, u.name, u.role, u.totp_enabled, u.created_at, u.updated_at,
 		       u.avatar_data IS NOT NULL, u.avatar_version, u.avatar_updated_at,
-		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters
+		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters,
+		       d.last_seen
 		FROM users u
 		LEFT JOIN member_positions mp ON mp.user_id = u.id
+		LEFT JOIN (
+			SELECT user_id, MAX(last_seen) AS last_seen
+			FROM devices GROUP BY user_id
+		) d ON d.user_id = u.id
 		WHERE u.family_id = $1
 		ORDER BY u.name`, familyID)
 	if err != nil {
@@ -298,7 +303,8 @@ func (s *Server) ListMembers(w http.ResponseWriter, r *http.Request) {
 		var m models.MemberWithLocation
 		if err := rows.Scan(&m.ID, &m.Email, &m.Name, &m.Role, &m.TOTPEnabled, &m.CreatedAt, &m.UpdatedAt,
 			&m.HasAvatar, &m.AvatarVersion, &m.AvatarUpdatedAt,
-			&m.Lat, &m.Lon, &m.TS, &m.BatteryPct, &m.SpeedMPS, &m.MotionState, &m.AccuracyMeters); err != nil {
+			&m.Lat, &m.Lon, &m.TS, &m.BatteryPct, &m.SpeedMPS, &m.MotionState, &m.AccuracyMeters,
+			&m.LastSeenAt); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to scan member")
 			return
 		}

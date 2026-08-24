@@ -18,11 +18,16 @@ import 'token_storage.dart';
 ///
 /// `background_locator_2` runs [onLocationUpdate] in a **separate background
 /// isolate**, so it cannot touch the foreground app's [ApiClient] object. It
-/// instead reads credentials from [BackgroundCredentialStore]
-/// (shared_preferences) and talks to the backend directly via `dart:http`,
-/// refreshing the access token itself on a 401. On refresh it writes the new
-/// pair to shared_preferences and best-effort to [TokenStorage] (secure
-/// storage), so the foreground app sees the rotated tokens.
+/// instead reads the short-lived credentials (API base URL, access token,
+/// device id) from [BackgroundCredentialStore] (shared_preferences) and talks
+/// to the backend directly via `dart:http`, refreshing the access token itself
+/// on a 401. The refresh token is NOT kept in shared_preferences — that store
+/// is plaintext and the token lives 30 days (audit finding WB-002) — so the
+/// refresh path reads it directly from [TokenStorage] (secure storage). If
+/// secure storage is unavailable in the background isolate, refresh fails and
+/// reporting pauses until the app is next opened. On a successful refresh the
+/// new pair is written to [TokenStorage] best-effort, so the foreground app
+/// sees the rotated tokens.
 ///
 /// The callback is deliberately non-throwing: any failure (missing credentials,
 /// network error, stale `ts`, non-monotonic ordering) is skipped silently and
@@ -45,17 +50,16 @@ Future<void> onLocationUpdate(LocationDto location) async {
     final String? apiBaseUrl = await BackgroundCredentialStore.readApiBaseUrl();
     final String? accessToken =
         await BackgroundCredentialStore.readAccessToken();
-    final String? refreshToken =
-        await BackgroundCredentialStore.readRefreshToken();
     final String? deviceId = await BackgroundCredentialStore.readDeviceId();
 
-    // Without a full credential set there is nothing to report.
+    // Without the core credential set there is nothing to report. The refresh
+    // token is optional here: uploads work with a fresh access token alone,
+    // and the refresh token is only fetched from secure storage when a 401
+    // demands it (WB-002: it is never stored in shared_preferences).
     if (apiBaseUrl == null ||
         apiBaseUrl.isEmpty ||
         accessToken == null ||
         accessToken.isEmpty ||
-        refreshToken == null ||
-        refreshToken.isEmpty ||
         deviceId == null ||
         deviceId.isEmpty) {
       return;
@@ -66,10 +70,17 @@ Future<void> onLocationUpdate(LocationDto location) async {
 
     final http.Response response =
         await _postLocation(apiBaseUrl, accessToken, body);
-    if (response.statusCode == 201) return;
+    // 201 = stored; 200 = stationary-deduped (the server refreshed liveness
+    // and skipped the locations row). Both are successes.
+    if (response.statusCode == 201 || response.statusCode == 200) return;
 
     if (response.statusCode == 401) {
-      // Access token expired (TTL 15 min). Refresh and retry once.
+      // Access token expired (TTL 15 min). Refresh and retry once, reading the
+      // refresh token straight from secure storage — it is never mirrored to
+      // shared_preferences (WB-002), so this fails gracefully when secure
+      // storage is unavailable in the background isolate.
+      final String? refreshToken = await _readRefreshToken();
+      if (refreshToken == null || refreshToken.isEmpty) return;
       final String? newAccess = await _refresh(apiBaseUrl, refreshToken);
       if (newAccess == null) return; // Refresh failed; foreground re-logs in.
       await _postLocation(apiBaseUrl, newAccess, body);
@@ -138,16 +149,29 @@ Future<http.Response> _postLocation(
       .timeout(_httpTimeout);
 }
 
-/// Refreshes the token pair via `POST /auth/refresh`, persisting the new pair
-/// to BOTH shared_preferences and (best-effort) flutter_secure_storage.
-/// Returns the new access token, or null on failure.
+/// Reads the refresh token from secure storage. Returns null when unavailable
+/// (e.g. web, or the method channel is not reachable from the background
+/// isolate) so callers treat refresh as impossible rather than crashing.
+Future<String?> _readRefreshToken() async {
+  try {
+    return await TokenStorage.readRefreshToken();
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Refreshes the token pair via `POST /auth/refresh`, persisting the new
+/// access token to shared_preferences and the full pair best-effort to
+/// flutter_secure_storage. Returns the new access token, or null on failure.
 ///
 /// The backend rotates refresh tokens (each refresh revokes the old one), so
 /// the foreground and background must converge on the same pair or they will
-/// revoke each other's tokens. shared_preferences always works in the
-/// background isolate; the secure-storage write may fail (method channel
-/// unavailable), in which case [TokenStorage.syncFromBackgroundStore] on app
-/// resume reconciles the foreground.
+/// revoke each other's tokens. The refresh token itself is never written to
+/// shared_preferences (WB-002): it is persisted only to secure storage, which
+/// may fail in the background isolate. In that case the rotated refresh token
+/// is lost when the isolate dies; [TokenStorage.syncFromBackgroundStore] on
+/// app resume salvages the still-valid access token, and the user signs in
+/// again after it expires.
 Future<String?> _refresh(String apiBaseUrl, String refreshToken) async {
   try {
     final http.Response response = await http
@@ -163,16 +187,17 @@ Future<String?> _refresh(String apiBaseUrl, String refreshToken) async {
       final String access = data['access_token'] as String;
       final String refresh = data['refresh_token'] as String;
       // Persist to shared_preferences (always works in the background isolate).
+      // Only the short-lived access token goes there — never the refresh token.
       await BackgroundCredentialStore.saveAccessToken(access);
-      await BackgroundCredentialStore.saveRefreshToken(refresh);
       // Best-effort persist to secure storage so the foreground app sees the
       // rotated tokens. May fail in the background isolate; the resume-sync
       // fallback covers that case.
       try {
         await TokenStorage.saveTokens(access: access, refresh: refresh);
       } catch (_) {
-        // Secure storage unavailable in the background isolate. shared_preferences
-        // already has the new pair; the foreground syncs on resume.
+        // Secure storage unavailable in the background isolate. The rotated
+        // refresh token is lost with this isolate; reporting continues on the
+        // new access token until its TTL expires.
       }
       return access;
     }
