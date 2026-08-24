@@ -70,7 +70,7 @@ function makeMembers(): Member[] {
     movement: "none",
     speedMph: null,
     lastSeen: NOW - 1 * MIN,
-    address: "Moving",
+    address: "Stationary",
     avatarVersion: 0,
     ...opts,
   });
@@ -81,19 +81,19 @@ function makeMembers(): Member[] {
       status: "normal",
       batteryPercent: 92,
       lastSeen: NOW - 30_000,
-      address: "Moving",
+      address: "Stationary",
     }),
     mk("g2", "Carlos Garcia", "fam-1", "The Garcias", 37.7751, -122.4196, {
       status: "normal",
       batteryPercent: 71,
       lastSeen: NOW - 45_000,
-      address: "Moving",
+      address: "Stationary",
     }),
     mk("g3", "Sofia Garcia", "fam-1", "The Garcias", 37.7748, -122.4192, {
       status: "warning",
       batteryPercent: 8,
       lastSeen: NOW - 2 * MIN,
-      address: "Moving",
+      address: "Stationary",
     }),
     mk("g4", "Diego Garcia", "fam-1", "The Garcias", 37.782, -122.418, {
       status: "normal",
@@ -124,7 +124,7 @@ function makeMembers(): Member[] {
       status: "gpsIssue",
       batteryPercent: 40,
       lastSeen: NOW - 3 * MIN,
-      address: "Moving",
+      address: "Stationary",
     }),
     mk("t4", "Kenji Tanaka", "fam-2", "Tanaka Family", 37.76, -122.45, {
       status: "stopped",
@@ -138,13 +138,13 @@ function makeMembers(): Member[] {
       status: "normal",
       batteryPercent: 88,
       lastSeen: NOW - 10_000,
-      address: "Moving",
+      address: "Stationary",
     }),
     mk("r2", "Sam Rivera", "fam-3", "Roommates", 37.756, -122.438, {
       status: "warning",
       batteryPercent: 12,
       lastSeen: NOW - 90_000,
-      address: "Moving",
+      address: "Stationary",
     }),
     mk("r3", "Priya Patel", "fam-3", "Roommates", 0, 0, {
       position: null,

@@ -94,6 +94,11 @@ export function isSpeeding(movement: MovementType, speedMph: number | null): boo
   return movement === "car" && speedMph != null && speedMph >= SPEEDING_MPH;
 }
 
+/** Whether the map pin should render a numeric speed caption (driving + speed). */
+export function showsDrivingSpeed(movement: MovementType, speedMph: number | null): boolean {
+  return movement === "car" && speedMph != null;
+}
+
 /**
  * Derives the MemberStatus from the raw backend fields. Ports `_statusFrom`:
  *   - no position, or stale/missing timestamp → "stopped"
@@ -118,7 +123,12 @@ export function statusFrom(
   return "normal";
 }
 
-/** Human-readable current label. Ports `_addressFrom`. */
+/** Human-readable current label. Ports `_addressFrom`.
+ *
+ * A fresh fix with no driving / cycling context is "Stationary", not "Moving".
+ * Callers overlay a saved place name via `applyPlaceAddress` when the member
+ * is inside a place radius.
+ */
 export function addressFrom(
   position: LatLng | null,
   ts: number | null,
@@ -133,7 +143,56 @@ export function addressFrom(
   if (ts == null) return "No location yet";
   const age = nowMs - ts;
   if (age > STALE_AFTER_MS) return `Last seen ${formatAgo(age)} ago`;
-  return movement === "none" ? "Stationary" : "Moving";
+  return "Stationary";
+}
+
+const EARTH_RADIUS_M = 6_371_000;
+
+/** Great-circle distance in meters. */
+export function haversineMeters(
+  a: { lat: number; lon: number },
+  b: { lat: number; lon: number },
+): number {
+  const toRad = (deg: number): number => (deg * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const sin =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(sin)));
+}
+
+/**
+ * The saved place whose radius contains `position`. Overlaps prefer the
+ * smallest radius — same rule as the backend history matcher.
+ */
+export function placeContaining<T extends { lat: number; lon: number; radiusMeters?: number | null; name: string }>(
+  position: LatLng | null,
+  places: T[],
+): T | null {
+  if (position == null || places.length === 0) return null;
+  let best: T | null = null;
+  let bestR = Infinity;
+  for (const place of places) {
+    const radius = place.radiusMeters ?? 0;
+    if (radius <= 0) continue;
+    if (haversineMeters(position, place) <= radius && radius < bestR) {
+      best = place;
+      bestR = radius;
+    }
+  }
+  return best;
+}
+
+/** Replaces a stationary address with the saved place the member is in. */
+export function applyPlaceAddress(member: Member, places: { lat: number; lon: number; radiusMeters?: number | null; name: string; familyId?: string }[]): Member {
+  if (places.length === 0) return member;
+  if (member.movement === "car" || member.movement === "bike") return member;
+  if (member.address.startsWith("Last seen")) return member;
+  const mine = places.filter((p) => !p.familyId || p.familyId === member.familyId);
+  const place = placeContaining(member.position, mine);
+  if (!place || member.address === place.name) return member;
+  return { ...member, address: place.name };
 }
 
 /**

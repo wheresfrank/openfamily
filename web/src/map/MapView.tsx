@@ -42,6 +42,7 @@ import type { FamilyPlace, MyFamily } from "../lib/types";
 import { useMemberAvatarUrls } from "../lib/useMemberAvatarUrls";
 import {
   applyLocationUpdate,
+  applyPlaceAddress,
   applyPresenceUpdate,
   avatarVersionFrom,
   deriveMember,
@@ -275,14 +276,19 @@ export function MapView(props: MapViewProps): JSX.Element {
     cacheKey: `${resolveBase(apiBase)}\u0000${token ?? ""}`,
   });
   const members = useMemo(() => {
-    if (!selfManaged) return membersProp ?? [];
-    // Snapshot `avatar_url` values are intentionally ignored in self-managed
-    // mode: member photos only come from the authenticated byte endpoint.
-    return fetchedMembers.map((member) => ({
-      ...member,
-      avatarUrl: fetchedAvatarUrls[member.id] ?? undefined,
-    }));
-  }, [fetchedAvatarUrls, fetchedMembers, membersProp, selfManaged]);
+    const base = !selfManaged
+      ? membersProp ?? []
+      : // Snapshot `avatar_url` values are intentionally ignored in
+        // self-managed mode: member photos only come from the authenticated
+        // byte endpoint.
+        fetchedMembers.map((member) => ({
+          ...member,
+          avatarUrl: fetchedAvatarUrls[member.id] ?? undefined,
+        }));
+    // Overlay saved-place names (Home, Work, …) on stationary members so the
+    // list agrees with the pins the map already draws.
+    return base.map((m) => applyPlaceAddress(m, fetchedPlaces));
+  }, [fetchedAvatarUrls, fetchedMembers, fetchedPlaces, membersProp, selfManaged]);
 
   // --- group color map (and a ref so WS handlers see the latest) ---
   const colorsById = useMemo(() => assignGroupColors(groups), [groups]);

@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:openfamily/models/member.dart';
+import 'package:openfamily/models/place.dart';
 import 'package:openfamily/services/member_mapper.dart';
 
 void main() {
@@ -142,6 +144,76 @@ void main() {
       expect(identical(older, member), isTrue);
       expect(identical(malformed, member), isTrue);
       expect(identical(noUser, member), isTrue);
+    });
+  });
+
+  group('address labels', () {
+    test('a fresh still member is Stationary, not Moving', () {
+      final member = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'name': 'Sam Rivera',
+        'lat': 37.0,
+        'lon': -122.0,
+        'ts': DateTime.now().toUtc().toIso8601String(),
+      });
+
+      expect(member.address, 'Stationary');
+      expect(member.status.label, 'Live');
+    });
+
+    test('driving keeps Driving even when a place would match', () {
+      final member = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'name': 'Sam Rivera',
+        'lat': 37.0,
+        'lon': -122.0,
+        'ts': DateTime.now().toUtc().toIso8601String(),
+        'motion_state': 'driving',
+      });
+      expect(member.address, 'Driving');
+    });
+
+    test('a still member inside a saved place is labeled with the place name', () {
+      final member = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'name': 'Sam Rivera',
+        'lat': 37.7749,
+        'lon': -122.4194,
+        'ts': DateTime.now().toUtc().toIso8601String(),
+      });
+      final Place home = Place(
+        id: 'home-1',
+        name: 'Home',
+        icon: Place.iconForType('home'),
+        address: '',
+        position: LatLng(37.7749, -122.4194),
+        radiusMeters: 150,
+        type: 'home',
+      );
+
+      expect(member.address, 'Stationary');
+      expect(applyPlaceAddress(member, <Place>[home]).address, 'Home');
+    });
+
+    test('a still member outside every place stays Stationary', () {
+      final member = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'name': 'Sam Rivera',
+        'lat': 37.78,
+        'lon': -122.41,
+        'ts': DateTime.now().toUtc().toIso8601String(),
+      });
+      final Place home = Place(
+        id: 'home-1',
+        name: 'Home',
+        icon: Place.iconForType('home'),
+        address: '',
+        position: LatLng(37.7749, -122.4194),
+        radiusMeters: 80,
+        type: 'home',
+      );
+
+      expect(applyPlaceAddress(member, <Place>[home]).address, 'Stationary');
     });
   });
 }

@@ -5,9 +5,11 @@ import 'dart:math' as math;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../models/member.dart';
+import '../models/place.dart';
 import 'api_client.dart';
 import 'member_avatar_cache.dart';
 import 'member_mapper.dart';
+import 'place_service.dart';
 import 'server_config.dart';
 import 'token_storage.dart';
 
@@ -58,6 +60,7 @@ class FamilyService {
   void Function(String userId)? onUserId;
 
   List<Member> _members = <Member>[];
+  List<Place> _places = <Place>[];
   String? _userId;
 
   WebSocketChannel? _channel;
@@ -101,7 +104,19 @@ class FamilyService {
     final List<Member> mapped = list
         .map((dynamic e) => memberFromJson(e as Map<String, dynamic>))
         .toList();
+    await _refreshPlaces();
     return _replaceMembers(mapped);
+  }
+
+  /// Reloads saved places so a member standing still at Home/Work is labeled
+  /// with that place instead of a generic "Stationary". Failures keep the
+  /// last known list — members still render without place names.
+  Future<void> _refreshPlaces() async {
+    try {
+      _places = await PlaceService.fetchPlaces();
+    } catch (_) {
+      // Keep whatever we already have.
+    }
   }
 
   /// Opens the WebSocket and begins streaming live updates.
@@ -199,7 +214,10 @@ class FamilyService {
     if (id == null) return;
     final int index = _members.indexWhere((Member m) => m.id == id);
     if (index < 0) return;
-    _members[index] = memberFromLocationUpdate(_members[index], map);
+    _members[index] = applyPlaceAddress(
+      memberFromLocationUpdate(_members[index], map),
+      _places,
+    );
     onMembersChanged?.call(_members);
   }
 
@@ -211,7 +229,10 @@ class FamilyService {
     if (id == null) return;
     final int index = _members.indexWhere((Member m) => m.id == id);
     if (index < 0) return;
-    final Member updated = memberFromPresenceUpdate(_members[index], map);
+    final Member updated = applyPlaceAddress(
+      memberFromPresenceUpdate(_members[index], map),
+      _places,
+    );
     if (identical(updated, _members[index])) return;
     _members[index] = updated;
     onMembersChanged?.call(_members);
@@ -275,7 +296,9 @@ class FamilyService {
       return next;
     }).toList();
 
-    _members = reconciled;
+    _members = reconciled
+        .map((Member m) => applyPlaceAddress(m, _places))
+        .toList();
     return _members;
   }
 

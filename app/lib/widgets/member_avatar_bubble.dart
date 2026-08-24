@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:ui' show FontFeature;
 
 import 'package:flutter/material.dart';
 
@@ -10,10 +11,10 @@ import 'movement_icon.dart';
 /// A circular avatar bubble pinned to a member's location on the map.
 ///
 /// The bubble is a circular photo avatar (or initials fallback) with a colored
-/// status ring/outline around it, plus a small movement badge (car + speed,
-/// bike, home, etc.) anchored to its bottom-right. A "location error" state
-/// adds a red exclamation-mark badge. Tapping the bubble opens the member's
-/// details.
+/// identity ring around it. Movement is a small circular glyph on the ring
+/// (icon only — never a card covering the face). Driving speed hangs *below*
+/// the pin as a caption, matching the web map. A "location error" state adds
+/// a red exclamation-mark badge. Tapping the bubble opens the member's details.
 class MemberAvatarBubble extends StatelessWidget {
   const MemberAvatarBubble({
     super.key,
@@ -28,9 +29,39 @@ class MemberAvatarBubble extends StatelessWidget {
   /// Radius of the avatar circle in logical pixels.
   final double radius;
 
+  /// Marker width — wide enough for a 3-digit speed caption ("128 mph").
+  static const double markerWidth = 76;
+
+  /// Height of the avatar box (circle + glyph overflow).
+  static const double avatarBox = 58;
+
+  /// Extra height hanging under the avatar for the speed caption.
+  static const double speedCaptionH = 22;
+
+  /// Gap between the avatar box and the speed caption.
+  static const double speedGap = 6;
+
+  static Size markerSizeFor(Member member) {
+    return Size(
+      markerWidth,
+      member.hasDrivingSpeed
+          ? avatarBox + speedGap + speedCaptionH
+          : avatarBox,
+    );
+  }
+
+  /// Alignment so the avatar center stays on the geographic point even when a
+  /// speed caption hangs below.
+  static Alignment markerAlignmentFor(Member member) {
+    final double h = markerSizeFor(member).height;
+    const double avatarCenterY = avatarBox / 2;
+    return Alignment(0, (2 * avatarCenterY / h) - 1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final String tooltip = _tooltip();
+    final Size size = markerSizeFor(member);
 
     return Tooltip(
       message: tooltip,
@@ -40,18 +71,45 @@ class MemberAvatarBubble extends StatelessWidget {
         child: GestureDetector(
           onTap: onTap,
           child: SizedBox(
-            width: radius * 2 + 14,
-            height: radius * 2 + 14,
+            width: size.width,
+            height: size.height,
             child: Stack(
               clipBehavior: Clip.none,
-              alignment: Alignment.center,
               children: [
-                StatusAvatar(member: member, size: radius * 2 + 6),
-                if (member.movement != MovementType.none)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: avatarBox,
+                  child: Center(
+                    child: SizedBox(
+                      width: radius * 2 + 14,
+                      height: radius * 2 + 14,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.center,
+                        children: [
+                          StatusAvatar(
+                            member: member,
+                            size: radius * 2 + 6,
+                          ),
+                          if (member.movement != MovementType.none)
+                            Positioned(
+                              right: -2,
+                              bottom: -2,
+                              child: _MovementGlyphBadge(member: member),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                if (member.hasDrivingSpeed)
                   Positioned(
-                    right: -4,
-                    bottom: -4,
-                    child: _MovementBadge(member: member),
+                    top: avatarBox + speedGap,
+                    left: 0,
+                    right: 0,
+                    child: Center(child: _SpeedCaption(member: member)),
                   ),
               ],
             ),
@@ -66,8 +124,8 @@ class MemberAvatarBubble extends StatelessWidget {
     final StringBuffer sb = StringBuffer(member.name);
     sb.write(' — ${member.status.description}');
     if (member.movement != MovementType.none) {
-      sb.write(' · ${member.movement.label}');
-      if (member.movement == MovementType.car && member.speedMph != null) {
+      sb.write(' · ${member.isSpeeding ? 'Speeding' : member.movement.label}');
+      if (member.hasDrivingSpeed) {
         sb.write(' ${member.speedMph} mph');
       }
     }
@@ -261,8 +319,8 @@ class _ErrorBadge extends StatelessWidget {
 /// stacked/overlapping member avatars plus a small count badge, so the user
 /// can glance at *who* is clustered, not just how many. Each avatar keeps its
 /// colored status ring (and error badge), and each moving member keeps its
-/// movement badge below the stack — so low-battery / offline / driving /
-/// speeding states stay glanceable even when clustered.
+/// movement glyph + speed caption below the stack — so driving / speeding
+/// stay glanceable even when clustered.
 class ClusterBubble extends StatelessWidget {
   const ClusterBubble({super.key, required this.members, this.onTap});
 
@@ -315,8 +373,7 @@ class ClusterBubble extends StatelessWidget {
                   ],
                 ),
               ),
-              // Movement badges for each moving member, so driving / speeding
-              // (and other movement) stays visible when clustered.
+              // Movement glyphs (and speed captions) for each moving member.
               if (moving.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -324,8 +381,12 @@ class ClusterBubble extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       for (int i = 0; i < moving.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 4),
-                        _MovementBadge(member: moving[i]),
+                        if (i > 0) const SizedBox(width: 6),
+                        _MovementGlyphBadge(member: moving[i]),
+                        if (moving[i].hasDrivingSpeed) ...[
+                          const SizedBox(width: 4),
+                          _SpeedCaption(member: moving[i]),
+                        ],
                       ],
                     ],
                   ),
@@ -344,7 +405,7 @@ class ClusterBubble extends StatelessWidget {
       sb.write(' · ${m.name}: ${m.status.description}');
       if (m.movement != MovementType.none) {
         sb.write(' ${m.movement.label}');
-        if (m.movement == MovementType.car && m.speedMph != null) {
+        if (m.hasDrivingSpeed) {
           sb.write(' ${m.speedMph} mph');
         }
       }
@@ -380,53 +441,97 @@ class _CountBadge extends StatelessWidget {
   }
 }
 
-/// Small circular badge showing the movement icon and, for driving, the speed.
-/// A speeding driver is shown as a "race car with flames".
-class _MovementBadge extends StatelessWidget {
-  const _MovementBadge({required this.member});
+/// Colors shared by the circular movement glyph and the speed caption.
+/// Matches web `--status-orange-*` / `--accent-ink` / `--surface`.
+const Color _badgeFill = Colors.white;
+const Color _badgeInk = AppColors.accentInk;
+const Color _badgeBorder = Color(0x22000000);
+const Color _speedingFill = Color(0xFFFFF2DD);
+const Color _speedingInk = Color(0xFF9A5800);
+const Color _speedingBorder = Color(0xFFF6E0B8);
+
+/// Small circular glyph on the avatar ring — movement icon only, so the face
+/// stays fully visible. Speeding uses the warning fill rather than a wide card.
+class _MovementGlyphBadge extends StatelessWidget {
+  const _MovementGlyphBadge({required this.member});
 
   final Member member;
 
   @override
   Widget build(BuildContext context) {
     final bool speeding = member.isSpeeding;
-    final bool showSpeed =
-        member.movement == MovementType.car && member.speedMph != null;
-
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: showSpeed ? 6 : 4,
-        vertical: 3,
-      ),
+      width: 20,
+      height: 20,
       decoration: BoxDecoration(
-        color: speeding ? const Color(0xFFFFF3E0) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        shape: BoxShape.circle,
+        color: speeding ? _speedingFill : _badgeFill,
         border: Border.all(
-          color: speeding ? const Color(0xFFFFB74D) : const Color(0x22000000),
+          color: speeding ? _speedingBorder : _badgeBorder,
         ),
         boxShadow: const [
-          BoxShadow(color: Color(0x22000000), blurRadius: 4),
+          BoxShadow(color: Color(0x22000000), blurRadius: 3),
         ],
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (speeding)
-            const RaceCarIcon(size: 16)
-          else
-            MovementIcon(movement: member.movement, size: 13),
-          if (showSpeed) ...[
-            const SizedBox(width: 3),
-            Text(
-              '${member.speedMph} mph',
+      child: Center(
+        child: MovementIcon(
+          movement: member.movement,
+          size: 12,
+          color: speeding ? _speedingInk : _badgeInk,
+        ),
+      ),
+    );
+  }
+}
+
+/// Numeric speed caption that hangs under the pin (or beside a cluster glyph).
+/// Number is the primary read; "mph" is a smaller unit — never a card on the
+/// avatar face.
+class _SpeedCaption extends StatelessWidget {
+  const _SpeedCaption({required this.member});
+
+  final Member member;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool speeding = member.isSpeeding;
+    final Color ink = speeding ? _speedingInk : _badgeInk;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(7, 2, 7, 2),
+      decoration: BoxDecoration(
+        color: speeding ? _speedingFill : _badgeFill,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: speeding ? _speedingBorder : _badgeBorder,
+        ),
+        boxShadow: const [
+          BoxShadow(color: Color(0x22000000), blurRadius: 3),
+        ],
+      ),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '${member.speedMph}',
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: speeding ? const Color(0xFFE65100) : Colors.black87,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                height: 1.4,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                color: ink,
+              ),
+            ),
+            TextSpan(
+              text: ' mph',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+                color: ink,
               ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }
