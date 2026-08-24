@@ -1,14 +1,26 @@
 // History page — per-member day trail on the map plus a visit timeline.
 // Filters (family / member / date) sit with the map they control. Live
 // positions stay on the Dashboard so a trail is never confused with "now".
+//
+// Permissions mirror the mobile apps: platform admins can pick any family and
+// member; regular users see their own circle only, through the same
+// /family/members/{id}/history endpoint the app's day-detail screen uses.
 
 import React from 'react'
 import { CircleMarker, MapContainer, Polyline, TileLayer, useMap } from 'react-leaflet'
-import { getMemberHistory, listAllMembers, listFamilies } from '../lib/api'
-import { isAccessDenied, useAsync } from '../lib/useAsync'
-import { AccessDenied, EmptyState, ErrorState, Spinner } from '../components/primitives'
+import {
+  getFamilyMemberHistory,
+  getMemberHistory,
+  listAllMembers,
+  listFamilies,
+  listMyFamilyMembers,
+  getMyFamily,
+} from '../lib/api'
+import { useAsync } from '../lib/useAsync'
+import { useMe } from '../lib/me'
+import { Badge, EmptyState, ErrorState, Spinner } from '../components/primitives'
 import { DEFAULT_TILE_URL } from '../map/MapView'
-import type { AdminMember, Family, HistoryVisit, MemberHistory } from '../lib/types'
+import type { AdminMember, Family, HistoryVisit, Member, MemberHistory, MyFamily } from '../lib/types'
 import './pages.css'
 import './HistoryPage.css'
 
@@ -61,8 +73,17 @@ function formatStay(fromISO: string, toISO: string): string {
 }
 
 export function HistoryPage() {
-  const families = useAsync(listFamilies, [])
-  const members = useAsync(listAllMembers, [])
+  const { isPlatformAdmin } = useMe()
+  const families = useAsync(
+    () => (isPlatformAdmin ? listFamilies() : getMyFamily().then(familyToList)),
+    [isPlatformAdmin],
+  )
+  // AdminMember (server-wide rows) for admins; plain Member rows from the
+  // caller's own family otherwise — the member picker renders either way.
+  const members = useAsync<Member[] | AdminMember[]>(
+    () => (isPlatformAdmin ? listAllMembers() : listMyFamilyMembers()),
+    [isPlatformAdmin],
+  )
   const initial = React.useMemo(parseHistoryHash, [])
   const [familyId, setFamilyId] = React.useState('')
   const [memberId, setMemberId] = React.useState(initial.member)
@@ -86,17 +107,18 @@ export function HistoryPage() {
   const familyList = families.data ?? []
 
   React.useEffect(() => {
-    if (!memberId || memberList.length === 0) return
-    const selected = memberList.find((m) => m.id === memberId)
+    // Only admins can cross families; regular users are scoped to their own.
+    if (!isPlatformAdmin || !memberId || memberList.length === 0) return
+    const selected = memberList.find((m) => m.id === memberId) as AdminMember | undefined
     if (selected && selected.family_id && selected.family_id !== familyId) {
       setFamilyId(selected.family_id)
     }
-  }, [memberId, memberList, familyId])
+  }, [isPlatformAdmin, memberId, memberList, familyId])
 
   const visibleMembers = React.useMemo(() => {
-    if (!familyId) return memberList
-    return memberList.filter((m) => m.family_id === familyId)
-  }, [memberList, familyId])
+    if (!isPlatformAdmin || !familyId) return memberList
+    return memberList.filter((m) => (m as AdminMember).family_id === familyId)
+  }, [isPlatformAdmin, memberList, familyId])
 
   React.useEffect(() => {
     writeHistoryHash(memberId, date)
@@ -113,7 +135,12 @@ export function HistoryPage() {
     let cancelled = false
     setLoading(true)
     setError(null)
-    getMemberHistory(memberId, from, to)
+    // Regular users go through the family-scoped endpoint — the same one the
+    // app's day-detail screen calls; the server rejects other families.
+    const load = isPlatformAdmin
+      ? getMemberHistory(memberId, from, to)
+      : getFamilyMemberHistory(memberId, from, to)
+    load
       .then((data) => {
         if (cancelled) return
         setHistory(data)
@@ -128,15 +155,7 @@ export function HistoryPage() {
     return () => {
       cancelled = true
     }
-  }, [memberId, date, reload])
-
-  if (isAccessDenied(families.error) || isAccessDenied(members.error)) {
-    return (
-      <div className="wb-page">
-        <AccessDenied />
-      </div>
-    )
-  }
+  }, [isPlatformAdmin, memberId, date, reload])
 
   if ((families.loading && !families.data) || (members.loading && !members.data)) {
     return (
@@ -169,25 +188,35 @@ export function HistoryPage() {
   return (
     <div className="wb-history">
       <div className="wb-history-toolbar">
-        <label className="wb-field" htmlFor="history-family">
-          <span className="wb-label">Family</span>
-          <select
-            id="history-family"
-            className="wb-select"
-            value={familyId}
-            onChange={(e) => {
-              setFamilyId(e.target.value)
-              setMemberId('')
-            }}
-          >
-            <option value="">All families</option>
-            {familyList.map((f: Family) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {isPlatformAdmin ? (
+          <label className="wb-field" htmlFor="history-family">
+            <span className="wb-label">Family</span>
+            <select
+              id="history-family"
+              className="wb-select"
+              value={familyId}
+              onChange={(e) => {
+                setFamilyId(e.target.value)
+                setMemberId('')
+              }}
+            >
+              <option value="">All families</option>
+              {familyList.map((f: Family) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          // App parity: a regular user only ever sees their own circle.
+          <div className="wb-field">
+            <span className="wb-label">Family</span>
+            <p className="wb-history-family-name">
+              <Badge tone="purple">{familyList[0]?.name ?? 'Your family'}</Badge>
+            </p>
+          </div>
+        )}
         <label className="wb-field" htmlFor="history-member">
           <span className="wb-label">Member</span>
           <select
@@ -197,7 +226,7 @@ export function HistoryPage() {
             onChange={(e) => setMemberId(e.target.value)}
           >
             <option value="">Select a member</option>
-            {visibleMembers.map((m: AdminMember) => (
+            {visibleMembers.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
               </option>
@@ -328,4 +357,9 @@ function FitTrail({ positions }: { positions: [number, number][] }) {
     map.fitBounds(positions, { padding: [28, 28], maxZoom: 16 })
   }, [map, positions])
   return null
+}
+
+/** Wraps GET /family into the list shape the family filter expects. */
+function familyToList(family: MyFamily): Array<Family> {
+  return [{ id: family.id, name: family.name, created_at: family.created_at, member_count: 0 }]
 }

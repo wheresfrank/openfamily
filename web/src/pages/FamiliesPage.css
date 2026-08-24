@@ -21,6 +21,11 @@
   transition: background 0.12s ease;
 }
 .wb-group-head:hover { background: var(--surface-hover); }
+/* Static (non-clickable) variant used by the "my circle" header row. */
+.wb-group-head.is-static { cursor: default; }
+.wb-group-head.is-static:hover { background: none; }
+.wb-family-owner-actions { margin-bottom: var(--space-3); }
+.wb-leave-card { margin-top: var(--space-4); }
 .wb-group-head:focus-visible {
   outline: none;
   box-shadow: inset 0 0 0 3px var(--ring);

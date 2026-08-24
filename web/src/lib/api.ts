@@ -8,10 +8,13 @@ import type {
   AdminUser,
   ApiResult,
   Family,
+  FamilyPlace,
   InviteCode,
   LoginResponse,
+  Me,
   Member,
   MemberHistory,
+  MyFamily,
   Profile,
   Role,
   SmsSettings,
@@ -204,6 +207,83 @@ export function changePassword(currentPassword: string, newPassword: string): Pr
   return request<void>('/me/password', {
     method: 'PATCH',
     body: { current_password: currentPassword, new_password: newPassword },
+  })
+}
+
+// ---- My account (/me) ----
+
+/** Returns the signed-in account, including role and platform_admin flags. */
+export function whoAmI(): Promise<Me> {
+  return request<Me>('/me')
+}
+
+// ---- My circle — the family-scoped endpoints the mobile apps use ----
+// Every authenticated user may call these for their own family; the server
+// enforces family-admin rules per action. The web panel uses them so regular
+// users get app parity instead of a wall of 403s.
+
+/** Returns the caller's own family plus the caller's role within it. 404 when familyless. */
+export function getMyFamily(): Promise<MyFamily> {
+  return request<MyFamily>('/family')
+}
+
+/** Returns the caller's family members with their last-known location. */
+export function listMyFamilyMembers(): Promise<Member[]> {
+  return request<Member[]>('/family/members')
+}
+
+/** Returns a member of the caller's own family: avatar bytes or 404. */
+export function getFamilyMemberAvatar(memberId: string): Promise<Blob> {
+  return request<Blob>(`/family/members/${encodeURIComponent(memberId)}/avatar`, {
+    binary: true,
+    accept: 'image/jpeg, image/png, image/*;q=0.8, */*;q=0.1',
+  })
+}
+
+/** Returns one member's day trail + visits within the caller's own family. */
+export function getFamilyMemberHistory(
+  memberId: string,
+  from: string,
+  to: string,
+): Promise<MemberHistory> {
+  const q = new URLSearchParams({ from, to })
+  return request<MemberHistory>(
+    `/family/members/${encodeURIComponent(memberId)}/history?${q.toString()}`,
+  )
+}
+
+/** Returns saved places shared with the caller's family. 404 when familyless. */
+export function listMyPlaces(): Promise<FamilyPlace[]> {
+  return request<FamilyPlace[]>('/family/places')
+}
+
+/** Renames the caller's family (family admin only). */
+export function renameMyFamily(name: string): Promise<{ status: string; name?: string }> {
+  return request<{ status: string; name?: string }>('/family', { method: 'PATCH', body: { name } })
+}
+
+/** Creates an invite code for the caller's family (family admin only). */
+export function createFamilyInviteCode(
+  opts?: { role?: Role; max_uses?: number; expires_in_hours?: number },
+): Promise<InviteCode> {
+  return request<InviteCode>('/family/invites', { method: 'POST', body: opts ?? {} })
+}
+
+/** Joins a family by consuming an invite code. Only allowed while familyless. */
+export function joinFamilyByCode(code: string): Promise<{ status: string }> {
+  return request<{ status: string }>('/family/join', { method: 'POST', body: { code } })
+}
+
+/** Leaves the caller's family. Blocked for the last admin. */
+export function leaveMyFamily(): Promise<{ status: string }> {
+  return request<{ status: string }>('/family/leave', { method: 'POST' })
+}
+
+/** Changes a member's role inside the caller's family (family admin only). */
+export function updateFamilyMemberRole(memberId: string, role: Role): Promise<{ status: string }> {
+  return request<{ status: string }>(`/family/members/${encodeURIComponent(memberId)}/role`, {
+    method: 'PATCH',
+    body: { role },
   })
 }
 

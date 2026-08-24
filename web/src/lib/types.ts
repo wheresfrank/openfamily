@@ -36,6 +36,29 @@ export interface Family {
   member_count: number
 }
 
+/** The signed-in account as returned by GET /me (includes capability flags). */
+export interface Me extends Profile {
+  family_id: string | null
+  phone?: string | null
+  /** True when the account may use the server-admin surfaces (/api/admin/*). */
+  platform_admin: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+/**
+ * The caller's own family as returned by GET /family — includes the caller's
+ * role within that family so the UI can gate admin-only actions the same way
+ * the mobile apps do.
+ */
+export interface MyFamily {
+  id: string
+  name: string
+  created_at: string
+  role: Role
+  user_id: string
+}
+
 /** Account as returned by GET /api/admin/users — includes users with no family. */
 export interface AdminUser {
   id: string
@@ -121,6 +144,19 @@ export interface SmsSettings {
   from: string
   public_base_url: string
   source: 'settings' | 'environment'
+}
+
+/** A saved place as returned by GET /family/places (snake_case backend shape). */
+export interface FamilyPlace {
+  id: string
+  family_id: string
+  name: string
+  type: string
+  lat: number
+  lon: number
+  radius_meters?: number | null
+  address: string
+  created_at: string
 }
 
 export interface MemberHistory {

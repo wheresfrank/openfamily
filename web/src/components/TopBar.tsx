@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { ROUTES, type RouteKey } from '../lib/routes'
+import { useMe } from '../lib/me'
 import { CommandMenu } from './CommandMenu'
 import './nav.css'
 
@@ -18,6 +19,7 @@ interface TopBarProps {
 
 export function TopBar({ active, actions, onLogout, email, onNavigate }: TopBarProps) {
   const route = ROUTES.find((r) => r.key === active)
+  const { isPlatformAdmin } = useMe()
   const [menuOpen, setMenuOpen] = React.useState(false)
   const menuRef = React.useRef<HTMLDivElement>(null)
 
@@ -47,7 +49,9 @@ export function TopBar({ active, actions, onLogout, email, onNavigate }: TopBarP
         <span className="wb-topbar-title">{route?.label ?? 'Whereabouts'}</span>
       </div>
 
-      <CommandMenu onNavigate={onNavigate} />
+      {/* The ⌘K search corpus comes from the server-wide admin endpoints, so
+          it is only offered to platform admins. */}
+      {isPlatformAdmin && <CommandMenu onNavigate={onNavigate} />}
 
       <div className="wb-topbar-right">
         {actions}

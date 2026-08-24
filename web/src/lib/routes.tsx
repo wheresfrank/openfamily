@@ -11,6 +11,11 @@ export interface RouteDef {
   icon: React.ReactNode
   /** Hash fragment used for navigation. */
   hash: string
+  /**
+   * Server-admin surfaces backed by /api/admin/*. Regular users (whose
+   * permissions mirror the mobile apps) never see these routes.
+   */
+  adminOnly?: boolean
 }
 
 const icon = (path: React.ReactNode): React.ReactNode => (
@@ -66,6 +71,7 @@ export const ROUTES: RouteDef[] = [
     key: 'users',
     label: 'Users',
     hash: '#/users',
+    adminOnly: true,
     icon: icon(
       <path
         d="M12 11.5a3.25 3.25 0 1 0-3.25-3.25A3.25 3.25 0 0 0 12 11.5ZM5 20c0-3.1 3.1-5.5 7-5.5s7 2.4 7 5.5"
@@ -80,6 +86,7 @@ export const ROUTES: RouteDef[] = [
     key: 'builds',
     label: 'Builds',
     hash: '#/builds',
+    adminOnly: true,
     icon: icon(
       <path
         d="M12 3v9m0 0 3-3m-3 3L9 9M5 17v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2"
@@ -107,6 +114,11 @@ export const ROUTES: RouteDef[] = [
 ]
 
 export const DEFAULT_ROUTE: RouteKey = 'dashboard'
+
+/** Routes visible to the given viewer. Platform admins see everything. */
+export function routesFor(isPlatformAdmin: boolean): RouteDef[] {
+  return isPlatformAdmin ? ROUTES : ROUTES.filter((r) => !r.adminOnly)
+}
 
 export function routeFromHash(hash: string): RouteKey {
   const path = hash.split('?')[0]

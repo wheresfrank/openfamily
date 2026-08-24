@@ -1,6 +1,7 @@
-// Settings page — signed-in account (photo, name, password), Twilio SMS,
-// and a short About block for this server. Developer endpoints and session
-// tokens stay out of the public UI.
+// Settings page — signed-in account (photo, name, password), theme, and a
+// short About block for this server. The Twilio SMS server settings are a
+// platform-admin surface; everyone else sees their personal settings only,
+// matching what the apps expose.
 
 import React from 'react'
 import {
@@ -12,6 +13,7 @@ import {
   updateProfile,
   uploadProfileAvatar,
 } from '../lib/api'
+import { useMe } from '../lib/me'
 import type { Profile } from '../lib/types'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { Button, Card, CopyButton, Mono, Spinner } from '../components/primitives'
@@ -118,6 +120,7 @@ function passwordFormIssue(
 }
 
 export function SettingsPage({ email, onLogout }: SettingsPageProps) {
+  const { isPlatformAdmin } = useMe()
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const avatarObjectUrlRef = React.useRef<string | null>(null)
   const requestVersionRef = React.useRef(0)
@@ -306,7 +309,9 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
       <div className="wb-page-header">
         <div>
           <h1 className="wb-page-title">Settings</h1>
-          <p className="wb-page-subtitle">Appearance, account, SMS, and this server.</p>
+          <p className="wb-page-subtitle">
+            {isPlatformAdmin ? 'Appearance, account, SMS, and this server.' : 'Appearance, account, and this server.'}
+          </p>
         </div>
       </div>
 
@@ -320,7 +325,9 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
             <ThemeToggle />
           </Card>
 
-          <TwilioSettingsCard />
+          {/* Twilio SMS is a server-wide setting: platform admins only. The
+              apps never expose it to regular users either. */}
+          {isPlatformAdmin && <TwilioSettingsCard />}
         </div>
 
         <Card>

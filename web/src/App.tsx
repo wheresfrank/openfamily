@@ -2,6 +2,10 @@
 //
 // When unauthenticated: render the login screen.
 // When authenticated: render the sidebar + top bar shell with the active page.
+//
+// Permissions mirror the mobile apps: regular users see Dashboard, History,
+// Families, and Settings scoped to their own circle; Users and Builds are
+// platform-admin surfaces and are hidden (and blocked) for everyone else.
 
 import React from 'react'
 import { Sidebar } from './components/Sidebar'
@@ -13,14 +17,19 @@ import { UsersPage } from './pages/UsersPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { BuildsPage } from './pages/BuildsPage'
 import { SettingsPage } from './pages/SettingsPage'
-import { DEFAULT_ROUTE, routeFromHash, type RouteKey } from './lib/routes'
+import { ROUTES, DEFAULT_ROUTE, routeFromHash, type RouteKey } from './lib/routes'
 import { clearTokens, getEmail, isAuthenticated, subscribeAuth } from './lib/auth'
+import { useMe } from './lib/me'
+import { AccessDenied, Spinner } from './components/primitives'
 import './shell.css'
 
 export default function App() {
   // Re-render when auth changes (login, logout, cross-tab, failed refresh).
   const [, force] = React.useReducer((n: number) => n + 1, 0)
   React.useEffect(() => subscribeAuth(force), [force])
+
+  // Identity + capability flags for the signed-in account.
+  const { loading: meLoading, isPlatformAdmin } = useMe()
 
   // Hash-based routing.
   const [route, setRoute] = React.useState<RouteKey>(() =>
@@ -59,13 +68,33 @@ export default function App() {
         <TopBar active={route} onLogout={logout} email={email} onNavigate={navigate} />
       </div>
       <main className="wb-shell-content" id="wb-content">
-        {renderPage(route, email, logout)}
+        {meLoading ? (
+          <div className="wb-page">
+            <div className="wb-page-loading">
+              <Spinner /> Loading your account…
+            </div>
+          </div>
+        ) : renderPage(route, email, logout, isPlatformAdmin)}
       </main>
     </div>
   )
 }
 
-function renderPage(route: RouteKey, email: string | null, logout: () => void): React.ReactNode {
+function renderPage(
+  route: RouteKey,
+  email: string | null,
+  logout: () => void,
+  isPlatformAdmin: boolean,
+): React.ReactNode {
+  // Server-admin routes stay blocked for regular users, even via deep links.
+  const adminOnly = ROUTES.find((r) => r.key === route)?.adminOnly ?? false
+  if (adminOnly && !isPlatformAdmin) {
+    return (
+      <div className="wb-page">
+        <AccessDenied />
+      </div>
+    )
+  }
   switch (route) {
     case 'dashboard':
       return <DashboardPage />
