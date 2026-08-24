@@ -30,6 +30,12 @@ type wsMember struct {
 	SpeedMPS        *float64    `json:"speed_mps"`
 	MotionState     *string     `json:"motion_state"`
 	AccuracyMeters  *float64    `json:"accuracy_meters"`
+	// LastSeenAt is the most recent device heartbeat/ingest time across all of
+	// the member's devices. It can be newer than TS (the last stored
+	// position's timestamp) when the member is stationary and only heartbeats
+	// are arriving; clients use it to keep "last seen" fresh without moving
+	// the pin.
+	LastSeenAt *time.Time `json:"last_seen_at,omitempty"`
 }
 
 // wsLocation is a live location update broadcast to a family.
@@ -43,6 +49,18 @@ type wsLocation struct {
 	SpeedMPS       *float64  `json:"speed_mps"`
 	MotionState    *string   `json:"motion_state"`
 	AccuracyMeters *float64  `json:"accuracy_meters"`
+}
+
+// wsPresence is a liveness announcement broadcast when a device reports but its
+// position has not changed enough to store a new location row (stationary
+// dedup), or when it sends a bare heartbeat. It lets family clients refresh the
+// member's "last seen" freshness without moving their pin or growing the
+// locations table.
+type wsPresence struct {
+	Type       string    `json:"type"`
+	UserID     string    `json:"user_id"`
+	TS         time.Time `json:"ts"`
+	BatteryPct *float64  `json:"battery_pct,omitempty"`
 }
 
 // wsAvatarUpdate tells already-connected clients to fetch or clear a changed
@@ -175,9 +193,14 @@ func (s *Server) familyMembersSnapshot(ctx context.Context, familyID, callerID s
 	rows, err := s.Pool.Query(ctx, `
 		SELECT u.id, u.email, u.name, u.role,
 		       u.avatar_data IS NOT NULL, u.avatar_version, u.avatar_updated_at,
-		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters
+		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters,
+		       d.last_seen
 		FROM users u
 		LEFT JOIN member_positions mp ON mp.user_id = u.id
+		LEFT JOIN (
+			SELECT user_id, MAX(last_seen) AS last_seen
+			FROM devices GROUP BY user_id
+		) d ON d.user_id = u.id
 		WHERE u.family_id = $1
 		ORDER BY u.name`, familyID)
 	if err != nil {
@@ -198,9 +221,10 @@ func (s *Server) familyMembersSnapshot(ctx context.Context, familyID, callerID s
 			battery, speed  *float64
 			motion          *string
 			accuracy        *float64
+			lastSeenAt      *time.Time
 		)
 		if err := rows.Scan(&id, &email, &name, &role, &hasAvatar, &avatarVersion, &avatarUpdatedAt,
-			&lat, &lon, &ts, &battery, &speed, &motion, &accuracy); err != nil {
+			&lat, &lon, &ts, &battery, &speed, &motion, &accuracy, &lastSeenAt); err != nil {
 			return nil, err
 		}
 		m := wsMember{
@@ -217,6 +241,7 @@ func (s *Server) familyMembersSnapshot(ctx context.Context, familyID, callerID s
 			SpeedMPS:        speed,
 			MotionState:     motion,
 			AccuracyMeters:  accuracy,
+			LastSeenAt:      lastSeenAt,
 		}
 		// Redact email for non-manager (child) viewers, matching ListMembers.
 		if canManage {
@@ -258,6 +283,40 @@ func (s *Server) broadcastLocation(ownerID string, loc wsLocation) {
 		s.hub.broadcast(familyID, msg)
 	}
 	// Platform admin clients see every live update regardless of family.
+	s.hub.broadcastAdmin(msg)
+}
+
+// broadcastPresence fans out a liveness announcement (no position change) to
+// the owner's family and to connected platform admin clients. Like
+// broadcastLocation, it resolves the family under a background context so a
+// client disconnect cannot cancel the broadcast; callers should invoke it in a
+// goroutine.
+func (s *Server) broadcastPresence(ownerID string, ts time.Time, batteryPct *float64) {
+	// Nobody listening: skip the family lookup entirely, matching
+	// broadcastLocation's idle fast path.
+	if !s.hub.hasAny() && !s.hub.hasAdminClients() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	familyID, err := s.familyIDForUser(ctx, ownerID)
+	if err != nil {
+		slog.Warn("presence broadcast: resolve family failed", "err", err, "user_id", ownerID)
+		return
+	}
+	msg, err := json.Marshal(wsPresence{
+		Type:       "presence",
+		UserID:     ownerID,
+		TS:         ts,
+		BatteryPct: batteryPct,
+	})
+	if err != nil {
+		slog.Warn("presence broadcast: marshal failed", "err", err)
+		return
+	}
+	if familyID != "" {
+		s.hub.broadcast(familyID, msg)
+	}
 	s.hub.broadcastAdmin(msg)
 }
 

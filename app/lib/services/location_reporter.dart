@@ -40,6 +40,12 @@ class LocationReporter {
   /// The active position stream subscription, if any.
   StreamSubscription<Position>? _subscription;
 
+  /// Periodic liveness heartbeat while reporting is active. Covers the
+  /// stationary case: geolocator's distance-filtered stream emits nothing when
+  /// the user is still, so without a heartbeat the member flips to grey
+  /// "stopped / Last seen Xm ago" even though the app is alive and posting.
+  Timer? _heartbeatTimer;
+
   /// Pending restart timer after a stream error/close or failed registration.
   Timer? _restartTimer;
 
@@ -65,6 +71,12 @@ class LocationReporter {
 
   /// How long to wait before retrying the stream after it errors or closes.
   static const Duration _restartDelay = Duration(seconds: 15);
+
+  /// How often to send a liveness heartbeat when no location has been posted
+  /// recently (the backend refreshes `devices.last_seen` on both paths, so a
+  /// moving user's location posts make the heartbeat redundant). Matches the
+  /// background service's reporting cadence.
+  static const Duration _heartbeatInterval = Duration(seconds: 60);
 
   /// Minimum interval between POST attempts (safety net against flooding).
   /// Shortened while an SOS is active so family sees fresher points.
@@ -93,7 +105,45 @@ class LocationReporter {
     if (_active) return;
     _active = true;
     _generation++;
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(
+      _heartbeatInterval,
+      (_) => _sendHeartbeat(),
+    );
     await _startStream(_generation);
+  }
+
+  /// Sends a bare liveness heartbeat (`POST /devices/heartbeat`) so the
+  /// backend refreshes `devices.last_seen` — and the family's "last seen" for
+  /// this member — without writing a location row. Skipped when a location was
+  /// posted within the last interval (that already refreshed it server-side)
+  /// or while another request is in flight. Never throws.
+  Future<void> _sendHeartbeat() async {
+    if (!_active || _posting) return;
+    final DateTime? lastPost = _lastPostTime;
+    if (lastPost != null &&
+        DateTime.now().toUtc().difference(lastPost) < _heartbeatInterval) {
+      return;
+    }
+    final String? deviceId = _deviceId;
+    if (deviceId == null) return; // Registration retry loop will recover.
+
+    try {
+      int? batteryPct;
+      try {
+        batteryPct = await _battery.batteryLevel;
+      } catch (_) {
+        batteryPct = null;
+      }
+      final Map<String, dynamic> body = <String, dynamic>{'device_id': deviceId};
+      if (batteryPct != null) body['battery_pct'] = batteryPct;
+      await ApiClient.post('/devices/heartbeat', body: body);
+    } on SessionExpiredException {
+      // The app root handles the redirect; stop reporting for this session.
+      stop();
+    } catch (_) {
+      // Network/API failures are expected offline; the next tick retries.
+    }
   }
 
   /// Registers the device (if needed) and opens the position stream.
@@ -286,6 +336,8 @@ class LocationReporter {
   /// Cancels the position stream and any pending restart, and clears state.
   void stop() {
     _active = false;
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
     _restartTimer?.cancel();
     _restartTimer = null;
     _subscription?.cancel();

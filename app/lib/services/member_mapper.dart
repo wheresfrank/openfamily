@@ -22,9 +22,16 @@ Member memberFromJson(Map<String, dynamic> json) {
   final int avatarVersion = _parseAvatarVersion(json['avatar_version']) ?? 0;
 
   final LatLng? position = (lat != null && lon != null)
-      ? LatLng(lat.toDouble(), lon.toDouble())
-      : null;
+       ? LatLng(lat.toDouble(), lon.toDouble())
+       : null;
   final DateTime? timestamp = _parseTs(ts);
+  // The backend also reports `last_seen_at` (the freshest device
+  // heartbeat/ingest time across the member's devices), which can be newer
+  // than `ts` when the member is stationary and only heartbeats arrive.
+  // Liveness ("last seen") is derived from whichever is newer so a parked,
+  // reporting phone does not flip to grey "stopped".
+  final DateTime? lastSeenAt = _parseTs(json['last_seen_at']);
+  final DateTime? effectiveLastSeen = _newer(timestamp, lastSeenAt);
   final MovementType movement = _movementFrom(motion);
 
   return Member(
@@ -33,14 +40,14 @@ Member memberFromJson(Map<String, dynamic> json) {
     position: position,
     status: _statusFrom(
       position: position,
-      timestamp: timestamp,
+      lastSeen: effectiveLastSeen,
       batteryPct: batteryPct,
       accuracy: accuracy,
     ),
     batteryPercent: (batteryPct ?? 0).round(),
     address: _addressFrom(
       position: position,
-      timestamp: timestamp,
+      lastSeen: effectiveLastSeen,
       movement: movement,
     ),
     hasAvatar: hasAvatar,
@@ -48,7 +55,7 @@ Member memberFromJson(Map<String, dynamic> json) {
     avatarVersion: avatarVersion,
     movement: movement,
     speedMph: speedMps != null ? (speedMps * 2.23694).round() : null,
-    lastSeen: timestamp,
+    lastSeen: effectiveLastSeen,
     accuracyMeters: accuracy?.toDouble(),
   );
 }
@@ -113,7 +120,7 @@ Member memberFromLocationUpdate(Member existing, Map<String, dynamic> json) {
     position: position,
     status: _statusFrom(
       position: position,
-      timestamp: timestamp,
+      lastSeen: timestamp,
       batteryPct: effectiveBattery,
       accuracy: accuracy,
     ),
@@ -121,7 +128,7 @@ Member memberFromLocationUpdate(Member existing, Map<String, dynamic> json) {
         batteryPct != null ? batteryPct.round() : existing.batteryPercent,
     address: _addressFrom(
       position: position,
-      timestamp: timestamp,
+      lastSeen: timestamp,
       movement: movement,
     ),
     movement: movement,
@@ -129,6 +136,37 @@ Member memberFromLocationUpdate(Member existing, Map<String, dynamic> json) {
         speedMps != null ? (speedMps * 2.23694).round() : existing.speedMph,
     lastSeen: timestamp,
     accuracyMeters: accuracy?.toDouble() ?? existing.accuracyMeters,
+  );
+}
+
+/// Applies a `/ws/stream` `presence` frame to [existing].
+///
+/// Presence frames announce liveness without a position change (stationary
+/// dedup or heartbeat): the member's "last seen" freshness advances but the
+/// pin, speed, and movement stay untouched, and they come back from grey
+/// "stopped" if a stale member starts reporting again. Malformed frames return
+/// [existing] unchanged.
+Member memberFromPresenceUpdate(Member existing, Map<String, dynamic> json) {
+  if (json['user_id'] is! String) return existing;
+  final DateTime? ts = _parseTs(json['ts']);
+  if (ts == null) return existing;
+
+  // Ignore an equal-or-older presence frame than what we already know: it
+  // cannot make the member fresher.
+  final DateTime? current = existing.lastSeen;
+  if (current != null && !ts.isAfter(current)) return existing;
+
+  final num? batteryPct = json['battery_pct'] as num?;
+  return existing.copyWith(
+    status: MemberStatus.normal,
+    batteryPercent:
+        batteryPct != null ? batteryPct.round() : existing.batteryPercent,
+    address: _addressFrom(
+      position: existing.position,
+      lastSeen: ts,
+      movement: existing.movement,
+    ),
+    lastSeen: ts,
   );
 }
 
@@ -141,16 +179,18 @@ const int kLowBatteryThreshold = 15;
 /// Accuracy (meters) at or above which a member is flagged as a GPS issue.
 const double kGpsIssueAccuracyMeters = 100.0;
 
-/// Derives the [MemberStatus] from the raw backend fields.
+/// Derives the [MemberStatus] from the raw backend fields. [lastSeen] is the
+/// effective liveness time (location `ts` or device heartbeat, whichever is
+/// newer).
 MemberStatus _statusFrom({
   required LatLng? position,
-  required DateTime? timestamp,
+  required DateTime? lastSeen,
   required num? batteryPct,
   required num? accuracy,
 }) {
   if (position == null) return MemberStatus.stopped;
-  if (timestamp == null ||
-      DateTime.now().toUtc().difference(timestamp) > kStaleAfter) {
+  if (lastSeen == null ||
+      DateTime.now().toUtc().difference(lastSeen) > kStaleAfter) {
     return MemberStatus.stopped;
   }
   if ((batteryPct ?? 100) < kLowBatteryThreshold) return MemberStatus.warning;
@@ -158,19 +198,28 @@ MemberStatus _statusFrom({
   return MemberStatus.normal;
 }
 
-/// Derives a human-readable label (reverse geocoding is deferred).
+/// Derives a human-readable label (reverse geocoding is deferred). [lastSeen]
+/// is the effective liveness time (see [_statusFrom]).
 String _addressFrom({
   required LatLng? position,
-  required DateTime? timestamp,
+  required DateTime? lastSeen,
   required MovementType movement,
 }) {
   if (position == null) return 'No location yet';
   if (movement == MovementType.car) return 'Driving';
   if (movement == MovementType.bike) return 'Biking';
-  if (timestamp == null) return 'No location yet';
-  final Duration age = DateTime.now().toUtc().difference(timestamp);
+  if (lastSeen == null) return 'No location yet';
+  final Duration age = DateTime.now().toUtc().difference(lastSeen);
   if (age > kStaleAfter) return 'Last seen ${_formatAgo(age)} ago';
   return 'Moving';
+}
+
+/// Returns the later of two timestamps, treating null as "unknown" (the other
+/// value wins; both null → null).
+DateTime? _newer(DateTime? a, DateTime? b) {
+  if (a == null) return b;
+  if (b == null) return a;
+  return a.isAfter(b) ? a : b;
 }
 
 /// Maps the backend's free-form `motion_state` string to a [MovementType].

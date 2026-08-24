@@ -165,6 +165,64 @@ func (s *Server) ListDevices(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, devices)
 }
 
+// HeartbeatDevice records that an authenticated device is alive without
+// reporting a location: `POST /devices/heartbeat` with {"device_id": ...}.
+//
+// Clients send this while stationary so the family sees fresh "last seen"
+// freshness without growing the locations table (the ingest path separately
+// dedups stationary points; the heartbeat covers clients whose GPS stream does
+// not fire at all when not moving). It only touches devices.last_seen and
+// broadcasts a `presence` frame — no location rows are written.
+func (s *Server) HeartbeatDevice(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+
+	var req struct {
+		DeviceID   string   `json:"device_id"`
+		BatteryPct *float64 `json:"battery_pct,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.DeviceID == "" {
+		writeError(w, http.StatusBadRequest, "device_id is required")
+		return
+	}
+
+	var ownerID string
+	err := s.Pool.QueryRow(r.Context(), `
+		SELECT user_id FROM devices WHERE id = $1`, req.DeviceID).Scan(&ownerID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "device not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load device")
+		return
+	}
+	if ownerID != claims.UserID {
+		writeError(w, http.StatusForbidden, "device does not belong to you")
+		return
+	}
+
+	if _, err := s.Pool.Exec(r.Context(), `
+		UPDATE devices SET last_seen = now() WHERE id = $1 AND user_id = $2`,
+		req.DeviceID, claims.UserID); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update device")
+		return
+	}
+
+	// Best-effort liveness fan-out: family members see the member stay fresh
+	// without any position change.
+	go s.broadcastPresence(claims.UserID, time.Now(), req.BatteryPct)
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // validateDevicePushFields returns a client-facing error or "" if the
 // platform/credential combination is acceptable. Empty credentials are
 // allowed (the device simply will not receive pushes).

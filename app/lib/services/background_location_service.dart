@@ -70,7 +70,9 @@ Future<void> onLocationUpdate(LocationDto location) async {
 
     final http.Response response =
         await _postLocation(apiBaseUrl, accessToken, body);
-    if (response.statusCode == 201) return;
+    // 201 = stored; 200 = stationary-deduped (the server refreshed liveness
+    // and skipped the locations row). Both are successes.
+    if (response.statusCode == 201 || response.statusCode == 200) return;
 
     if (response.statusCode == 401) {
       // Access token expired (TTL 15 min). Refresh and retry once, reading the

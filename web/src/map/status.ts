@@ -182,6 +182,11 @@ export function deriveMember(
   const position =
     raw.lat != null && raw.lon != null ? { lat: raw.lat, lon: raw.lon } : null;
   const ts = parseTs(raw.ts);
+  // `last_seen_at` (device heartbeat time) can be newer than `ts` when the
+  // member is stationary and only heartbeats arrive; liveness uses whichever
+  // is newer so a parked, reporting phone does not flip to grey "stopped".
+  const lastSeenAt = parseTs(raw.last_seen_at);
+  const effectiveTs = newer(ts, lastSeenAt);
   const movement = movementFrom(raw.motion_state);
   const batteryPct = raw.battery_pct;
   const speedMps = raw.speed_mps;
@@ -194,16 +199,49 @@ export function deriveMember(
     avatarColor,
     memberColor,
     position,
-    status: statusFrom(position, ts, batteryPct, raw.accuracy_meters, nowMs),
+    status: statusFrom(position, effectiveTs, batteryPct, raw.accuracy_meters, nowMs),
     batteryPercent: batteryPct != null ? Math.round(batteryPct) : 0,
     movement,
     speedMph: speedMps != null ? Math.round(speedMps * MPS_TO_MPH) : null,
-    lastSeen: ts,
-    address: addressFrom(position, ts, movement, nowMs),
+    lastSeen: effectiveTs,
+    address: addressFrom(position, effectiveTs, movement, nowMs),
     hasAvatar: raw.has_avatar === true,
     avatarUpdatedAt: raw.avatar_updated_at ?? null,
     avatarVersion: avatarVersionFrom(raw.avatar_version),
     avatarUrl: raw.avatar_url ?? undefined,
+  };
+}
+
+/** Returns the later of two epoch-ms timestamps; null wins only if both are. */
+function newer(a: number | null, b: number | null): number | null {
+  if (a == null) return b;
+  if (b == null) return a;
+  return a > b ? a : b;
+}
+
+/**
+ * Applies a `/ws/stream` `presence` frame (liveness without a position
+ * change): advances "last seen" freshness and clears grey "stopped", leaving
+ * the pin/speed/movement untouched. Equal-or-older frames are ignored.
+ */
+export function applyPresenceUpdate(
+  existing: Member,
+  frame: { ts?: number | string | null; battery_pct?: number | null },
+  nowMs: number,
+): Member {
+  const ts = parseTs(frame.ts);
+  if (ts == null) return existing;
+  if (existing.lastSeen != null && ts <= existing.lastSeen) return existing;
+
+  return {
+    ...existing,
+    status: "normal",
+    batteryPercent:
+      frame.battery_pct != null
+        ? Math.round(frame.battery_pct)
+        : existing.batteryPercent,
+    address: addressFrom(existing.position, ts, existing.movement, nowMs),
+    lastSeen: ts,
   };
 }
 

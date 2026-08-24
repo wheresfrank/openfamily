@@ -172,6 +172,7 @@ func main() {
 		r.Get("/audit", srv.ListAudit)
 
 		r.Post("/devices", srv.RegisterDevice)
+		r.Post("/devices/heartbeat", srv.HeartbeatDevice)
 		r.Get("/devices", srv.ListDevices)
 		r.Patch("/devices/{id}", srv.UpdateDevice)
 
