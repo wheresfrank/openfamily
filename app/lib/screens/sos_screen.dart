@@ -82,17 +82,46 @@ class _SosScreenState extends State<SosScreen> {
             _activeAlertTtl;
 
     if (!mounted) return;
-    setState(() {
-      if (alertFresh) {
-        _alertId = storedId;
-        _phase = _SosPhase.sent;
-      } else {
-        if (storedId != null) {
-          unawaited(_clearStoredAlert());
-        }
-        _phase = seen ? _SosPhase.idle : _SosPhase.intro;
+    if (alertFresh) {
+      final bool stillActive = await _alertStillActive(storedId);
+      if (!mounted) return;
+      if (stillActive) {
+        setState(() {
+          _alertId = storedId;
+          _phase = _SosPhase.sent;
+        });
+        return;
       }
+      await _clearStoredAlert();
+    } else if (storedId != null) {
+      unawaited(_clearStoredAlert());
+    }
+    if (!mounted) return;
+    setState(() {
+      _phase = seen ? _SosPhase.idle : _SosPhase.intro;
     });
+  }
+
+  /// True when the server still has an active SOS for this id. A missing or
+  /// already-resolved row must not keep the "SOS sent" screen up — there is
+  /// then nothing for I'm safe to clear.
+  Future<bool> _alertStillActive(String id) async {
+    try {
+      final dynamic response = await ApiClient.get('/alerts/$id');
+      if (response is Map &&
+          response['type'] == 'sos' &&
+          response['status'] == 'active') {
+        return true;
+      }
+      return false;
+    } on SessionExpiredException {
+      return true;
+    } on ApiException catch (e) {
+      if (e.status == 404) return false;
+      return true;
+    } catch (_) {
+      return true;
+    }
   }
 
   Future<void> _markIntroSeen() async {
@@ -245,7 +274,8 @@ class _SosScreenState extends State<SosScreen> {
       if (e.status == 429) {
         final String? existing = _alertId ?? await _storedAlertId();
         if (!mounted) return;
-        if (existing != null) {
+        if (existing != null && await _alertStillActive(existing)) {
+          if (!mounted) return;
           setState(() {
             _alertId = existing;
             _error = _sendErrorMessage(e);
@@ -309,6 +339,10 @@ class _SosScreenState extends State<SosScreen> {
     } on SessionExpiredException {
       return;
     } on ApiException catch (e) {
+      if (e.status == 404) {
+        await _finishImSafe();
+        return;
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
@@ -321,6 +355,10 @@ class _SosScreenState extends State<SosScreen> {
       );
       return;
     }
+    await _finishImSafe();
+  }
+
+  Future<void> _finishImSafe() async {
     await _clearStoredAlert();
     LocationReporter.stopSosBurst();
     if (!mounted) return;
