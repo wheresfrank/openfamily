@@ -949,9 +949,9 @@ class _MemberMarkerLayer extends StatelessWidget {
           else
             Marker(
               point: p.position,
-              width: 64,
-              height: 64,
-              alignment: Alignment.center,
+              width: MemberAvatarBubble.markerWidth,
+              height: MemberAvatarBubble.markerSizeFor(p.member!).height,
+              alignment: MemberAvatarBubble.markerAlignmentFor(p.member!),
               child: MemberAvatarBubble(
                 member: p.member!,
                 onTap: () => onMemberTap(p.member!),

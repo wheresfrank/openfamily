@@ -25,6 +25,10 @@
 .wb-map .leaflet-div-icon {
   background: transparent;
   border: none;
+  overflow: visible;
+}
+.wb-map .leaflet-marker-icon.wb-marker {
+  overflow: visible;
 }
 
 /* Markers are positioned by Leaflet's own transform; a CSS transition here
@@ -496,20 +500,29 @@
 }
 
 /* ---- Map bubbles (Leaflet divIcons) ---- */
+.wb-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 72px;
+  cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  .wb-pin:hover .wb-face {
+    box-shadow: var(--shadow-md);
+  }
+}
+.wb-pin:has(.wb-bubble[data-selected="true"]) {
+  z-index: 1000;
+}
+.wb-pin:has(.wb-bubble[data-selected="true"]) .wb-ring {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-color, var(--purple)) 40%, transparent);
+}
 .wb-bubble {
   position: relative;
   width: 50px;
   height: 50px;
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-.wb-bubble:hover {
-  transform: scale(1.08);
-  z-index: 1000;
-}
-.wb-bubble[data-selected="true"] {
-  transform: scale(1.12);
-  z-index: 1000;
+  flex: 0 0 50px;
 }
 .wb-bubble .wb-ring {
   position: absolute;
@@ -555,12 +568,59 @@
 .wb-move svg {
   flex: 0 0 auto;
 }
-/* Bubble positioning — absolute bottom-right of the circle. */
-.wb-bubble .wb-move {
+/* Circular movement glyph on the ring — icon only, so the face stays visible. */
+.wb-bubble .wb-move-glyph {
   position: absolute;
-  right: -6px;
-  bottom: -6px;
+  right: -2px;
+  bottom: -2px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+  color: var(--accent-ink);
   box-shadow: var(--shadow-sm);
+}
+.wb-bubble .wb-move-glyph.wb-speeding {
+  background: var(--status-orange-bg);
+  border-color: var(--status-orange-border);
+  color: var(--status-orange-fg);
+}
+.wb-bubble .wb-move-glyph svg {
+  width: 11px;
+  height: 11px;
+}
+/* Driving speed hangs under the pin like a place label — never a card on the face. */
+.wb-speed {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding: 0 var(--space-2);
+  background: var(--overlay-strong);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.wb-speed-n {
+  font-size: var(--font-xs);
+  font-weight: 800;
+}
+.wb-speed-unit {
+  font-size: var(--font-xs);
+  font-weight: 600;
+}
+.wb-speed.wb-speeding {
+  background: var(--status-orange-bg);
+  border-color: var(--status-orange-border);
+  color: var(--status-orange-fg);
 }
 .wb-bubble .wb-err {
   position: absolute;
@@ -901,8 +961,5 @@
   }
   .wb-panel[data-collapsed="true"] {
     transform: translateY(calc(100% + var(--space-4)));
-  }
-  .wb-switcher {
-    max-width: 200px;
   }
 }

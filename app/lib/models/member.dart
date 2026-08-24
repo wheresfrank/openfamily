@@ -10,7 +10,7 @@ const int kSpeedingMph = 70;
 /// Health/accuracy state of a member's location, mapped to the colored
 /// status circle shown on their avatar bubble and list row.
 enum MemberStatus {
-  /// Green — normal, real-time, accurate, moving.
+/// Green — live, real-time, accurate location.
   normal,
 
   /// Orange — low battery or location-accuracy issue (warning).
@@ -165,12 +165,15 @@ class Member {
   /// blue "range" circle around the member and to label their accuracy.
   final double? accuracyMeters;
 
-  /// Whether this member is driving fast enough to show the "race car with
-  /// flames" variant.
+  /// Whether this member is driving fast enough to show as "speeding".
   bool get isSpeeding =>
       movement == MovementType.car &&
       speedMph != null &&
       speedMph! >= kSpeedingMph;
+
+  /// Whether the map pin should render a numeric speed caption.
+  bool get hasDrivingSpeed =>
+      movement == MovementType.car && speedMph != null;
 
   /// Initials used while no avatar is available.
   String get initials {
@@ -272,7 +275,7 @@ extension MemberStatusColor on MemberStatus {
   String get label {
     switch (this) {
       case MemberStatus.normal:
-        return 'Moving';
+        return 'Live';
       case MemberStatus.warning:
         return 'Low battery / accuracy';
       case MemberStatus.gpsIssue:
@@ -288,7 +291,7 @@ extension MemberStatusColor on MemberStatus {
   String get description {
     switch (this) {
       case MemberStatus.normal:
-        return 'Moving — real-time, accurate location';
+        return 'Live — real-time, accurate location';
       case MemberStatus.warning:
         return 'Low battery or location-accuracy issue';
       case MemberStatus.gpsIssue:

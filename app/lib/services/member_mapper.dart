@@ -1,6 +1,7 @@
 import 'package:latlong2/latlong.dart';
 
 import '../models/member.dart';
+import '../models/place.dart';
 
 /// Maps backend member JSON (from `GET /family/members` and the `/ws/stream`
 /// `members` frame) into a [Member].
@@ -200,6 +201,11 @@ MemberStatus _statusFrom({
 
 /// Derives a human-readable label (reverse geocoding is deferred). [lastSeen]
 /// is the effective liveness time (see [_statusFrom]).
+///
+/// Must stay in lockstep with web `addressFrom`: a fresh fix with no driving /
+/// cycling context is "Stationary", not "Moving". Callers overlay a saved
+/// place name (Home, Work, …) via [applyPlaceAddress] when the member is
+/// inside a place radius.
 String _addressFrom({
   required LatLng? position,
   required DateTime? lastSeen,
@@ -211,7 +217,41 @@ String _addressFrom({
   if (lastSeen == null) return 'No location yet';
   final Duration age = DateTime.now().toUtc().difference(lastSeen);
   if (age > kStaleAfter) return 'Last seen ${_formatAgo(age)} ago';
-  return 'Moving';
+  return 'Stationary';
+}
+
+/// The saved place (if any) whose radius contains [position]. When several
+/// overlap, the smallest radius wins — same rule as the backend history
+/// matcher, so a "Home" pin inside a larger neighborhood place stays Home.
+Place? placeContaining(LatLng? position, List<Place> places) {
+  if (position == null || places.isEmpty) return null;
+  const Distance dist = Distance();
+  Place? best;
+  double bestR = double.infinity;
+  for (final Place place in places) {
+    if (place.radiusMeters <= 0) continue;
+    final double d = dist.as(LengthUnit.Meter, position, place.position);
+    if (d <= place.radiusMeters && place.radiusMeters < bestR) {
+      best = place;
+      bestR = place.radiusMeters;
+    }
+  }
+  return best;
+}
+
+/// Replaces a stationary/activity-free address with the saved place the
+/// member is standing in (e.g. "Home"). Driving and cycling keep their
+/// activity labels; stale "Last seen …" labels are left alone.
+Member applyPlaceAddress(Member member, List<Place> places) {
+  if (places.isEmpty) return member;
+  if (member.movement == MovementType.car ||
+      member.movement == MovementType.bike) {
+    return member;
+  }
+  if (member.address.startsWith('Last seen')) return member;
+  final Place? place = placeContaining(member.position, places);
+  if (place == null || member.address == place.name) return member;
+  return member.copyWith(address: place.name);
 }
 
 /// Returns the later of two timestamps, treating null as "unknown" (the other
