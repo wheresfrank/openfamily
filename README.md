@@ -1,7 +1,17 @@
-# Whereabouts
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/openfamily/openfamily-logo-horizontal-dark.svg">
+    <img src="assets/brand/openfamily/openfamily-logo-horizontal.svg" alt="OpenFamily" width="560">
+  </picture>
+</p>
 
-**A self-hosted family location tracker.** You run the server. Your family's
-location never leaves it.
+<h1 align="center">OpenFamily</h1>
+
+<p align="center">
+  <strong>A self-hosted family location tracker.</strong> You run the server.
+  Your family's location never leaves it.<br>
+  <a href="https://openfamily.app">openfamily.app</a>
+</p>
 
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)](https://flutter.dev/)
@@ -9,10 +19,12 @@ location never leaves it.
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-PostGIS%20%2B%20TimescaleDB-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-Whereabouts is an open-source alternative to commercial family locators. A
+OpenFamily is an open-source alternative to commercial family locators. A
 Flutter app for Android and iOS talks to a Go API you host with Docker — on a
 VPS, a Synology NAS, or a machine on your LAN. There is no vendor cloud, no
 analytics SDK, and no Google Play Services requirement on Android.
+
+![OpenFamily — keep your family close without giving up your privacy](assets/brand/openfamily/openfamily-social-card.png)
 
 ```
 ┌──────────┐   ┌──────────┐   ┌──────────────────────────────┐
@@ -47,7 +59,7 @@ analytics SDK, and no Google Play Services requirement on Android.
 ## Why self-host this
 
 Commercial family trackers send live coordinates to someone else's cloud and
-monetize the result. Whereabouts is the opposite posture:
+monetize the result. OpenFamily is the opposite posture:
 
 - **You own the data.** Locations, places, and history live in your Postgres.
 - **Android push is self-hosted.** [UnifiedPush](https://unifiedpush.org/) via
@@ -151,7 +163,7 @@ need a valid invite code.
 
 ## Compared to
 
-| | Whereabouts | Life360-class apps | [OwnTracks](https://owntracks.org/) | [Traccar](https://www.traccar.org/) | [Dawarich](https://dawarich.app/) |
+| | OpenFamily | Life360-class apps | [OwnTracks](https://owntracks.org/) | [Traccar](https://www.traccar.org/) | [Dawarich](https://dawarich.app/) |
 |---|---|---|---|---|---|
 | Self-hosted | Yes | No | Yes | Yes | Yes |
 | Family map + SOS | Yes | Yes | No | Weak | No |
@@ -175,6 +187,10 @@ cp .env.example .env
 # Set a strong POSTGRES_PASSWORD and JWT_SECRET
 docker compose up -d --build
 ```
+
+Existing deployments should retain their current `DATABASE_URL`,
+`POSTGRES_USER`, and `POSTGRES_DB` values during the upgrade. The OpenFamily
+database defaults are for fresh installations and do not rename stored data.
 
 The API is at `http://localhost` (via Caddy):
 
@@ -211,12 +227,12 @@ before you invite anyone.
 ## Family setup
 
 1. Install the Android APK (admin **Builds** page or the latest GitHub Release).
-2. Enter your server URL (for example `https://whereabouts.example.com`).
+2. Enter your server URL (for example `https://openfamily.example.com`).
 3. Create or join a family (invite code if the operator closed registration).
 4. Allow **Always** location and notifications. On Android, grant the battery
    exemption under Settings → Background updates.
 5. Install [ntfy](https://ntfy.sh/) so SOS, geofence, and check-in alerts
-   arrive when Whereabouts is closed.
+   arrive when OpenFamily is closed.
 
 Privacy details: [PRIVACY.md](PRIVACY.md). Operator hardening:
 [docs/self-hosting.md](docs/self-hosting.md).
@@ -230,10 +246,10 @@ places, safety, history, and foreground + background location reporting.
 cd app
 flutter create .        # generates missing platform scaffolding
 flutter pub get
-flutter run --dart-define=WHEREABOUTS_API_URL=http://localhost
+flutter run --dart-define=OPENFAMILY_API_URL=http://localhost
 ```
 
-| Target | `WHEREABOUTS_API_URL` |
+| Target | `OPENFAMILY_API_URL` |
 |---|---|
 | iOS simulator | `http://localhost` |
 | Android emulator | `http://10.0.2.2` (host loopback from inside the emulator) |
@@ -254,10 +270,9 @@ satellite layer defaults to Esri World Imagery (still not Google). Both
 receive the map viewport on every pan/zoom.
 
 Operators override that without rebuilding the APK by setting `TILE_URL` and
-`SATELLITE_TILE_URL` in `.env` (returned on `GET /config`). Custom Flutter
-builds can still pass `--dart-define=WHEREABOUTS_TILE_URL=…`. Both templates
-use `{z}` / `{x}` / `{y}` (the ArcGIS-style satellite template swaps
-`{y}` / `{x}`). See [docs/self-hosting.md](docs/self-hosting.md).
+`SATELLITE_TILE_URL` in `.env`; the server returns both on `GET /config`.
+Templates use `{z}` / `{x}` / `{y}` (the ArcGIS-style satellite template
+swaps `{y}` / `{x}`). See [docs/self-hosting.md](docs/self-hosting.md).
 
 ### Background location
 
@@ -311,7 +326,8 @@ Setting `PLATFORM_ADMIN_EMAIL` **closes open registration**.
    **Users** — every account, including people with no family; create,
    assign, change role, reset password.
    **APK** — download the Android APK.
-   **Settings** — your account (name, password, photo) and this server.
+   **Settings** — your account (name, password, photo), this server, and
+   server updates (see [Updating the server](#updating-the-server)).
 
 ### Invite codes
 
@@ -357,6 +373,45 @@ users have to uninstall before they can install a newly signed APK.
 One generic APK works for every deployment because of the runtime server URL
 screen.
 
+### Updating the server
+
+The admin **Settings → Server updates** card shows the commit the server is
+running and whether a newer commit exists upstream, with an **Update now**
+button that pulls the latest code and rebuilds/recreates changed containers —
+no shell access required.
+
+The button is powered by the `updater` sidecar (docker-compose service), which
+mounts the compose project directory and the Docker socket and runs
+`git pull --ff-only` followed by `docker compose up -d --build` on behalf of
+the API, which cannot update itself from inside its own container.
+
+To enable it, set a long random shared token in `.env`:
+
+```bash
+UPDATER_TOKEN=$(openssl rand -hex 32)
+```
+
+then `docker compose up -d --build` once more (this builds the sidecar). The
+token must be identical on both sides; compose wires it to both services.
+Leave it empty to disable self-update entirely — the card still reports
+versions and tells you the manual commands. The updater listens only on the
+internal Docker network (no published ports) and rejects every request without
+the token.
+
+Notes:
+
+- **Security:** mounting `/var/run/docker.sock` is root-equivalent host access.
+  That is inherent to in-panel updates; the sidecar is internal-only,
+  token-gated, runs exactly two fixed commands, and update triggers are
+  audit-logged as `admin.update_apply`.
+- Local changes in the clone make `git pull --ff-only` fail loudly rather than
+  silently clobbering them; resolve and re-run the button.
+- If the sidecar's own image changed, its container may be recreated mid-run;
+  the card then reports the run as *interrupted*. Verify container health and
+  press the button again.
+- Without the sidecar enabled you can always update manually:
+  `git pull && docker compose up -d --build`.
+
 ## Self-hosting map tiles
 
 For a fully private map, host your own tiles. The simplest option is
@@ -385,7 +440,8 @@ For a fully private map, host your own tiles. The simplest option is
    }
    ```
 
-4. Point the app at it with `WHEREABOUTS_TILE_URL` as above.
+4. Set `TILE_URL` (and optionally `SATELLITE_TILE_URL`) to your proxied tile
+   template, then reload the stack. The app receives it from `GET /config`.
 
 ## Run on a Synology NAS
 
@@ -395,7 +451,7 @@ For a fully private map, host your own tiles. The simplest option is
 3. In Container Manager → **Project**, point at `docker-compose.yml`, or SSH:
 
    ```bash
-   cd /path/to/whereabouts
+   cd /path/to/openfamily
    cp .env.example .env   # set strong secrets
    docker compose up -d --build
    ```
@@ -404,8 +460,8 @@ For a fully private map, host your own tiles. The simplest option is
    snapshots, and schedule `pg_dump`.
 5. **Remote access:** do **not** expose ports publicly if you can avoid it.
    Use Tailscale or WireGuard, then set
-   `SITE_ADDRESS=whereabouts.<your-tailnet>.ts.net` so Caddy gets a real
-   certificate. For a public domain, set `SITE_ADDRESS=whereabouts.example.com`
+   `SITE_ADDRESS=openfamily.<your-tailnet>.ts.net` so Caddy gets a real
+   certificate. For a public domain, set `SITE_ADDRESS=openfamily.example.com`
    and open 80/443.
 6. **ntfy / UnifiedPush:** set `PUSH_ADDRESS` and `NTFY_BASE_URL` so Android
    push works over TLS. `PUSH_ADDRESS` alone does not enable TLS — add a
@@ -420,6 +476,7 @@ For a fully private map, host your own tiles. The simplest option is
 |---|---|---|
 | `HTTP_ADDR` | `:8080` | API listen address |
 | `DATABASE_URL` | local dev URL | PostgreSQL connection string |
+| `POSTGRES_USER` / `POSTGRES_DB` | `openfamily` | Database identity for fresh Compose installs |
 | `JWT_SECRET` | `change-me-in-production` | JWT signing secret (**set this**) |
 | `ACCESS_TOKEN_TTL` | `15m` | Access token lifetime |
 | `REFRESH_TOKEN_TTL` | `720h` | Refresh token lifetime |
@@ -447,9 +504,9 @@ For a fully private map, host your own tiles. The simplest option is
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `WHEREABOUTS_API_URL` | *(empty)* | Backend base URL (runtime screen if unset) |
-| `WHEREABOUTS_TILE_URL` | OSM public tiles | Street tile URL template |
-| `WHEREABOUTS_SATELLITE_TILE_URL` | ArcGIS public tiles | Satellite tile URL template |
+| `OPENFAMILY_API_URL` | *(empty)* | Backend base URL (runtime screen if unset) |
+| `OPENFAMILY_NOMINATIM_URL` | *(empty)* | Optional Nominatim endpoint for address search |
+| `OPENFAMILY_APP_VERSION` | `0.1.0` | Version reported when registering this device |
 
 ## Security
 
@@ -557,6 +614,9 @@ All routes require a platform admin. The SPA at `/admin` calls these under
 | POST | `/api/admin/apk/build` | Optional on-server build (needs Flutter) |
 | GET | `/api/admin/apk/status` | Poll that build |
 | GET / PUT / DELETE | `/api/admin/settings/sms` | Twilio SMS settings (token never returned) |
+| GET | `/api/admin/update/status` | Deployed vs. latest commit; updater availability |
+| POST | `/api/admin/update/apply` | Pull + rebuild + rolling restart (needs the updater sidecar) |
+| GET | `/api/admin/update/log` | Tail of the updater's log |
 | WS | `/api/admin/ws` | Live positions across all families |
 
 </details>
@@ -582,7 +642,7 @@ at API startup.
 ```bash
 cd backend
 go build -o server ./cmd/server
-DATABASE_URL="postgres://whereabouts:whereabouts@localhost:5432/whereabouts?sslmode=disable" \
+DATABASE_URL="postgres://openfamily:openfamily@localhost:5432/openfamily?sslmode=disable" \
 JWT_SECRET="$(openssl rand -base64 48)" \
 ./server
 ```
@@ -632,7 +692,7 @@ Report security issues privately — see [SECURITY.md](SECURITY.md).
 
 ## License
 
-Whereabouts is licensed under the [GNU Affero General Public License
+OpenFamily is licensed under the [GNU Affero General Public License
 v3.0](LICENSE).
 
 ## Acknowledgments

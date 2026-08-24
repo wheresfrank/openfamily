@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/whereabouts/whereabouts/backend/internal/auth"
-	"github.com/whereabouts/whereabouts/backend/internal/middleware"
-	"github.com/whereabouts/whereabouts/backend/internal/sms"
+	"github.com/wheresfrank/openfamily/backend/internal/auth"
+	"github.com/wheresfrank/openfamily/backend/internal/middleware"
+	"github.com/wheresfrank/openfamily/backend/internal/sms"
 )
 
 // testClaims builds access-token claims for the given user id.

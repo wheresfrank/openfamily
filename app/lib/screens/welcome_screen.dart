@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../services/app_config.dart';
 import '../theme/app_theme.dart';
+import '../widgets/openfamily_brand.dart';
 import 'login_screen.dart';
 import 'sign_up_screen.dart';
 
@@ -15,8 +16,7 @@ import 'sign_up_screen.dart';
 /// screen. The map is a neutral world view — it deliberately does NOT request
 /// the user's location here, because the OS permission prompt belongs in the
 /// sequenced permissions step (requesting it here would leak a dialog out of
-/// the flow and double-prompt on iOS). The app mark is a pink-and-purple
-/// rounded-square fingerprint.
+/// the flow and double-prompt on iOS).
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
@@ -42,7 +42,7 @@ class WelcomeScreen extends StatelessWidget {
               children: [
                 TileLayer(
                   urlTemplate: kTileUrl,
-                  userAgentPackageName: 'com.whereabouts.whereabouts',
+                  userAgentPackageName: 'app.openfamily',
                 ),
               ],
             ),
@@ -60,24 +60,15 @@ class WelcomeScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Spacer(),
-                  Center(
-                    child: Container(
-                      width: 104,
-                      height: 104,
-                      decoration: BoxDecoration(
-                        gradient: AppGradients.brand,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: const Icon(
-                        Icons.fingerprint,
-                        size: 60,
-                        color: AppColors.onAccent,
-                      ),
+                  const Center(
+                    child: OpenFamilyMark(
+                      size: 112,
+                      brightness: Brightness.light,
                     ),
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Whereabouts',
+                    'OpenFamily',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.w800,
@@ -106,7 +97,8 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 14),
-                      child: Text('Get Started', style: TextStyle(fontSize: 16)),
+                      child:
+                          Text('Get Started', style: TextStyle(fontSize: 16)),
                     ),
                   ),
                   const SizedBox(height: 12),

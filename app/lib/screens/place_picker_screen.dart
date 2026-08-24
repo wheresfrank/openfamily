@@ -236,7 +236,7 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                   children: [
                     TileLayer(
                       urlTemplate: kTileUrl,
-                      userAgentPackageName: 'com.whereabouts.whereabouts',
+                      userAgentPackageName: 'app.openfamily',
                     ),
                     // The geofence radius, drawn live around the pin.
                     CircleLayer(

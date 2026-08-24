@@ -12,7 +12,7 @@ import (
 
 // Insecure defaults that must never be used in production.
 const (
-	defaultDatabaseURL = "postgres://whereabouts:whereabouts@localhost:5432/whereabouts?sslmode=disable"
+	defaultDatabaseURL = "postgres://openfamily:openfamily@localhost:5432/openfamily?sslmode=disable"
 	insecureJWTSecret  = "change-me-in-production"
 
 	// DefaultTileURL is the public OSM raster template. Operators override
@@ -126,6 +126,25 @@ type Config struct {
 	// binary is on PATH (exec.LookPath).
 	FlutterAppDir string
 
+	// BuildVersion is the git ref embedded at build time (ldflags -X). "dev"
+	// for source runs; the updater sidecar's DEPLOY_REF_FILE takes precedence
+	// at runtime when present.
+	BuildVersion string
+
+	// DeployRefFile is the file where the updater sidecar records the deployed
+	// git ref (config: DEPLOY_REF_FILE). Read at request time so the admin
+	// panel shows which commit is running. Empty disables the lookup.
+	DeployRefFile string
+
+	// UpdaterURL is the base URL of the updater sidecar service that applies
+	// server updates (config: UPDATER_URL, e.g. http://updater:8081). Empty
+	// disables self-update: the admin button reports versions only.
+	UpdaterURL string
+
+	// UpdaterToken is the shared secret required by the updater sidecar
+	// (config: UPDATER_TOKEN). Must match the sidecar's value exactly.
+	UpdaterToken string
+
 	// Twilio credentials. Empty AccountSID, AuthToken, or From disables SMS;
 	// in-app push and WebSocket alerts still work.
 	TwilioAccountSID string
@@ -137,6 +156,14 @@ type Config struct {
 	// back to putting lat/lon in the SMS body.
 	PublicBaseURL string
 }
+
+// buildVersion is overridden at build time with:
+//
+//	-ldflags "-X github.com/wheresfrank/openfamily/backend/internal/config.buildVersion=$(git rev-parse --short HEAD)"
+var buildVersion = "dev"
+
+// BuildVersion returns the git ref embedded at build time ("dev" by default).
+func BuildVersion() string { return buildVersion }
 
 // Load reads configuration from the environment, applying sensible defaults.
 func Load() Config {
@@ -167,6 +194,10 @@ func Load() Config {
 		APKGitHubRepo:         getenv("APK_GITHUB_REPO", ""),
 		APKGitHubToken:        getenv("APK_GITHUB_TOKEN", ""),
 		FlutterAppDir:         getenv("FLUTTER_APP_DIR", "./app"),
+		BuildVersion:          buildVersion,
+		DeployRefFile:         getenv("DEPLOY_REF_FILE", ""),
+		UpdaterURL:            strings.TrimRight(getenv("UPDATER_URL", ""), "/"),
+		UpdaterToken:          getenv("UPDATER_TOKEN", ""),
 		TwilioAccountSID:      getenv("TWILIO_ACCOUNT_SID", ""),
 		TwilioAuthToken:       getenv("TWILIO_AUTH_TOKEN", ""),
 		TwilioFrom:            getenv("TWILIO_FROM", ""),

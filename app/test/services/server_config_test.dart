@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:whereabouts/services/server_config.dart';
+import 'package:openfamily/services/server_config.dart';
 
 void main() {
   setUp(() {

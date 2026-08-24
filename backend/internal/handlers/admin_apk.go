@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/whereabouts/whereabouts/backend/internal/apkrelease"
-	"github.com/whereabouts/whereabouts/backend/internal/middleware"
+	"github.com/wheresfrank/openfamily/backend/internal/apkrelease"
+	"github.com/wheresfrank/openfamily/backend/internal/middleware"
 )
 
 // apkBuildStatus is the lifecycle state of an APK build job.
@@ -236,7 +236,7 @@ func (s *Server) runAPKBuild(userID, ip string) {
 			"cannot create APK_DIR "+s.APKDir, ip)
 		return
 	}
-	dst := filepath.Join(s.APKDir, "whereabouts-release.apk")
+	dst := filepath.Join(s.APKDir, "openfamily-release.apk")
 	if copyErr := copyFile(src, dst); copyErr != nil {
 		s.apk.finish(apkFailed, "", "cannot copy artifact: "+copyErr.Error(), tail)
 		slog.Error("admin apk build: copy failed", "src", src, "dst", dst, "err", copyErr)

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/whereabouts/whereabouts/backend/internal/middleware"
+	"github.com/wheresfrank/openfamily/backend/internal/middleware"
 )
 
 // TestHeartbeatDeviceUnauthenticated verifies the heartbeat endpoint requires

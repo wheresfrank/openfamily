@@ -213,7 +213,7 @@ class BiometricService {
             preferenceStore ?? SharedPreferencesBiometricPreferenceStore();
 
   static const String defaultReason =
-      'Use your biometric to unlock Whereabouts.';
+      'Use your biometric to unlock OpenFamily.';
 
   final BiometricAuthenticator _authenticator;
   final BiometricPreferenceStore _preferenceStore;

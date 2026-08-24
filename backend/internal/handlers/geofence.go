@@ -11,8 +11,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
-	"github.com/whereabouts/whereabouts/backend/internal/middleware"
-	"github.com/whereabouts/whereabouts/backend/internal/models"
+	"github.com/wheresfrank/openfamily/backend/internal/middleware"
+	"github.com/wheresfrank/openfamily/backend/internal/models"
 )
 
 // geofenceOut is the API representation of a geofence, including the linked

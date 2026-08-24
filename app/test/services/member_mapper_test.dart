@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/models/member.dart';
-import 'package:whereabouts/services/member_mapper.dart';
+import 'package:openfamily/models/member.dart';
+import 'package:openfamily/services/member_mapper.dart';
 
 void main() {
   group('member avatar metadata', () {

@@ -204,7 +204,7 @@ class _MapScreenState extends State<MapScreen>
   }
 
   /// One-time Android guidance: when background location is on, ask the user
-  /// to exempt Whereabouts from battery optimization so Doze/OEM managers
+  /// to exempt OpenFamily from battery optimization so Doze/OEM managers
   /// don't pause or kill the background service. Fires at most once and only
   /// when "Always" permission is granted; a no-op on iOS/web/desktop.
   Future<void> _suggestBatteryOptimization() async {
@@ -227,8 +227,8 @@ class _MapScreenState extends State<MapScreen>
       builder: (BuildContext context) => AlertDialog(
         title: const Text('Keep background updates reliable'),
         content: const Text(
-          'To keep your location fresh when Whereabouts is closed, Android '
-          'may need Whereabouts exempted from battery optimization. Otherwise '
+          'To keep your location fresh when OpenFamily is closed, Android '
+          'may need OpenFamily exempted from battery optimization. Otherwise '
           'the system can pause background location to save battery.',
         ),
         actions: <Widget>[
@@ -618,7 +618,7 @@ class _MapScreenState extends State<MapScreen>
             children: [
               TileLayer(
                 urlTemplate: _satellite ? kSatelliteTileUrl : kTileUrl,
-                userAgentPackageName: 'com.whereabouts.whereabouts',
+                userAgentPackageName: 'app.openfamily',
               ),
               // Blue "range" circle for members whose location accuracy is
               // known (or who are in the approximate GPS-accuracy state).

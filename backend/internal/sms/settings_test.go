@@ -32,8 +32,8 @@ func TestSettingsEnabled(t *testing.T) {
 }
 
 func TestNormalizePublicBaseURL(t *testing.T) {
-	got, err := NormalizePublicBaseURL(" https://whereabouts.example.com/ ")
-	if err != nil || got != "https://whereabouts.example.com" {
+	got, err := NormalizePublicBaseURL(" https://openfamily.example.com/ ")
+	if err != nil || got != "https://openfamily.example.com" {
 		t.Fatalf("got %q err=%v", got, err)
 	}
 	if _, err := NormalizePublicBaseURL("http://insecure.example"); err == nil {

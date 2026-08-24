@@ -65,7 +65,7 @@ func (m *TokenManager) issue(userID, familyID string, tokenVersion int, typ Toke
 		TokenType:    typ,
 		TokenVersion: tokenVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "whereabouts",
+			Issuer:    "openfamily",
 			Subject:   userID,
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),

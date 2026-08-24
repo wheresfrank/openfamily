@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/whereabouts/whereabouts/backend/internal/models"
+	"github.com/wheresfrank/openfamily/backend/internal/models"
 )
 
 func TestLeaveFamilyBlocked(t *testing.T) {

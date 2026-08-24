@@ -404,7 +404,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               title: const Text('Background updates'),
               subtitle: const Text(
-                'Let Whereabouts run freely so your location stays fresh '
+                'Let OpenFamily run freely so your location stays fresh '
                 'when the app is closed.',
               ),
               trailing:
@@ -419,7 +419,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Push notifications'),
             subtitle: const Text(
               'Android needs the ntfy app (UnifiedPush) so alerts arrive when '
-              'Whereabouts is closed. Off unregisters this device.',
+              'OpenFamily is closed. Off unregisters this device.',
             ),
             value: _notifications,
             onChanged: _notificationsLoading ? null : _setPushNotifications,
@@ -428,7 +428,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const _SectionHeader('About'),
           const ListTile(
             leading: Icon(Icons.info_outline, color: AppColors.purple),
-            title: Text('Whereabouts'),
+            title: Text('OpenFamily'),
             subtitle: Text('Version 0.1.0'),
           ),
           const Divider(height: 1),

@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
-	"github.com/whereabouts/whereabouts/backend/internal/middleware"
-	"github.com/whereabouts/whereabouts/backend/internal/models"
+	"github.com/wheresfrank/openfamily/backend/internal/middleware"
+	"github.com/wheresfrank/openfamily/backend/internal/models"
 )
 
 // CreateFamily creates a family and assigns the caller as its admin.

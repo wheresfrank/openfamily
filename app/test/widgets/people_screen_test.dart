@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/models/member.dart';
-import 'package:whereabouts/screens/member_profile_screen.dart';
-import 'package:whereabouts/screens/people_screen.dart';
+import 'package:openfamily/models/member.dart';
+import 'package:openfamily/screens/member_profile_screen.dart';
+import 'package:openfamily/screens/people_screen.dart';
 
 /// A member with no position so no FlutterMap preview is built in member
 /// profile navigation tests (avoiding tile-network code paths).

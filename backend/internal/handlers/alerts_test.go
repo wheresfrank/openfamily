@@ -109,8 +109,8 @@ func TestShareURLRequiresHTTPS(t *testing.T) {
 	if srv.shareURL("abc") != "" {
 		t.Fatal("http origin must not produce a share URL")
 	}
-	srv.PublicBaseURL = "https://whereabouts.example.com"
-	if srv.shareURL("abc") != "https://whereabouts.example.com/alerts/share/abc" {
+	srv.PublicBaseURL = "https://openfamily.example.com"
+	if srv.shareURL("abc") != "https://openfamily.example.com/alerts/share/abc" {
 		t.Fatalf("got %q", srv.shareURL("abc"))
 	}
 }

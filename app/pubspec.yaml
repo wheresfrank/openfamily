@@ -1,4 +1,4 @@
-name: whereabouts
+name: openfamily
 description: A self-hosted, privacy-first family location tracker.
 publish_to: "none"
 version: 0.1.0+1
@@ -67,3 +67,5 @@ dependency_overrides:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/

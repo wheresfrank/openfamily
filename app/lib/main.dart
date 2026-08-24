@@ -14,6 +14,8 @@ import 'services/tile_config.dart';
 import 'services/token_storage.dart';
 import 'theme/app_theme.dart';
 import 'widgets/biometric_app_lock.dart';
+import 'widgets/dot_grid.dart';
+import 'widgets/openfamily_brand.dart';
 
 /// Global navigator key so non-widget code (e.g. [ApiClient]) can navigate on
 /// session expiry.
@@ -25,18 +27,18 @@ Future<void> main() async {
   // UnifiedPush/APNs token arriving at launch is not dropped.
   PushService.initialize();
   await ThemePreferenceService.load();
-  runApp(const WhereaboutsApp());
+  runApp(const OpenFamilyApp());
 }
 
-/// Root widget for the Whereabouts app.
-class WhereaboutsApp extends StatefulWidget {
-  const WhereaboutsApp({super.key});
+/// Root widget for the OpenFamily app.
+class OpenFamilyApp extends StatefulWidget {
+  const OpenFamilyApp({super.key});
 
   @override
-  State<WhereaboutsApp> createState() => _WhereaboutsAppState();
+  State<OpenFamilyApp> createState() => _OpenFamilyAppState();
 }
 
-class _WhereaboutsAppState extends State<WhereaboutsApp> {
+class _OpenFamilyAppState extends State<OpenFamilyApp> {
   @override
   void initState() {
     super.initState();
@@ -76,7 +78,7 @@ class _WhereaboutsAppState extends State<WhereaboutsApp> {
       valueListenable: ThemePreferenceService.preference,
       builder: (context, preference, _) {
         return MaterialApp(
-          title: 'Whereabouts',
+          title: 'OpenFamily',
           debugShowCheckedModeBanner: false,
           navigatorKey: navigatorKey,
           theme: buildLightTheme(),
@@ -177,8 +179,35 @@ class _SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+    final BrandTheme brand = BrandTheme.of(context);
+    return Scaffold(
+      body: DotGridBackground(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const OpenFamilyMark(size: 104),
+              const SizedBox(height: 16),
+              Text(
+                'OpenFamily',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: brand.accent,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

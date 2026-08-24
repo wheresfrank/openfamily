@@ -1,7 +1,7 @@
-# Bar Inventory — reference material for the Whereabouts admin panel
+# Bar Inventory — reference material for the OpenFamily admin panel
 
 This file is the concrete "bar" (reference) for a gauntlet-loop build of a polished web
-admin panel for **Whereabouts**, a self-hosted family location tracker. The two references
+admin panel for **OpenFamily**, a self-hosted family location tracker. The two references
 are a reference live web map (map view) and Vercel's dashboard (admin panel).
 
 > **Method & limits.** Both reference apps are behind login walls, so no authenticated

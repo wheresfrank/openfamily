@@ -1,4 +1,4 @@
-// Shared API types for the Whereabouts admin panel.
+// Shared API types for the OpenFamily admin panel.
 // Mirrors the backend contract documented in the task brief.
 
 export type Role = 'admin' | 'member' | 'child'
@@ -144,6 +144,27 @@ export interface SmsSettings {
   from: string
   public_base_url: string
   source: 'settings' | 'environment'
+}
+
+/** One updater-sidecar update job, as reported by the admin status endpoint. */
+export interface UpdateJob {
+  status: 'idle' | 'running' | 'success' | 'failed' | 'interrupted'
+  started_at: string
+  finished_at?: string
+  previous_ref?: string
+  new_ref?: string
+  error?: string
+}
+
+/** Server self-update status from GET /api/admin/update/status. */
+export interface UpdateStatus {
+  deployed_ref?: string
+  latest_ref?: string
+  update_available: boolean
+  can_update: boolean
+  busy: boolean
+  job?: UpdateJob
+  check_error?: string
 }
 
 /** A saved place as returned by GET /family/places (snake_case backend shape). */

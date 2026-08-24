@@ -1,4 +1,4 @@
-// Command server runs the Whereabouts API.
+// Command server runs the OpenFamily API.
 package main
 
 import (
@@ -15,14 +15,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/whereabouts/whereabouts/backend/internal/auth"
-	"github.com/whereabouts/whereabouts/backend/internal/config"
-	"github.com/whereabouts/whereabouts/backend/internal/db"
-	handlers "github.com/whereabouts/whereabouts/backend/internal/handlers"
-	mid "github.com/whereabouts/whereabouts/backend/internal/middleware"
-	"github.com/whereabouts/whereabouts/backend/internal/push"
-	"github.com/whereabouts/whereabouts/backend/internal/sms"
-	web "github.com/whereabouts/whereabouts/backend/web"
+	"github.com/wheresfrank/openfamily/backend/internal/auth"
+	"github.com/wheresfrank/openfamily/backend/internal/config"
+	"github.com/wheresfrank/openfamily/backend/internal/db"
+	handlers "github.com/wheresfrank/openfamily/backend/internal/handlers"
+	mid "github.com/wheresfrank/openfamily/backend/internal/middleware"
+	"github.com/wheresfrank/openfamily/backend/internal/push"
+	"github.com/wheresfrank/openfamily/backend/internal/serverupdate"
+	"github.com/wheresfrank/openfamily/backend/internal/sms"
+	web "github.com/wheresfrank/openfamily/backend/web"
 )
 
 func main() {
@@ -87,6 +88,16 @@ func main() {
 	srv.APKGitHubRepo = cfg.APKGitHubRepo
 	srv.APKGitHubToken = cfg.APKGitHubToken
 	srv.FlutterAppDir = cfg.FlutterAppDir
+	// Server self-update (admin panel button). The GitHub source of truth is
+	// the same repository that holds the APK releases; without it configured,
+	// the panel still shows the deployed ref but cannot suggest updates.
+	if cfg.APKGitHubRepo != "" {
+		srv.UpdateCheck = &serverupdate.Checker{Repo: cfg.APKGitHubRepo, Token: cfg.APKGitHubToken}
+	}
+	srv.BuildVersion = config.BuildVersion()
+	srv.DeployRefFile = cfg.DeployRefFile
+	srv.UpdaterURL = cfg.UpdaterURL
+	srv.UpdaterToken = cfg.UpdaterToken
 	// A managed server (one with a configured platform admin) closes open
 	// registration: new users must present an invite code.
 	srv.RequireInvite = cfg.PlatformAdminEmail != ""
@@ -219,6 +230,12 @@ func main() {
 		r.Get("/api/admin/settings/sms", srv.AdminGetSMSSettings)
 		r.Put("/api/admin/settings/sms", srv.AdminPutSMSSettings)
 		r.Delete("/api/admin/settings/sms", srv.AdminDeleteSMSSettings)
+
+		// Server self-update. Status/log are safe reads; apply triggers a git
+		// pull + rebuild + rolling restart via the updater sidecar.
+		r.Get("/api/admin/update/status", srv.AdminUpdateStatus)
+		r.Post("/api/admin/update/apply", srv.AdminUpdateApply)
+		r.Get("/api/admin/update/log", srv.AdminUpdateLog)
 	})
 
 	// Admin web panel (embedded static SPA) at /admin/*, served public. The page

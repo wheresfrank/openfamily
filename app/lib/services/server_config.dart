@@ -1,8 +1,8 @@
-// Runtime server configuration for the Whereabouts app.
+// Runtime server configuration for the OpenFamily app.
 //
 // The API base URL comes from:
 //   1. A value the user saved in `shared_preferences` (generic APK / Settings).
-//   2. An optional compile-time `--dart-define=WHEREABOUTS_API_URL` hint when
+//   2. An optional compile-time `--dart-define=OPENFAMILY_API_URL` hint when
 //      nothing is stored yet. A dart-define never locks the URL.
 
 import 'package:shared_preferences/shared_preferences.dart';

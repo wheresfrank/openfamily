@@ -1,4 +1,4 @@
-// MapView — the live map for the Whereabouts admin panel.
+// MapView — the live map for the OpenFamily admin panel.
 //
 // A full-bleed Leaflet map (via react-leaflet) shows every group's members as
 // avatar bubbles with colored status rings, clusters by on-screen proximity

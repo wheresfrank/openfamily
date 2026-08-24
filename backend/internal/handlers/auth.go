@@ -9,9 +9,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/whereabouts/whereabouts/backend/internal/auth"
-	"github.com/whereabouts/whereabouts/backend/internal/middleware"
-	"github.com/whereabouts/whereabouts/backend/internal/models"
+	"github.com/wheresfrank/openfamily/backend/internal/auth"
+	"github.com/wheresfrank/openfamily/backend/internal/middleware"
+	"github.com/wheresfrank/openfamily/backend/internal/models"
 )
 
 type registerRequest struct {

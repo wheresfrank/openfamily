@@ -19,7 +19,7 @@ export function BuildsPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = 'whereabouts.apk'
+      a.download = 'openfamily.apk'
       document.body.appendChild(a)
       a.click()
       a.remove()
