@@ -19,6 +19,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"strconv"
@@ -104,15 +105,37 @@ func resolveEndpoint(raw string) ([]net.IP, error) {
 	return ips, nil
 }
 
+// Non-public IPv4 ranges that net.IP.IsPrivate does not cover but a push
+// endpoint must not target either:
+//
+//   - 100.64.0.0/10 — carrier-grade NAT / shared address space (RFC 6598).
+//     Also the range used by tailnets (e.g. Tailscale), so a server attached
+//     to one could otherwise be pointed at internal hosts by an insider.
+//   - 198.18.0.0/15 — benchmarking address space (RFC 2544).
+var (
+	cgnatRange     = netip.MustParsePrefix("100.64.0.0/10")
+	benchmarkRange = netip.MustParsePrefix("198.18.0.0/15")
+)
+
 // isDisallowedIP reports whether ip is a non-public address that a push
 // endpoint must not target.
 func isDisallowedIP(ip net.IP) bool {
-	return ip.IsLoopback() ||
+	if ip.IsLoopback() ||
 		ip.IsPrivate() ||
 		ip.IsLinkLocalUnicast() ||
 		ip.IsLinkLocalMulticast() ||
 		ip.IsUnspecified() ||
-		ip.IsMulticast()
+		ip.IsMulticast() {
+		return true
+	}
+	// The Is* checks above ignore IPv4-mapped IPv6 forms, so normalize before
+	// the range checks.
+	addr, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return true // unparseable addresses are never allowed
+	}
+	addr = addr.Unmap()
+	return cgnatRange.Contains(addr) || benchmarkRange.Contains(addr)
 }
 
 // safeClient builds an http.Client for a validated endpoint that (a) pins the
