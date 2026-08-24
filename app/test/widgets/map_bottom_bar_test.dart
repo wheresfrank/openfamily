@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/widgets/map_bottom_bar.dart';
+import 'package:openfamily/widgets/map_bottom_bar.dart';
 
 /// Wraps [MapBottomBar] with every action captured by a spy so the wiring of
 /// each control (especially the new People destination) can be asserted.

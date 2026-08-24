@@ -71,16 +71,16 @@ jobs:
           set -euo pipefail
           APK=$(find app/build/app/outputs -name 'app-release.apk' -print -quit)
           test -n "$APK" || { echo "APK not found after build" >&2; exit 1; }
-          cp "$APK" whereabouts-release.apk
-          echo "Staged $APK -> whereabouts-release.apk"
-          ls -lh whereabouts-release.apk
+          cp "$APK" openfamily-release.apk
+          echo "Staged $APK -> openfamily-release.apk"
+          ls -lh openfamily-release.apk
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-${{ github.run_number }}
           name: Android APK ${{ github.run_number }}
-          files: whereabouts-release.apk
+          files: openfamily-release.apk
           fail_on_unmatched_files: true
           overwrite_files: true
           make_latest: true

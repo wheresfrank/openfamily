@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/whereabouts/whereabouts/backend/internal/auth"
+	"github.com/wheresfrank/openfamily/backend/internal/auth"
 )
 
 type contextKey string

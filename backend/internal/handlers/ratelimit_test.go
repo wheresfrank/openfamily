@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/whereabouts/whereabouts/backend/internal/sms"
+	"github.com/wheresfrank/openfamily/backend/internal/sms"
 )
 
 func TestAllowAuthNilLimiter(t *testing.T) {

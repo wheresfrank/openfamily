@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/whereabouts/whereabouts/backend/internal/config"
-	"github.com/whereabouts/whereabouts/backend/internal/sms"
+	"github.com/wheresfrank/openfamily/backend/internal/config"
+	"github.com/wheresfrank/openfamily/backend/internal/sms"
 )
 
 func TestGetConfigDefaults(t *testing.T) {

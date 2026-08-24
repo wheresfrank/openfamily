@@ -13,7 +13,7 @@ RUN go mod download
 # Build a static binary (migrations are embedded via go:embed).
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath \
-    -ldflags="-s -w -X github.com/whereabouts/whereabouts/backend/internal/config.buildVersion=${GIT_COMMIT}" \
+    -ldflags="-s -w -X github.com/wheresfrank/openfamily/backend/internal/config.buildVersion=${GIT_COMMIT}" \
     -o /out/server ./cmd/server
 
 # Runtime stage

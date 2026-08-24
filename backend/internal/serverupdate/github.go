@@ -17,7 +17,7 @@ import (
 
 const (
 	defaultAPI  = "https://api.github.com"
-	userAgent   = "whereabouts-server-update"
+	userAgent   = "openfamily-server-update"
 	checkExpiry = 10 * time.Minute
 )
 

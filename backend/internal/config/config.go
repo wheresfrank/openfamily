@@ -12,7 +12,7 @@ import (
 
 // Insecure defaults that must never be used in production.
 const (
-	defaultDatabaseURL = "postgres://whereabouts:whereabouts@localhost:5432/whereabouts?sslmode=disable"
+	defaultDatabaseURL = "postgres://openfamily:openfamily@localhost:5432/openfamily?sslmode=disable"
 	insecureJWTSecret  = "change-me-in-production"
 
 	// DefaultTileURL is the public OSM raster template. Operators override
@@ -159,7 +159,7 @@ type Config struct {
 
 // buildVersion is overridden at build time with:
 //
-//	-ldflags "-X github.com/whereabouts/whereabouts/backend/internal/config.buildVersion=$(git rev-parse --short HEAD)"
+//	-ldflags "-X github.com/wheresfrank/openfamily/backend/internal/config.buildVersion=$(git rev-parse --short HEAD)"
 var buildVersion = "dev"
 
 // BuildVersion returns the git ref embedded at build time ("dev" by default).

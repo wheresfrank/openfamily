@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/models/member.dart';
-import 'package:whereabouts/widgets/member_tile.dart';
+import 'package:openfamily/models/member.dart';
+import 'package:openfamily/widgets/member_tile.dart';
 
 /// A driving, speeding member with an ETA — exercises the chips which are the
 /// meatiest part of [MemberTile].

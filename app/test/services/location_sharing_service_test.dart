@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:whereabouts/services/location_sharing_service.dart';
+import 'package:openfamily/services/location_sharing_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

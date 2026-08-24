@@ -1,3 +1,3 @@
-module github.com/whereabouts/whereabouts/updater
+module github.com/wheresfrank/openfamily/updater
 
 go 1.25.0

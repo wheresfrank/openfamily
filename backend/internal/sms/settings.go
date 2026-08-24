@@ -17,7 +17,7 @@ type Settings struct {
 }
 
 // ErrInvalidPublicBaseURL is returned when the share-link origin is not https.
-var ErrInvalidPublicBaseURL = errors.New("public base URL must be an https origin, e.g. https://whereabouts.example.com")
+var ErrInvalidPublicBaseURL = errors.New("public base URL must be an https origin, e.g. https://openfamily.example.com")
 
 // Merge prefers non-empty stored fields over env. When no settings row
 // exists, env is used as-is so existing TWILIO_* deploys keep working.

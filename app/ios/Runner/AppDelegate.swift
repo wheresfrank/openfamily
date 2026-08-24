@@ -12,9 +12,9 @@ import UIKit
     GeneratedPluginRegistrant.register(with: self)
     let ok = super.application(application, didFinishLaunchingWithOptions: launchOptions)
 
-    if let registrar = self.registrar(forPlugin: "WhereaboutsApns") {
+    if let registrar = self.registrar(forPlugin: "OpenFamilyApns") {
       let channel = FlutterMethodChannel(
-        name: "com.whereabouts.whereabouts/apns",
+        name: "app.openfamily/apns",
         binaryMessenger: registrar.messenger()
       )
       apnsChannel = channel

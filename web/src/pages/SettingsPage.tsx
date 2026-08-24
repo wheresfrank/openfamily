@@ -531,7 +531,7 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
           <dl className="wb-settings-list wb-settings-list-row">
             <div>
               <dt>App</dt>
-              <dd>Whereabouts</dd>
+              <dd>OpenFamily</dd>
             </div>
             <div>
               <dt>Version</dt>

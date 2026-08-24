@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/whereabouts/whereabouts/backend/internal/config"
+	"github.com/wheresfrank/openfamily/backend/internal/config"
 )
 
 // GetConfig returns public runtime settings the generic APK needs without a

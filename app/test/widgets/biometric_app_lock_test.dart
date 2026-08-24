@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:whereabouts/services/biometric_service.dart';
-import 'package:whereabouts/widgets/biometric_app_lock.dart';
+import 'package:openfamily/services/biometric_service.dart';
+import 'package:openfamily/widgets/biometric_app_lock.dart';
 
 void main() {
   testWidgets('does not lock a session when biometric unlock is disabled',
@@ -20,7 +20,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Whereabouts is locked'), findsNothing);
+    expect(find.text('OpenFamily is locked'), findsNothing);
     expect(find.text('Private map'), findsOneWidget);
     expect(authenticator.authenticationCalls, 0);
   });
@@ -37,7 +37,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Whereabouts is locked'), findsNothing);
+    expect(find.text('OpenFamily is locked'), findsNothing);
     expect(authenticator.authenticationCalls, 1);
   });
 
@@ -58,7 +58,7 @@ void main() {
       },
     );
 
-    expect(find.text('Whereabouts is locked'), findsOneWidget);
+    expect(find.text('OpenFamily is locked'), findsOneWidget);
     expect(
       find.text(
           'Biometric authentication was not completed. Please try again.'),
@@ -72,7 +72,7 @@ void main() {
     await tester.tap(find.text('Log out instead'));
     await tester.pumpAndSettle();
     expect(logoutCalls, 1);
-    expect(find.text('Whereabouts is locked'), findsNothing);
+    expect(find.text('OpenFamily is locked'), findsNothing);
   });
 
   testWidgets('clears a stale opt-in when there is no valid session',
@@ -91,7 +91,7 @@ void main() {
 
     expect(store.enabled, isFalse);
     expect(authenticator.authenticationCalls, 0);
-    expect(find.text('Whereabouts is locked'), findsNothing);
+    expect(find.text('OpenFamily is locked'), findsNothing);
   });
 
   testWidgets('fails closed when secure session storage cannot be read',
@@ -108,7 +108,7 @@ void main() {
     );
 
     expect(authenticator.authenticationCalls, 1);
-    expect(find.text('Whereabouts is locked'), findsNothing);
+    expect(find.text('OpenFamily is locked'), findsNothing);
   });
 
   testWidgets('fails closed when the biometric preference cannot be read',
@@ -127,7 +127,7 @@ void main() {
     );
 
     expect(authenticator.authenticationCalls, 0);
-    expect(find.text('Whereabouts is locked'), findsOneWidget);
+    expect(find.text('OpenFamily is locked'), findsOneWidget);
     expect(find.text('Could not read biometric settings. Retry or log out.'),
         findsOneWidget);
   });
@@ -146,7 +146,7 @@ void main() {
     await tester.tap(find.text('Log out instead'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Whereabouts is locked'), findsOneWidget);
+    expect(find.text('OpenFamily is locked'), findsOneWidget);
     expect(find.text('Could not log out safely. Please try again.'),
         findsOneWidget);
   });
@@ -170,7 +170,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
     expect(authenticator.authenticationCalls, 2);
-    expect(find.text('Whereabouts is locked'), findsNothing);
+    expect(find.text('OpenFamily is locked'), findsNothing);
   });
 
   testWidgets('a foreground session check cannot uncover a backgrounded app',
@@ -248,7 +248,7 @@ void main() {
     // The failed Settings prompt cannot count as the foreground unlock. The
     // root gate performs its own third authentication before uncovering.
     expect(authenticator.authenticationCalls, 3);
-    expect(find.text('Whereabouts is locked'), findsNothing);
+    expect(find.text('OpenFamily is locked'), findsNothing);
   });
 
   testWidgets('root auth cannot uncover after backgrounding mid-prompt',
@@ -285,7 +285,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(authenticator.authenticationCalls, 2);
-    expect(find.text('Whereabouts is locked'), findsNothing);
+    expect(find.text('OpenFamily is locked'), findsNothing);
   });
 
   testWidgets(
@@ -325,7 +325,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(authenticator.authenticationCalls, 2);
-    expect(find.text('Whereabouts is locked'), findsNothing);
+    expect(find.text('OpenFamily is locked'), findsNothing);
   });
 }
 

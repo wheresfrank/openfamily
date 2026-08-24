@@ -22,6 +22,14 @@
   justify-content: center;
   filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--accent) 35%, transparent));
 }
+.wb-brand-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+.wb-brand-icon-dark { display: none; }
+[data-theme="dark"] .wb-brand-icon-light { display: none; }
+[data-theme="dark"] .wb-brand-icon-dark { display: block; }
 .wb-brand-name {
   font-weight: 700;
   font-size: var(--font-md);

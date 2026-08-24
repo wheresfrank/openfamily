@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Brand tokens for Whereabouts.
+/// Brand tokens for OpenFamily.
 ///
 /// Light is Ice (lime on blue-grey paper). Dark is Night (brighter lime on
 /// charcoal). Lime is the action color — buttons and pins — not a wash.

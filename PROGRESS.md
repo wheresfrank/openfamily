@@ -1,4 +1,4 @@
-# Whereabouts — Gauntlet Loop Progress
+# OpenFamily — Gauntlet Loop Progress
 
 **Bar:** the reference family-tracker app's shipped UI — its map, member list,
 places, and SOS screens (from App Store / Play Store listings and marketing pages).
@@ -74,7 +74,7 @@ places, and SOS screens (from App Store / Play Store listings and marketing page
   (clear() clears tokens+device id), `_SessionGate` (StatefulWidget, future in
   initState, validates token expiry). Critic 10 gaps → fixed; re-review 9 gaps →
   fixed (re-entrancy redirect made authoritative, README documents
-  `--dart-define=WHEREABOUTS_API_URL`, dart:io removed for web, concurrent-401
+  `--dart-define=OPENFAMILY_API_URL`, dart:io removed for web, concurrent-401
   guard, refresh-token read inside try, session gate validates expiry, future
   not in build(), single LoginScreen on stack, TOTP reset clears code+error).
   `flutter analyze` clean.
@@ -87,7 +87,7 @@ places, and SOS screens (from App Store / Play Store listings and marketing page
   error states, "You" relabeling, null-position guards). Backend `ListMembers`
   now joins latest location (`MemberWithLocation`). Critic found 14 gaps (4
   blocking): third-party tile leak → tile URLs made configurable via
-  `WHEREABOUTS_TILE_URL`/`WHEREABOUTS_SATELLITE_TILE_URL` (README documents
+  `OPENFAMILY_TILE_URL`/`OPENFAMILY_SATELLITE_TILE_URL` (README documents
   self-hosting); staleness never re-evaluated → 30s `refreshStaleness` timer;
   `location` frame missing `ts` flipped member to stopped → falls back to
   `lastSeen`; `user_id` vs `id` was a false positive (backend uses `user_id`
@@ -97,7 +97,7 @@ places, and SOS screens (from App Store / Play Store listings and marketing page
   `clearPosition` + `mock_circles.dart`. `flutter analyze` clean. Re-review
   critic found 3 more third-party leak sites (GeocodingService sent coordinates
   to public Nominatim; welcome_screen + place_picker_screen hardcoded OSM
-  tiles) → geocoding disabled-by-default (`WHEREABOUTS_NOMINATIM_URL`), all
+  tiles) → geocoding disabled-by-default (`OPENFAMILY_NOMINATIM_URL`), all
   tile layers now use `kTileUrl`/`kSatelliteTileUrl` from `app_config.dart`.
   Also fixed: `movement` falls back to existing on empty `motion_state`,
   "Last seen" label advances over time, battery status falls back to existing

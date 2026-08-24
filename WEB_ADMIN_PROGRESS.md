@@ -1,4 +1,4 @@
-# Whereabouts — Web Admin Panel (Gauntlet Loop Progress)
+# OpenFamily — Web Admin Panel (Gauntlet Loop Progress)
 
 **Branch:** `web-admin-panel`
 
@@ -27,7 +27,7 @@ locations, mirroring the app's map in the browser.
   system (color roles, type scale, elevation, empty/loading states) + the reference app's
   App Store map screenshots (member bubbles with per-member color rings, map-first layout, status
   indicators, circle switcher). Scaffolded the `web/` Vite+React+TS+Leaflet app with the
-  Whereabouts brand tokens. Fanned out 3 builders in parallel: backend platform-admin API,
+  OpenFamily brand tokens. Fanned out 3 builders in parallel: backend platform-admin API,
   admin shell, and live map.
 - **Round 2** — all three builders landed clean (backend build+vet+test, web build). Added
   the platform-admin live WS stream (`/api/admin/ws`, all-families fan-out) and the

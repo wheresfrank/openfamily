@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/whereabouts/whereabouts/backend/internal/middleware"
+	"github.com/wheresfrank/openfamily/backend/internal/middleware"
 )
 
 // proxy timeouts. Status/log calls are quick; apply returns 202 as soon as

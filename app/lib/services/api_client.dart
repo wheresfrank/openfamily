@@ -41,7 +41,7 @@ class SessionExpiredException implements Exception {
   String toString() => 'SessionExpiredException: $message';
 }
 
-/// A thin HTTP client for the Whereabouts backend.
+/// A thin HTTP client for the OpenFamily backend.
 ///
 /// Every authenticated request injects `Authorization: Bearer <access_token>`
 /// from [TokenStorage]. On a 401 it attempts a single token refresh and retries
@@ -484,7 +484,7 @@ class ApiClient {
     if (ServerConfig.instance.apiBaseUrl.isEmpty) {
       throw const ApiException(
         0,
-        'Server URL not configured. Enter your Whereabouts server address '
+        'Server URL not configured. Enter your OpenFamily server address '
         'in the app settings.',
       );
     }

@@ -1,4 +1,4 @@
-// Command server runs the Whereabouts API.
+// Command server runs the OpenFamily API.
 package main
 
 import (
@@ -15,15 +15,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/whereabouts/whereabouts/backend/internal/auth"
-	"github.com/whereabouts/whereabouts/backend/internal/config"
-	"github.com/whereabouts/whereabouts/backend/internal/db"
-	handlers "github.com/whereabouts/whereabouts/backend/internal/handlers"
-	mid "github.com/whereabouts/whereabouts/backend/internal/middleware"
-	"github.com/whereabouts/whereabouts/backend/internal/push"
-	"github.com/whereabouts/whereabouts/backend/internal/serverupdate"
-	"github.com/whereabouts/whereabouts/backend/internal/sms"
-	web "github.com/whereabouts/whereabouts/backend/web"
+	"github.com/wheresfrank/openfamily/backend/internal/auth"
+	"github.com/wheresfrank/openfamily/backend/internal/config"
+	"github.com/wheresfrank/openfamily/backend/internal/db"
+	handlers "github.com/wheresfrank/openfamily/backend/internal/handlers"
+	mid "github.com/wheresfrank/openfamily/backend/internal/middleware"
+	"github.com/wheresfrank/openfamily/backend/internal/push"
+	"github.com/wheresfrank/openfamily/backend/internal/serverupdate"
+	"github.com/wheresfrank/openfamily/backend/internal/sms"
+	web "github.com/wheresfrank/openfamily/backend/web"
 )
 
 func main() {

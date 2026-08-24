@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:whereabouts/services/push_service.dart';
+import 'package:openfamily/services/push_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

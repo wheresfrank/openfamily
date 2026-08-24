@@ -1,5 +1,5 @@
 -- 000001_init.up.sql
--- Core schema for Whereabouts: families, users, devices, places, geofences,
+-- Core schema for OpenFamily: families, users, devices, places, geofences,
 -- and a TimescaleDB hypertable for location history.
 
 -- Extensions (PostGIS for geometry, TimescaleDB for time-series).

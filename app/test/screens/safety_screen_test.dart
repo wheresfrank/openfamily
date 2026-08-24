@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/models/emergency_contact.dart';
-import 'package:whereabouts/screens/safety_screen.dart';
-import 'package:whereabouts/services/contact_picker.dart';
-import 'package:whereabouts/services/emergency_contact_service.dart';
+import 'package:openfamily/models/emergency_contact.dart';
+import 'package:openfamily/screens/safety_screen.dart';
+import 'package:openfamily/services/contact_picker.dart';
+import 'package:openfamily/services/emergency_contact_service.dart';
 
 class _FakeContactService extends EmergencyContactService {
   _FakeContactService(this.store);

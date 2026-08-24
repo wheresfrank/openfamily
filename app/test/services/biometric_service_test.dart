@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:local_auth/error_codes.dart' as local_auth_error;
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:whereabouts/services/biometric_service.dart';
+import 'package:openfamily/services/biometric_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

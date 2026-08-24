@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/screens/welcome_screen.dart';
-import 'package:whereabouts/theme/app_theme.dart';
+import 'package:openfamily/screens/welcome_screen.dart';
+import 'package:openfamily/theme/app_theme.dart';
 
 void main() {
   testWidgets('hero copy stays Ice ink under the Night theme',
@@ -13,7 +13,7 @@ void main() {
       ),
     );
 
-    final Text title = tester.widget<Text>(find.text('Whereabouts'));
+    final Text title = tester.widget<Text>(find.text('OpenFamily'));
     expect(title.style?.color, AppColors.iceInk);
 
     final Text tagline = tester.widget<Text>(

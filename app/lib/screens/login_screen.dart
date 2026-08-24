@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/device_service.dart';
 import '../services/push_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/openfamily_brand.dart';
 import 'map_screen.dart';
 import 'sign_up_screen.dart';
 
@@ -118,11 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
-                    Icons.family_restroom,
-                    size: 64,
-                    color: AppColors.purple,
-                  ),
+                  const Center(child: OpenFamilyMark(size: 72)),
                   const SizedBox(height: 16),
                   Text(
                     'Welcome back',

@@ -23,13 +23,13 @@ func TestSyncDownloadsAndCaches(t *testing.T) {
 			t.Errorf("missing bearer token: %q", got)
 		}
 		switch {
-		case r.URL.Path == "/repos/acme/whereabouts/releases/latest":
+		case r.URL.Path == "/repos/acme/openfamily/releases/latest":
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(release{
 				TagName: "apk-7",
 				Assets: []asset{{
 					ID:   42,
-					Name: "whereabouts-release.apk",
+					Name: "openfamily-release.apk",
 					URL:  "http://" + r.Host + "/assets/42",
 					Size: 4,
 				}},
@@ -45,7 +45,7 @@ func TestSyncDownloadsAndCaches(t *testing.T) {
 	defer srv.Close()
 
 	opts := Options{
-		Repo:    "acme/whereabouts",
+		Repo:    "acme/openfamily",
 		Token:   "test-token",
 		DestDir: dir,
 		API:     srv.URL,
@@ -90,7 +90,7 @@ func TestSyncRedownloadsWhenAssetChanges(t *testing.T) {
 				TagName: "apk-n",
 				Assets: []asset{{
 					ID:   id,
-					Name: "whereabouts-release.apk",
+					Name: "openfamily-release.apk",
 					URL:  "http://" + r.Host + "/assets/" + strconv.FormatInt(id, 10),
 				}},
 			})
@@ -137,7 +137,7 @@ func TestSyncPrivateRepoWithoutToken(t *testing.T) {
 func TestPickAPKAsset(t *testing.T) {
 	got, err := pickAPKAsset([]asset{
 		{Name: "notes.txt", ID: 1},
-		{Name: "whereabouts-release.apk", ID: 2},
+		{Name: "openfamily-release.apk", ID: 2},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -151,8 +151,8 @@ func TestPickAPKAsset(t *testing.T) {
 }
 
 func TestParseRepo(t *testing.T) {
-	owner, name, err := parseRepo("  wheresfrank/whereabouts ")
-	if err != nil || owner != "wheresfrank" || name != "whereabouts" {
+	owner, name, err := parseRepo("  wheresfrank/openfamily ")
+	if err != nil || owner != "wheresfrank" || name != "openfamily" {
 		t.Fatalf("parseRepo = %s/%s (%v)", owner, name, err)
 	}
 	if _, _, err := parseRepo("nopath"); err == nil {

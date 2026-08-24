@@ -1,4 +1,4 @@
-// Shared API types for the Whereabouts admin panel.
+// Shared API types for the OpenFamily admin panel.
 // Mirrors the backend contract documented in the task brief.
 
 export type Role = 'admin' | 'member' | 'child'

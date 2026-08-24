@@ -1,5 +1,5 @@
 // Command updater is a tiny sidecar service that applies server updates on
-// behalf of the Whereabouts API.
+// behalf of the OpenFamily API.
 //
 // The API container cannot update itself: it has no git checkout of the repo
 // and no access to the Docker daemon. This service runs in the same compose

@@ -34,7 +34,7 @@
     </queries>
 
     <application
-        android:label="Whereabouts"
+        android:label="OpenFamily"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false">

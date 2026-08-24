@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/screens/check_in_screen.dart';
+import 'package:openfamily/screens/check_in_screen.dart';
 
 void main() {
   testWidgets('check-in does not use a fake street address',

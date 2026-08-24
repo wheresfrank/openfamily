@@ -7,7 +7,7 @@ services:
       - "443:443"
     environment:
       # Local dev: ":80" (HTTP only). Production: your domain, e.g.
-      # "whereabouts.example.com" (Caddy provisions Let's Encrypt automatically).
+      # "openfamily.example.com" (Caddy provisions Let's Encrypt automatically).
       SITE_ADDRESS: ${SITE_ADDRESS:-:80}
       # Optional: public address for ntfy (UnifiedPush). Leave empty locally.
       # Production: PUSH_ADDRESS=push.example.com and CADDYFILE=Caddyfile.with-push.
@@ -26,7 +26,7 @@ services:
       HTTP_ADDR: ":8080"
       # Dev default uses sslmode=disable. In production (APP_ENV=production),
       # set DATABASE_URL in .env with sslmode=require or sslmode=verify-full.
-      DATABASE_URL: "${DATABASE_URL:-postgres://whereabouts:${POSTGRES_PASSWORD:-whereabouts}@postgres:5432/whereabouts?sslmode=disable}"
+      DATABASE_URL: "${DATABASE_URL:-postgres://${POSTGRES_USER:-openfamily}:${POSTGRES_PASSWORD:-openfamily}@postgres:5432/${POSTGRES_DB:-openfamily}?sslmode=disable}"
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       ACCESS_TOKEN_TTL: "15m"
       REFRESH_TOKEN_TTL: "720h"
@@ -61,7 +61,7 @@ services:
       # is built in CI and published as a release asset; the server fetches it
       # on download (it does not build APKs).
       APK_DIR: ${APK_DIR:-/data/apk}
-      APK_GITHUB_REPO: ${APK_GITHUB_REPO:-wheresfrank/whereabouts}
+      APK_GITHUB_REPO: ${APK_GITHUB_REPO:-wheresfrank/openfamily}
       APK_GITHUB_TOKEN: ${APK_GITHUB_TOKEN:-}
       # In-admin "Update server" button: the API proxies to the updater sidecar
       # below (same shared token). Leave UPDATER_TOKEN empty to disable server
@@ -89,13 +89,13 @@ services:
     image: timescale/timescaledb-ha:pg16
     restart: unless-stopped
     environment:
-      POSTGRES_USER: whereabouts
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-whereabouts}
-      POSTGRES_DB: whereabouts
+      POSTGRES_USER: ${POSTGRES_USER:-openfamily}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-openfamily}
+      POSTGRES_DB: ${POSTGRES_DB:-openfamily}
     volumes:
       - pgdata:/home/postgres/pgdata/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U whereabouts -d whereabouts"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 12
