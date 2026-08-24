@@ -73,7 +73,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
           permission: OnboardingPermission.location,
           icon: Icons.location_on,
           title: 'Location access',
-          why: 'Whereabouts shows your family where you are on the map. Choose '
+          why: 'OpenFamily shows your family where you are on the map. Choose '
               '"Always Allow" so it keeps working in the background — even when '
               'the app is closed — so your family can see you\'re safe.',
           consequence: 'Without "Always Allow", background tracking won\'t work '

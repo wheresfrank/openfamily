@@ -1,6 +1,6 @@
 # Privacy
 
-Whereabouts is a self-hosted family location tracker. This document describes
+OpenFamily is a self-hosted family location tracker. This document describes
 what the software stores and who can see it. The operator of each deployment
 is the data controller for that instance.
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/models/place.dart';
-import 'package:whereabouts/screens/place_picker_screen.dart';
-import 'package:whereabouts/services/geocoding_service.dart';
+import 'package:openfamily/models/place.dart';
+import 'package:openfamily/screens/place_picker_screen.dart';
+import 'package:openfamily/services/geocoding_service.dart';
 
 void main() {
   test('geocoding is off unless a Nominatim URL is configured', () {

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Whereabouts</string>
+	<string>OpenFamily</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>whereabouts</string>
+	<string>openfamily</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -41,17 +41,17 @@
 	</array>
 	<!-- Location permissions (used by the background-location phase). -->
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Whereabouts tracks your location in the background so your family can see where you are.</string>
+	<string>OpenFamily tracks your location in the background so your family can see where you are.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Whereabouts uses your location to show your position on the family map.</string>
+	<string>OpenFamily uses your location to show your position on the family map.</string>
 	<!-- Motion & fitness (Core Motion) — requested only on supported devices. -->
 	<key>NSMotionUsageDescription</key>
-	<string>Whereabouts uses motion &amp; fitness to detect when you're driving, biking, or walking.</string>
+	<string>OpenFamily uses motion &amp; fitness to detect when you're driving, biking, or walking.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Whereabouts lets you choose a profile photo from your photo library.</string>
+	<string>OpenFamily lets you choose a profile photo from your photo library.</string>
 	<!-- Face ID is used only when the user enables biometric app unlock. -->
 	<key>NSFaceIDUsageDescription</key>
-	<string>Whereabouts uses Face ID to unlock your private family location map.</string>
+	<string>OpenFamily uses Face ID to unlock your private family location map.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

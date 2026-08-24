@@ -24,21 +24,18 @@ export function Sidebar({ active, onNavigate, footer }: SidebarProps) {
     <aside className="wb-sidebar" aria-label="Main navigation">
       <div className="wb-brand">
         <span className="wb-brand-mark" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 2.5c4.4 0 8 3.5 8 7.8 0 5.6-8 11.2-8 11.2s-8-5.6-8-11.2c0-4.3 3.6-7.8 8-7.8Z"
-              fill="url(#wb-grad)"
-            />
-            <circle cx="12" cy="10.3" r="2.7" fill="#fff" />
-            <defs>
-              <linearGradient id="wb-grad" x1="4" y1="2.5" x2="20" y2="21.5" gradientUnits="userSpaceOnUse">
-                <stop stopColor="var(--accent)" />
-                <stop offset="1" stopColor="var(--spark)" />
-              </linearGradient>
-            </defs>
-          </svg>
+          <img
+            className="wb-brand-icon wb-brand-icon-light"
+            src="/admin/brand/openfamily-icon.svg"
+            alt=""
+          />
+          <img
+            className="wb-brand-icon wb-brand-icon-dark"
+            src="/admin/brand/openfamily-icon-dark.svg"
+            alt=""
+          />
         </span>
-        <span className="wb-brand-name">Whereabouts</span>
+        <span className="wb-brand-name">OpenFamily</span>
         {isPlatformAdmin && <span className="wb-brand-sub">Admin</span>}
       </div>
 

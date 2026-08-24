@@ -4,11 +4,12 @@ import '../services/api_client.dart';
 import '../services/server_config.dart';
 import '../services/tile_config.dart';
 import '../theme/app_theme.dart';
+import '../widgets/openfamily_brand.dart';
 import 'welcome_screen.dart';
 
 /// Server URL screen (first launch, or Settings → change server).
 ///
-/// The user enters their Whereabouts server URL, we ping `/healthz`, then
+/// The user enters their OpenFamily server URL, we ping `/healthz`, then
 /// persist it for API + WebSocket calls.
 class ServerConfigScreen extends StatefulWidget {
   const ServerConfigScreen({super.key, this.allowCancel = false});
@@ -87,9 +88,7 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.allowCancel
-          ? AppBar(title: const Text('Server'))
-          : null,
+      appBar: widget.allowCancel ? AppBar(title: const Text('Server')) : null,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -97,24 +96,10 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              Center(
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    gradient: AppGradients.brand,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(
-                    Icons.fingerprint,
-                    size: 48,
-                    color: AppColors.onAccent,
-                  ),
-                ),
-              ),
+              const Center(child: OpenFamilyMark(size: 88)),
               const SizedBox(height: 20),
               Text(
-                'Whereabouts',
+                'OpenFamily',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       fontWeight: FontWeight.w800,
@@ -132,7 +117,7 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
                 controller: _controller,
                 decoration: InputDecoration(
                   labelText: 'Server URL',
-                  hintText: 'https://whereabouts.example.com',
+                  hintText: 'https://openfamily.example.com',
                   prefixIcon: const Icon(Icons.dns_outlined),
                   errorText: _error,
                   border: const OutlineInputBorder(),

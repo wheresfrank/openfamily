@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../services/biometric_service.dart';
 import '../services/token_storage.dart';
 import '../theme/app_theme.dart';
+import 'openfamily_brand.dart';
 
 /// Places an opaque biometric lock above the entire navigator.
 ///
@@ -388,24 +389,10 @@ class _BiometricLockView extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Center(
-                          child: Container(
-                            width: 88,
-                            height: 88,
-                            decoration: BoxDecoration(
-                              gradient: AppGradients.brand,
-                              borderRadius: BorderRadius.circular(22),
-                            ),
-                            child: const Icon(
-                              Icons.fingerprint,
-                              size: 52,
-                              color: AppColors.onAccent,
-                            ),
-                          ),
-                        ),
+                        const Center(child: OpenFamilyMark(size: 88)),
                         const SizedBox(height: 24),
                         Text(
-                          'Whereabouts is locked',
+                          'OpenFamily is locked',
                           textAlign: TextAlign.center,
                           style: Theme.of(context)
                               .textTheme

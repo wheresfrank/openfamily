@@ -337,7 +337,7 @@ class _TrailMap extends StatelessWidget {
         children: [
           TileLayer(
             urlTemplate: kTileUrl,
-            userAgentPackageName: 'com.whereabouts.whereabouts',
+            userAgentPackageName: 'app.openfamily',
           ),
           if (trail.length >= 2)
             PolylineLayer(

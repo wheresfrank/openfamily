@@ -12,7 +12,7 @@ import (
 
 // Insecure defaults that must never be used in production.
 const (
-	defaultDatabaseURL = "postgres://whereabouts:whereabouts@localhost:5432/whereabouts?sslmode=disable"
+	defaultDatabaseURL = "postgres://openfamily:openfamily@localhost:5432/openfamily?sslmode=disable"
 	insecureJWTSecret  = "change-me-in-production"
 
 	// DefaultTileURL is the public OSM raster template. Operators override

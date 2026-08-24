@@ -16,7 +16,7 @@ class PushService {
 
   static const String _prefKey = 'push_notifications_enabled';
   static const MethodChannel _apns = MethodChannel(
-    'com.whereabouts.whereabouts/apns',
+    'app.openfamily/apns',
   );
 
   static final FlutterLocalNotificationsPlugin _local =

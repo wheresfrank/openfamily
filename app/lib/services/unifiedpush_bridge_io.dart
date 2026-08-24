@@ -19,7 +19,7 @@ Future<void> initUnifiedPush({
     onMessage: (PushMessage message, String instance) {
       if (instance != _instance) return;
       final String body = utf8.decode(message.content, allowMalformed: true);
-      onMessage('Whereabouts', body.trim().isEmpty ? 'New notification' : body);
+      onMessage('OpenFamily', body.trim().isEmpty ? 'New notification' : body);
     },
     onRegistrationFailed: (FailedReason reason, String instance) {},
     onUnregistered: (String instance) {},

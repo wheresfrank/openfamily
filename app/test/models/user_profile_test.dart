@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/models/user_profile.dart';
+import 'package:openfamily/models/user_profile.dart';
 
 void main() {
   test('parses an optional phone number', () {

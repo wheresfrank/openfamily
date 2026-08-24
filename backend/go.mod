@@ -1,4 +1,4 @@
-module github.com/whereabouts/whereabouts/backend
+module github.com/wheresfrank/openfamily/backend
 
 go 1.25.0
 

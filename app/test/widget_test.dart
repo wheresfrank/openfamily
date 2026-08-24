@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/models/member.dart';
-import 'package:whereabouts/screens/families_screen.dart';
-import 'package:whereabouts/screens/profile_screen.dart';
-import 'package:whereabouts/screens/settings_screen.dart';
-import 'package:whereabouts/widgets/circle_switcher.dart';
-import 'package:whereabouts/widgets/member_list_sheet.dart';
+import 'package:openfamily/models/member.dart';
+import 'package:openfamily/screens/families_screen.dart';
+import 'package:openfamily/screens/profile_screen.dart';
+import 'package:openfamily/screens/settings_screen.dart';
+import 'package:openfamily/widgets/circle_switcher.dart';
+import 'package:openfamily/widgets/member_list_sheet.dart';
 
 void main() {
   test('smoke test', () {

@@ -5,11 +5,11 @@ import 'package:latlong2/latlong.dart';
 
 /// Privacy-first geocoding against a self-hosted Nominatim instance.
 ///
-/// TODO(backend): Replace this with the real Whereabouts backend geocoding
+/// TODO(backend): Replace this with the real OpenFamily backend geocoding
 /// endpoint (e.g. `POST /geocode` and `POST /reverse-geocode`) so address
 /// lookups never leave your own server. Until that endpoint exists, this talks
 /// to a self-hosted Nominatim base URL configured via
-/// `--dart-define=WHEREABOUTS_NOMINATIM_URL=https://nominatim.your.server`.
+/// `--dart-define=OPENFAMILY_NOMINATIM_URL=https://nominatim.your.server`.
 ///
 /// PRIVACY: geocoding is DISABLED by default (empty base URL) so the app never
 /// sends a family member's coordinates or address queries to the public OSM
@@ -23,9 +23,9 @@ class GeocodingService {
   GeocodingService._();
 
   /// Base URL of the self-hosted Nominatim instance. Empty (disabled) unless
-  /// configured at build time with `WHEREABOUTS_NOMINATIM_URL`.
+  /// configured at build time with `OPENFAMILY_NOMINATIM_URL`.
   static const String baseUrl = String.fromEnvironment(
-    'WHEREABOUTS_NOMINATIM_URL',
+    'OPENFAMILY_NOMINATIM_URL',
   );
 
   /// Whether address search / reverse-geocode is available. False by default
@@ -34,7 +34,7 @@ class GeocodingService {
   static bool get isEnabled => baseUrl.isNotEmpty;
 
   static const String _userAgent =
-      'whereabouts/0.1 (self-hosted family location tracker)';
+      'openfamily/0.1 (self-hosted family location tracker)';
 
   /// Forward geocodes [query] (an address or place name) to a coordinate.
   /// Returns `null` when no result is found or the service is unavailable.

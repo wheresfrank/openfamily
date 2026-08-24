@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/services/server_features.dart';
+import 'package:openfamily/services/server_features.dart';
 
 void main() {
   setUp(ServerFeatures.instance.reset);

@@ -1,6 +1,6 @@
-# Caddy reverse proxy for Whereabouts.
+# Caddy reverse proxy for OpenFamily.
 #
-# SITE_ADDRESS: the public address for the API (e.g. "whereabouts.example.com"
+# SITE_ADDRESS: the public address for the API (e.g. "openfamily.example.com"
 # for production with automatic HTTPS, or ":80" for local HTTP-only dev).
 #
 # ntfy is NOT published on the public internet in docker-compose.yml (loopback

@@ -9,9 +9,9 @@ class DeviceService {
   DeviceService._();
 
   /// App version reported to the backend. Override at build time with
-  /// `--dart-define=WHEREABOUTS_APP_VERSION=...`.
+  /// `--dart-define=OPENFAMILY_APP_VERSION=...`.
   static const String _appVersion = String.fromEnvironment(
-    'WHEREABOUTS_APP_VERSION',
+    'OPENFAMILY_APP_VERSION',
     defaultValue: '0.1.0',
   );
 
@@ -76,7 +76,7 @@ class DeviceService {
       case TargetPlatform.android:
         return 'Android device';
       default:
-        return 'Whereabouts device';
+        return 'OpenFamily device';
     }
   }
 }

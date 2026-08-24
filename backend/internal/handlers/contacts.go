@@ -9,7 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/whereabouts/whereabouts/backend/internal/middleware"
+	"github.com/wheresfrank/openfamily/backend/internal/middleware"
 )
 
 const (

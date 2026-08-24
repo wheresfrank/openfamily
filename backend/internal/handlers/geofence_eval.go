@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/whereabouts/whereabouts/backend/internal/push"
+	"github.com/wheresfrank/openfamily/backend/internal/push"
 )
 
 // geofenceDebounceInterval is the minimum time between fired notifications for

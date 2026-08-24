@@ -40,15 +40,13 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
       <aside className="wb-login-aside">
         <div className="wb-login-brand">
           <span className="wb-login-mark" aria-hidden="true">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 2.5c4.4 0 8 3.5 8 7.8 0 5.6-8 11.2-8 11.2s-8-5.6-8-11.2c0-4.3 3.6-7.8 8-7.8Z"
-                fill="#fff"
-              />
-              <circle cx="12" cy="10.3" r="2.7" fill="var(--on-accent)" />
-            </svg>
+            <img
+              className="wb-login-logo"
+              src="/admin/brand/openfamily-icon-on-accent.svg"
+              alt=""
+            />
           </span>
-          <span className="wb-login-wordmark">Whereabouts</span>
+          <span className="wb-login-wordmark">OpenFamily</span>
         </div>
         <div className="wb-login-aside-body">
           <h2 className="wb-login-aside-title">Self-hosted family location, in your control.</h2>
@@ -58,13 +56,13 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
             administrators also get user, build, and server-wide tools.
           </p>
         </div>
-        <div className="wb-login-aside-foot">Whereabouts · v0.1</div>
+        <div className="wb-login-aside-foot">OpenFamily · v0.1</div>
       </aside>
 
       <main className="wb-login-main">
         <div className="wb-login-card">
           <h1 className="wb-login-h1">Sign in</h1>
-          <p className="wb-login-sub">Use your Whereabouts account to continue.</p>
+          <p className="wb-login-sub">Use your OpenFamily account to continue.</p>
 
           <form ref={formRef} onSubmit={submit} className="wb-login-form" noValidate>
             <div className="wb-field">

@@ -8,9 +8,9 @@ import (
 	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/whereabouts/whereabouts/backend/internal/auth"
-	"github.com/whereabouts/whereabouts/backend/internal/push"
-	"github.com/whereabouts/whereabouts/backend/internal/sms"
+	"github.com/wheresfrank/openfamily/backend/internal/auth"
+	"github.com/wheresfrank/openfamily/backend/internal/push"
+	"github.com/wheresfrank/openfamily/backend/internal/sms"
 )
 
 // Server holds shared dependencies for all handlers.

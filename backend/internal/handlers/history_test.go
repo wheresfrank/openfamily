@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/whereabouts/whereabouts/backend/internal/auth"
-	"github.com/whereabouts/whereabouts/backend/internal/middleware"
+	"github.com/wheresfrank/openfamily/backend/internal/auth"
+	"github.com/wheresfrank/openfamily/backend/internal/middleware"
 )
 
 func TestFamilyHistoryAccess(t *testing.T) {

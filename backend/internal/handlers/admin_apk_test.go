@@ -14,10 +14,10 @@ func TestLatestAPKPicksNewest(t *testing.T) {
 	dir := apkTestDir(t)
 	defer os.RemoveAll(dir)
 
-	oldPath := filepath.Join(dir, "whereabouts-v1.apk")
+	oldPath := filepath.Join(dir, "openfamily-v1.apk")
 	writeT(t, oldPath, "v1")
 	time.Sleep(110 * time.Millisecond)
-	newPath := filepath.Join(dir, "whereabouts-v2.apk")
+	newPath := filepath.Join(dir, "openfamily-v2.apk")
 	writeT(t, newPath, "v2")
 
 	got, err := latestAPK(dir)
@@ -34,7 +34,7 @@ func TestLatestApkIgnoresNonApk(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	writeT(t, filepath.Join(dir, "notes.txt"), "not an apk")
-	apkPath := filepath.Join(dir, "whereabouts.apk")
+	apkPath := filepath.Join(dir, "openfamily.apk")
 	writeT(t, apkPath, "real apk")
 
 	got, err := latestAPK(dir)

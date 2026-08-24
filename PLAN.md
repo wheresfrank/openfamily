@@ -372,7 +372,7 @@ services:
 
 ## 12. Open Decisions (to confirm before Phase 1)
 
-1. **Project name** — suggestions: *Hearth, Kin, Homestead, Whereabouts, Nest,
+1. **Project name** — suggestions: *Hearth, Kin, Homestead, OpenFamily, Nest,
    Herd, Beacon.*
 2. **Background-location plugin** — open-source (`background_locator_2`) vs
    commercial (`flutter_background_geolocation`). See §6.

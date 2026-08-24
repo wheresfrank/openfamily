@@ -1,7 +1,7 @@
 # Production Caddyfile: API + ntfy UnifiedPush, both with automatic HTTPS.
 #
 # Set in .env:
-#   SITE_ADDRESS=whereabouts.example.com
+#   SITE_ADDRESS=openfamily.example.com
 #   PUSH_ADDRESS=push.example.com
 #   NTFY_BASE_URL=https://push.example.com
 #   CADDYFILE=Caddyfile.with-push

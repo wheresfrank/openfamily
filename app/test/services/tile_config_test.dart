@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/services/tile_config.dart';
+import 'package:openfamily/services/tile_config.dart';
 
 void main() {
   setUp(TileConfig.instance.resetToDefaults);

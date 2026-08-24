@@ -175,7 +175,7 @@ class _AccuracyMapPreview extends StatelessWidget {
           children: [
             TileLayer(
               urlTemplate: kTileUrl,
-              userAgentPackageName: 'com.whereabouts.whereabouts',
+              userAgentPackageName: 'app.openfamily',
             ),
             CircleLayer(
               circles: [

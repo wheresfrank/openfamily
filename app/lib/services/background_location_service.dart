@@ -226,11 +226,11 @@ class BackgroundLocationService {
           wakeLockTime: 60,
           client: LocationClient.google,
           androidNotificationSettings: AndroidNotificationSettings(
-            notificationChannelName: 'Whereabouts',
-            notificationTitle: 'Whereabouts',
+            notificationChannelName: 'OpenFamily',
+            notificationTitle: 'OpenFamily',
             notificationMsg: 'Sharing your location with your family',
             notificationBigMsg:
-                'Whereabouts is sharing your location in the background so your '
+                'OpenFamily is sharing your location in the background so your '
                 'family can see where you are.',
           ),
         ),

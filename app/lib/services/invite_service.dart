@@ -17,15 +17,15 @@ class InviteService {
   }
 
   /// The share-sheet subject line.
-  static const String shareSubject = 'Join my Whereabouts family';
+  static const String shareSubject = 'Join my OpenFamily family';
 
   /// The share-sheet body: the code and the operator's server URL.
   ///
   /// There is no `/join/{code}` web route; the recipient installs the Android
   /// app, enters this server, and types the code.
   static String shareMessage(String code) =>
-      'Join my Whereabouts family!\n\n'
-      '1. Install the Whereabouts Android app\n'
+      'Join my OpenFamily family!\n\n'
+      '1. Install the OpenFamily Android app\n'
       '2. Enter this server: ${ServerConfig.instance.apiBaseUrl}\n'
       '3. Use invite code $code';
 }

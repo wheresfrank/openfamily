@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whereabouts/screens/help_alert_screen.dart';
+import 'package:openfamily/screens/help_alert_screen.dart';
 
 void main() {
   testWidgets('help alert success is not shown when the API fails',

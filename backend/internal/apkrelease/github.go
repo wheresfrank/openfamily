@@ -19,9 +19,9 @@ import (
 
 const (
 	defaultAPI   = "https://api.github.com"
-	cachedName   = "whereabouts-release.apk"
+	cachedName   = "openfamily-release.apk"
 	metaName     = ".apk-release.json"
-	userAgent    = "whereabouts-apk-sync"
+	userAgent    = "openfamily-apk-sync"
 	metaTimeout  = 15 * time.Second
 	fetchTimeout = 5 * time.Minute
 )

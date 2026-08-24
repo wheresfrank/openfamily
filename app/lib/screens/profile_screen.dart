@@ -623,7 +623,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        'Your photo is stored privately on your Whereabouts server '
+                        'Your photo is stored privately on your OpenFamily server '
                         'and shared only with authenticated family members and '
                         'platform administrators.',
                         style: TextStyle(
