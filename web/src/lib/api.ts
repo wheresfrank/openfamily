@@ -19,6 +19,7 @@ import type {
   Profile,
   Role,
   SmsSettings,
+  DomainStatus,
   UpdateStatus,
 } from './types'
 
@@ -445,6 +446,12 @@ export function updateSmsSettings(input: {
 
 export function clearSmsSettings(): Promise<SmsSettings> {
   return request<SmsSettings>('/api/admin/settings/sms', { method: 'DELETE' })
+}
+
+// ---- Domain status (platform admin) ----
+
+export function getDomainStatus(): Promise<DomainStatus> {
+  return request<DomainStatus>('/api/admin/domain/status')
 }
 
 // ---- Server self-update (platform admin) ----

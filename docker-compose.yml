@@ -42,6 +42,8 @@ services:
       ACCESS_TOKEN_TTL: "15m"
       REFRESH_TOKEN_TTL: "720h"
       ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-}
+      # Read-only passthrough so the admin panel can show domain status.
+      SITE_ADDRESS: ${SITE_ADDRESS:-}
       APP_ENV: ${APP_ENV:-development}
       # Caddy terminates TLS in front of the API.
       TLS_BEHIND_PROXY: ${TLS_BEHIND_PROXY:-true}

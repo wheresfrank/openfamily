@@ -61,6 +61,11 @@ type Server struct {
 	// PublicBaseURL is the https origin used to build SMS share links.
 	PublicBaseURL string
 
+	// SiteAddress is the public address Caddy serves (config: SITE_ADDRESS,
+	// e.g. "openfamily.example.com" or ":80" for local dev). Read-only input
+	// for the admin domain status card; the API never changes it.
+	SiteAddress string
+
 	// AllowedOrigin is the single cross-origin origin allowed for the WebSocket
 	// stream (empty = same-origin only). It mirrors config.AllowedOrigin.
 	AllowedOrigin string

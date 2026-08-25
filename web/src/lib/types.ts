@@ -146,6 +146,23 @@ export interface SmsSettings {
   source: 'settings' | 'environment'
 }
 
+/** One live DNS or HTTPS check for the admin domain status card. */
+export interface DomainCheck {
+  status: 'ok' | 'fail' | 'skipped'
+  detail?: string
+  addresses?: string[]
+}
+
+/** Read-only mirror of how the server is addressed, from GET /api/admin/domain/status. */
+export interface DomainStatus {
+  site_address: string
+  hostname?: string
+  custom_domain: boolean
+  public_base_url: string
+  dns?: DomainCheck
+  https?: DomainCheck
+}
+
 /** One updater-sidecar update job, as reported by the admin status endpoint. */
 export interface UpdateJob {
   status: 'idle' | 'running' | 'success' | 'failed' | 'interrupted'

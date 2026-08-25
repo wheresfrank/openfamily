@@ -84,6 +84,7 @@ func main() {
 	srv.AuthLimit = sms.NewLimiter()
 	srv.LocationLimit = sms.NewLimiter()
 	srv.AllowedOrigin = cfg.AllowedOrigin
+	srv.SiteAddress = cfg.SiteAddress
 	srv.APKDir = cfg.APKDir
 	srv.APKGitHubRepo = cfg.APKGitHubRepo
 	srv.APKGitHubToken = cfg.APKGitHubToken
@@ -231,6 +232,10 @@ func main() {
 		r.Get("/api/admin/settings/sms", srv.AdminGetSMSSettings)
 		r.Put("/api/admin/settings/sms", srv.AdminPutSMSSettings)
 		r.Delete("/api/admin/settings/sms", srv.AdminDeleteSMSSettings)
+
+		// Domain status: read-only mirror of SITE_ADDRESS plus live DNS and
+		// HTTPS health checks for the admin panel card.
+		r.Get("/api/admin/domain/status", srv.AdminGetDomainStatus)
 
 		// Server self-update. Status/log are safe reads; apply triggers a git
 		// pull + rebuild + rolling restart via the updater sidecar.

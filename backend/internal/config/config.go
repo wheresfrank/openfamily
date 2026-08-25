@@ -155,6 +155,12 @@ type Config struct {
 	// (https://example.com/alerts/share/{token}). Empty or non-https falls
 	// back to putting lat/lon in the SMS body.
 	PublicBaseURL string
+
+	// SiteAddress is the public address Caddy serves (config: SITE_ADDRESS,
+	// e.g. "openfamily.example.com" or ":80" for local HTTP-only dev). It is
+	// passed through to the api service so the admin panel can show domain
+	// status; empty means "not configured".
+	SiteAddress string
 }
 
 // buildVersion is overridden at build time with:
@@ -202,6 +208,7 @@ func Load() Config {
 		TwilioAuthToken:       getenv("TWILIO_AUTH_TOKEN", ""),
 		TwilioFrom:            getenv("TWILIO_FROM", ""),
 		PublicBaseURL:         strings.TrimRight(getenv("PUBLIC_BASE_URL", ""), "/"),
+		SiteAddress:           strings.TrimSpace(getenv("SITE_ADDRESS", "")),
 	}
 }
 

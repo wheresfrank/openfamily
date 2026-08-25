@@ -396,6 +396,55 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+/* ---- Domain status card (DomainSettingsCard) ---- */
+.wb-domain-checks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+}
+.wb-domain-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+}
+.wb-domain-check-mark {
+  flex: 0 0 auto;
+  width: 1.25em;
+  text-align: center;
+  font-weight: 700;
+}
+.wb-domain-check-label {
+  color: var(--text-muted);
+}
+.wb-domain-check-detail {
+  color: var(--text-muted);
+  word-break: break-word;
+}
+.wb-domain-check-ok { color: var(--status-green-fg); }
+.wb-domain-check-fail { color: var(--status-red-fg); }
+.wb-domain-docs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  font-size: var(--font-sm);
+}
+.wb-domain-docs-row a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 550;
+}
+.wb-domain-docs-row a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 600px) {
   .wb-update-card { padding: var(--space-4); }
   .wb-update-header,

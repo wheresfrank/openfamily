@@ -17,6 +17,11 @@ that is reachable from the internet.
 7. Set `TLS_BEHIND_PROXY=true` (Compose default) so the API accepts HTTP from
    Caddy on the private network.
 
+Step 5 in detail — DNS records, certificate behavior, and troubleshooting — is
+covered in [custom-domain.md](custom-domain.md). The admin panel's
+**Settings → Custom domain** card runs live DNS and HTTPS checks against your
+setup.
+
 ## Android push (ntfy)
 
 Do **not** publish ntfy on `0.0.0.0:2586`. Current Compose binds loopback only.
