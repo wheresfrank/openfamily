@@ -129,9 +129,10 @@ services:
       - "127.0.0.1:2586:80"
 
   # Sidecar that powers the in-admin "Update server" button. It mounts the
-  # compose project (the git clone) and the host Docker socket so it can run
-  # "git pull" + "docker compose up -d --build" on behalf of the API, which
-  # cannot update itself from inside its own container.
+  # compose project (the git clone) and the host Docker socket so it can
+  # fast-forward the default branch and run "docker compose up -d --build"
+  # on behalf of the API, which cannot update itself from inside its own
+  # container.
   #
   # SECURITY: mounting docker.sock grants root-equivalent access to the host.
   # This service is internal-only (no published ports) and every endpoint
@@ -144,6 +145,8 @@ services:
       UPDATER_TOKEN: ${UPDATER_TOKEN:-}
       REPO_DIR: /repo
       DATA_DIR: /data
+      # Branch to fast-forward. Empty uses the remote default (origin/HEAD).
+      UPDATE_BRANCH: ${UPDATE_BRANCH:-}
       # Shared with the api service so it can read the deployed git ref.
       DEPLOY_REF_FILE: /data/deploy/deployed-ref
     volumes:
