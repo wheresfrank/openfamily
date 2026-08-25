@@ -310,6 +310,11 @@ export function MapView(props: MapViewProps): JSX.Element {
 
   // --- selection + clusters + camera ---
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [locationRequest, setLocationRequest] = useState<{
+    memberId: string;
+    sending: boolean;
+    message: string | null;
+  } | null>(null);
   const [expandedClusters, setExpandedClusters] = useState<Set<string>>(new Set());
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [map, setMap] = useState<LeafletMap | null>(null);
@@ -323,6 +328,37 @@ export function MapView(props: MapViewProps): JSX.Element {
     () => (groupFilter == null ? members : members.filter((m) => m.familyId === groupFilter)),
     [members, groupFilter],
   );
+
+  const requestSelectedLocation = useCallback(async (): Promise<void> => {
+    if (!selectedMemberId || !token || scope !== "family") return;
+    const memberId = selectedMemberId;
+    setLocationRequest({ memberId, sending: true, message: "Requesting a fresh location…" });
+    try {
+      const base = resolveBase(apiBase);
+      const response = await fetch(
+        `${base}/family/members/${encodeURIComponent(memberId)}/location-request`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      const data = (await response.json().catch(() => ({}))) as {
+        status?: string;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error ?? `Request failed (${response.status})`);
+      const message =
+        data.status === "cooldown"
+          ? "A recent request is still cooling down."
+          : data.status === "coalesced"
+            ? "A location request is already in progress."
+            : "Request sent. The map will update when the phone responds.";
+      setLocationRequest({ memberId, sending: false, message });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not request a location.";
+      setLocationRequest({ memberId, sending: false, message });
+    }
+  }, [apiBase, scope, selectedMemberId, token]);
 
   // --- visible places for the current group filter ---
   const visiblePlaces = useMemo(
@@ -709,6 +745,15 @@ export function MapView(props: MapViewProps): JSX.Element {
           member={selectedMember}
           nowMs={nowMs}
           onClose={() => setSelectedMemberId(null)}
+          onRequestLocation={
+            selfManaged && scope === "family" && token ? requestSelectedLocation : undefined
+          }
+          requestingLocation={
+            locationRequest?.memberId === selectedMember.id && locationRequest.sending
+          }
+          locationRequestStatus={
+            locationRequest?.memberId === selectedMember.id ? locationRequest.message : null
+          }
         />
       )}
 

@@ -166,6 +166,7 @@ func main() {
 		r.Get("/family/members", srv.ListMembers)
 		r.Get("/family/members/{id}/avatar", srv.GetFamilyMemberAvatar)
 		r.Get("/family/members/{id}/history", srv.GetMemberHistory)
+		r.Post("/family/members/{id}/location-request", srv.RequestMemberLocation)
 		r.Patch("/family/members/{id}/role", srv.UpdateMemberRole)
 		r.Post("/family/invites", srv.CreateFamilyInvite)
 		r.Post("/family/join", srv.JoinFamily)

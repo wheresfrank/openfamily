@@ -45,6 +45,7 @@ type wsLocation struct {
 	Lat            float64   `json:"lat"`
 	Lon            float64   `json:"lon"`
 	TS             time.Time `json:"ts"`
+	LastSeenAt     time.Time `json:"last_seen_at"`
 	BatteryPct     *float64  `json:"battery_pct"`
 	SpeedMPS       *float64  `json:"speed_mps"`
 	MotionState    *string   `json:"motion_state"`

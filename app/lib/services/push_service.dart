@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_client.dart';
 import 'device_service.dart';
+import 'location_refresh_service.dart';
 import 'unifiedpush_bridge.dart';
 
 /// Registers this device for push (UnifiedPush/ntfy on Android, APNs on iOS)
@@ -70,7 +71,7 @@ class PushService {
     try {
       await initUnifiedPush(
         onNewEndpoint: _onUnifiedPushEndpoint,
-        onMessage: showForeground,
+        onMessage: _onUnifiedPushMessage,
       );
     } catch (_) {}
   }
@@ -124,9 +125,8 @@ class PushService {
     } catch (_) {}
     try {
       await registerUnifiedPush(
-        ntfyBaseUrl: (ntfyBaseUrl == null || ntfyBaseUrl.isEmpty)
-            ? null
-            : ntfyBaseUrl,
+        ntfyBaseUrl:
+            (ntfyBaseUrl == null || ntfyBaseUrl.isEmpty) ? null : ntfyBaseUrl,
       );
     } catch (_) {}
   }
@@ -163,6 +163,17 @@ class PushService {
         unifiedpushEndpoint: endpoint,
       );
     } catch (_) {}
+  }
+
+  static Future<void> _onUnifiedPushMessage(String body) async {
+    final LocationRefreshResult result =
+        await LocationRefreshService.handlePush(body);
+    if (result == LocationRefreshResult.notCommand) {
+      await showForeground(
+        'OpenFamily',
+        body.trim().isEmpty ? 'New notification' : body,
+      );
+    }
   }
 
   static Future<void> _clearRegistration() async {

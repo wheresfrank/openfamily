@@ -4,6 +4,8 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/member.dart';
 import '../services/app_config.dart';
+import '../services/api_client.dart';
+import '../services/location_refresh_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/member_avatar_bubble.dart';
 import '../widgets/movement_icon.dart';
@@ -106,6 +108,8 @@ class MemberProfileScreen extends StatelessWidget {
             value: member.address,
           ),
           const SizedBox(height: 16),
+          _LocationRefreshButton(memberId: member.id),
+          const SizedBox(height: 12),
           // Day Detail (location history) entry point.
           _DayDetailButton(member: member),
         ],
@@ -145,6 +149,76 @@ class MemberProfileScreen extends StatelessWidget {
     if (acc == null || acc <= 0) return 'Unknown';
     final int metres = acc < 1 ? 1 : acc.round();
     return '± $metres m';
+  }
+}
+
+class _LocationRefreshButton extends StatefulWidget {
+  const _LocationRefreshButton({required this.memberId});
+
+  final String memberId;
+
+  @override
+  State<_LocationRefreshButton> createState() => _LocationRefreshButtonState();
+}
+
+class _LocationRefreshButtonState extends State<_LocationRefreshButton> {
+  bool _sending = false;
+  String? _status;
+
+  Future<void> _request() async {
+    if (_sending) return;
+    setState(() {
+      _sending = true;
+      _status = 'Requesting a fresh location…';
+    });
+    try {
+      final Map<String, dynamic> response =
+          await LocationRefreshService.request(widget.memberId);
+      if (!mounted) return;
+      final String status = response['status'] as String? ?? 'queued';
+      setState(() {
+        _status = switch (status) {
+          'cooldown' => 'A recent location request is still cooling down.',
+          'coalesced' => 'A location request is already in progress.',
+          _ => 'Request sent. The map will update when the phone responds.',
+        };
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _status = error.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _status = 'Could not request a location right now.');
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        OutlinedButton.icon(
+          onPressed: _sending ? null : _request,
+          icon: _sending
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.refresh),
+          label: const Text('Update location'),
+        ),
+        if (_status != null) ...<Widget>[
+          const SizedBox(height: 6),
+          Text(
+            _status!,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ],
+    );
   }
 }
 

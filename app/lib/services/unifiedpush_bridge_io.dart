@@ -8,7 +8,7 @@ const String _instance = 'default';
 /// Android UnifiedPush connector. No-ops on iOS/desktop.
 Future<void> initUnifiedPush({
   required Future<void> Function(String endpoint) onNewEndpoint,
-  required void Function(String title, String body) onMessage,
+  required Future<void> Function(String body) onMessage,
 }) async {
   if (!Platform.isAndroid) return;
   await UnifiedPush.initialize(
@@ -19,7 +19,7 @@ Future<void> initUnifiedPush({
     onMessage: (PushMessage message, String instance) {
       if (instance != _instance) return;
       final String body = utf8.decode(message.content, allowMalformed: true);
-      onMessage('OpenFamily', body.trim().isEmpty ? 'New notification' : body);
+      onMessage(body);
     },
     onRegistrationFailed: (FailedReason reason, String instance) {},
     onUnregistered: (String instance) {},

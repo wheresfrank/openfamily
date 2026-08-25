@@ -53,8 +53,7 @@ void main() {
   });
 
   group('last seen / presence', () {
-    final freshTs =
-        DateTime.now().toUtc().subtract(const Duration(minutes: 1));
+    final freshTs = DateTime.now().toUtc().subtract(const Duration(minutes: 1));
 
     test('uses last_seen_at when it is newer than the location ts', () {
       final member = memberFromJson(<String, dynamic>{
@@ -88,6 +87,29 @@ void main() {
       });
 
       expect(member.lastSeen, ts);
+    });
+
+    test('an older location frame cannot regress a newer heartbeat', () {
+      final heartbeatTs = DateTime.now().toUtc();
+      final member = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'name': 'Sam Rivera',
+        'lat': 37.0,
+        'lon': -122.0,
+        'ts': heartbeatTs.toIso8601String(),
+      });
+
+      final updated = memberFromLocationUpdate(member, <String, dynamic>{
+        'user_id': 'member-1',
+        'lat': 37.1,
+        'lon': -122.1,
+        'ts': heartbeatTs.subtract(const Duration(hours: 1)).toIso8601String(),
+        'last_seen_at':
+            heartbeatTs.subtract(const Duration(seconds: 2)).toIso8601String(),
+      });
+
+      expect(updated.position, const LatLng(37.1, -122.1));
+      expect(updated.lastSeen, heartbeatTs);
     });
 
     test('a stale stationary member goes back to normal on a presence frame',
@@ -129,16 +151,17 @@ void main() {
 
       final older = memberFromPresenceUpdate(member, <String, dynamic>{
         'user_id': 'member-1',
-        'ts': freshTs
-            .subtract(const Duration(seconds: 1))
-            .toIso8601String(),
+        'ts': freshTs.subtract(const Duration(seconds: 1)).toIso8601String(),
       });
       final malformed = memberFromPresenceUpdate(member, <String, dynamic>{
         'user_id': 'member-1',
         'ts': 'not-a-timestamp',
       });
       final noUser = memberFromPresenceUpdate(member, <String, dynamic>{
-        'ts': DateTime.now().toUtc().add(const Duration(minutes: 1)).toIso8601String(),
+        'ts': DateTime.now()
+            .toUtc()
+            .add(const Duration(minutes: 1))
+            .toIso8601String(),
       });
 
       expect(identical(older, member), isTrue);
@@ -173,7 +196,8 @@ void main() {
       expect(member.address, 'Driving');
     });
 
-    test('a still member inside a saved place is labeled with the place name', () {
+    test('a still member inside a saved place is labeled with the place name',
+        () {
       final member = memberFromJson(<String, dynamic>{
         'id': 'member-1',
         'name': 'Sam Rivera',

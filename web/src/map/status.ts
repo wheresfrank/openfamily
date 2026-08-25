@@ -320,9 +320,16 @@ export function applyLocationUpdate(
     frame.lat != null && frame.lon != null
       ? { lat: frame.lat, lon: frame.lon }
       : existing.position;
-  // A frame may omit `ts`; fall back to lastSeen so a missing timestamp does
-  // not spuriously flip the member to "stopped".
-  const ts = parseTs(frame.ts) ?? existing.lastSeen;
+  // Fix time and receipt/liveness time are distinct. Keep the newest of the
+  // existing heartbeat, this fix, and the server receipt time so a delayed GPS
+  // frame can never make "last seen" jump backwards.
+  const fixTs = parseTs(frame.ts);
+  const receiptTs = parseTs(frame.last_seen_at);
+  const ts = [existing.lastSeen, fixTs, receiptTs].reduce<number | null>(
+    (latest, candidate) =>
+      candidate != null && (latest == null || candidate > latest) ? candidate : latest,
+    null,
+  );
   // A frame may omit `motion_state`; keep the existing movement rather than
   // dropping a driving member back to "none".
   const movement =

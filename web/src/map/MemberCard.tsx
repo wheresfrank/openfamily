@@ -9,9 +9,19 @@ interface MemberCardProps {
   member: Member
   nowMs: number
   onClose: () => void
+  onRequestLocation?: () => void
+  locationRequestStatus?: string | null
+  requestingLocation?: boolean
 }
 
-export function MemberCard({ member, nowMs, onClose }: MemberCardProps) {
+export function MemberCard({
+  member,
+  nowMs,
+  onClose,
+  onRequestLocation,
+  locationRequestStatus,
+  requestingLocation = false,
+}: MemberCardProps) {
   return (
     <div className="wb-member-card" role="dialog" aria-label={`${member.name} details`}>
       <button
@@ -74,6 +84,24 @@ export function MemberCard({ member, nowMs, onClose }: MemberCardProps) {
           </div>
         )}
       </div>
+
+      {onRequestLocation && (
+        <>
+          <button
+            type="button"
+            className="wb-member-card-refresh"
+            onClick={onRequestLocation}
+            disabled={requestingLocation}
+          >
+            {requestingLocation ? "Requesting…" : "Update location"}
+          </button>
+          {locationRequestStatus && (
+            <div className="wb-member-card-refresh-status" role="status">
+              {locationRequestStatus}
+            </div>
+          )}
+        </>
+      )}
 
       <a
         className="wb-member-card-history"
