@@ -1,3 +1,10 @@
+# Pin the compose project name. The updater sidecar mounts this repo at
+# /repo and runs `docker compose up` from there; without an explicit name,
+# compose would derive the project name from the directory basename ("repo"
+# inside the container) and spin up a second, conflicting stack. A fixed name
+# keeps both invocations on the same project.
+name: openfamily
+
 services:
   caddy:
     image: caddy:2-alpine
