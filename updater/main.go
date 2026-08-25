@@ -176,13 +176,10 @@ func (u *updater) saveState(st jobState) {
 	}
 }
 
-// handleStatus reports the current/last update job. Authenticated like apply:
-// only callers holding the shared token may probe the service.
+// handleStatus reports the current checkout and last update job. It is safe to
+// read on the internal Compose network without the apply token; this lets the
+// API identify manually deployed builds even when automatic updates are off.
 func (u *updater) handleStatus(w http.ResponseWriter, r *http.Request) {
-	if !u.authorized(r) {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
 	u.mu.Lock()
 	busy := u.busy
 	u.mu.Unlock()
@@ -190,10 +187,13 @@ func (u *updater) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		st = jobState{Status: jobIdle}
 	}
+	currentRef, _ := gitRev(u.repoDir)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"available": true,
-		"busy":      busy,
-		"job":       st,
+		"available":   true,
+		"busy":        busy,
+		"can_apply":   u.token != "",
+		"job":         st,
+		"current_ref": currentRef,
 	})
 }
 
@@ -279,6 +279,7 @@ func (u *updater) run(st jobState) {
 	// only touches services whose build inputs or config changed, so an
 	// api-only code change leaves postgres, ntfy, and caddy untouched.
 	up := exec.Command("docker", "compose", "--project-directory", u.repoDir, "up", "-d", "--build")
+	up.Env = append(os.Environ(), "GIT_COMMIT="+newRef)
 	up.Stdout, up.Stderr = logFile, logFile
 	if err := runWithTimeout(up); err != nil {
 		fail("docker compose up failed: %v", err)

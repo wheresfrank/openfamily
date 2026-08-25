@@ -1,12 +1,12 @@
 name: Test
 
 # Quality gate on every pull request. Independent of the APK release workflow.
-# Both jobs target master-compatible code (no stacked feature branches).
+# Both jobs target main-compatible code (no stacked feature branches).
 
 on:
   pull_request:
   push:
-    branches: [master]
+    branches: [main]
 
 jobs:
   backend:

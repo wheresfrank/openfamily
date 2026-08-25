@@ -4,4 +4,6 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Local emulator talks to the host via http://10.0.2.2 (cleartext). -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>

@@ -50,11 +50,13 @@ type apkManager struct {
 
 // apkStatusOut is the JSON shape returned by GET /api/admin/apk/status.
 type apkStatusOut struct {
-	Status     apkBuildStatus `json:"status"`
-	StartedAt  *time.Time     `json:"started_at,omitempty"`
-	FinishedAt *time.Time     `json:"finished_at,omitempty"`
-	Artifact   string         `json:"artifact_path,omitempty"`
-	LastError  string         `json:"last_error,omitempty"`
+	Status       apkBuildStatus          `json:"status"`
+	StartedAt    *time.Time              `json:"started_at,omitempty"`
+	FinishedAt   *time.Time              `json:"finished_at,omitempty"`
+	Artifact     string                  `json:"artifact_path,omitempty"`
+	LastError    string                  `json:"last_error,omitempty"`
+	Release      *apkrelease.ReleaseInfo `json:"release,omitempty"`
+	ReleaseError string                  `json:"release_error,omitempty"`
 }
 
 // snapshot returns a copy of the current build state under the lock.
@@ -106,7 +108,19 @@ func (s *Server) AdminAPKStatus(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthenticated")
 		return
 	}
-	writeJSON(w, http.StatusOK, s.apk.snapshot())
+	out := s.apk.snapshot()
+	if s.APKGitHubRepo != "" {
+		info, err := apkrelease.LatestInfo(r.Context(), apkrelease.Options{
+			Repo:  s.APKGitHubRepo,
+			Token: s.APKGitHubToken,
+		})
+		if err != nil {
+			out.ReleaseError = err.Error()
+		} else {
+			out.Release = &info
+		}
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // AdminDownloadAPK serves the latest Android APK. When APK_GITHUB_REPO is set,
@@ -139,7 +153,7 @@ func (s *Server) resolveAPK(ctx context.Context) (string, error) {
 	if s.APKGitHubRepo == "" {
 		path, err := latestAPK(s.APKDir)
 		if err != nil {
-			return "", errors.New("no APK available; set APK_GITHUB_REPO/APK_GITHUB_TOKEN so the server can fetch the latest GitHub Release")
+			return "", errors.New("no APK release is available")
 		}
 		return path, nil
 	}

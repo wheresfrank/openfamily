@@ -26,7 +26,7 @@ const (
 // API (which is rate-limited per IP/token).
 type Checker struct {
 	Repo     string // "owner/name"; empty disables checks
-	Token    string // optional PAT; needed for private repos
+	Token    string // optional PAT for private forks
 	API      string // override for tests; empty uses api.github.com
 	Client   *http.Client
 	Branches map[string]string // test hook: repo -> default branch

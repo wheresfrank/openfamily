@@ -6,6 +6,7 @@ import type {
   AdminInvite,
   AdminMember,
   AdminUser,
+  ApkStatus,
   ApiResult,
   Family,
   FamilyPlace,
@@ -422,6 +423,11 @@ export function createInvite(
 /** Returns a blob; caller should trigger a download. */
 export function downloadApk(): Promise<Blob> {
   return request<Blob>('/api/admin/apk', { binary: true })
+}
+
+/** Returns metadata for the latest published Android release. */
+export function getApkStatus(): Promise<ApkStatus> {
+  return request<ApkStatus>('/api/admin/apk/status')
 }
 
 export function getSmsSettings(): Promise<SmsSettings> {
