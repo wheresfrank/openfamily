@@ -34,7 +34,7 @@ var ErrNotFound = errors.New("no APK on the latest GitHub Release")
 type Options struct {
 	// Repo is "owner/name".
 	Repo string
-	// Token is a GitHub PAT (Contents: Read). Required for private repos.
+	// Token is an optional GitHub PAT for private forks.
 	Token string
 	// DestDir is APK_DIR, where the cached APK is stored.
 	DestDir string
@@ -46,8 +46,12 @@ type Options struct {
 }
 
 type release struct {
-	TagName string  `json:"tag_name"`
-	Assets  []asset `json:"assets"`
+	TagName     string    `json:"tag_name"`
+	Name        string    `json:"name"`
+	Body        string    `json:"body"`
+	HTMLURL     string    `json:"html_url"`
+	PublishedAt time.Time `json:"published_at"`
+	Assets      []asset   `json:"assets"`
 }
 
 type asset struct {
@@ -61,6 +65,56 @@ type cacheMeta struct {
 	AssetID int64  `json:"asset_id"`
 	TagName string `json:"tag_name"`
 	Name    string `json:"name"`
+}
+
+// ReleaseInfo is the public metadata the admin panel shows for the latest APK
+// release. It deliberately omits the API asset URL: downloads continue through
+// the authenticated server endpoint and its on-disk cache.
+type ReleaseInfo struct {
+	TagName     string    `json:"tag_name"`
+	Name        string    `json:"name,omitempty"`
+	Body        string    `json:"body,omitempty"`
+	HTMLURL     string    `json:"html_url,omitempty"`
+	PublishedAt time.Time `json:"published_at,omitempty"`
+	AssetName   string    `json:"asset_name"`
+	AssetSize   int64     `json:"asset_size"`
+}
+
+// LatestInfo returns metadata for the APK attached to the repository's latest
+// GitHub Release without downloading the asset.
+func LatestInfo(ctx context.Context, opts Options) (ReleaseInfo, error) {
+	owner, name, err := parseRepo(opts.Repo)
+	if err != nil {
+		return ReleaseInfo{}, err
+	}
+	client := opts.Client
+	if client == nil {
+		client = defaultClient()
+	}
+	api := strings.TrimRight(opts.API, "/")
+	if api == "" {
+		api = defaultAPI
+	}
+
+	metaCtx, cancel := context.WithTimeout(ctx, metaTimeout)
+	defer cancel()
+	rel, err := fetchLatest(metaCtx, client, api, owner, name, opts.Token)
+	if err != nil {
+		return ReleaseInfo{}, err
+	}
+	apk, err := pickAPKAsset(rel.Assets)
+	if err != nil {
+		return ReleaseInfo{}, err
+	}
+	return ReleaseInfo{
+		TagName:     rel.TagName,
+		Name:        rel.Name,
+		Body:        rel.Body,
+		HTMLURL:     rel.HTMLURL,
+		PublishedAt: rel.PublishedAt,
+		AssetName:   apk.Name,
+		AssetSize:   apk.Size,
+	}, nil
 }
 
 // Sync ensures DestDir contains the APK from the repo's latest GitHub Release.
@@ -160,10 +214,10 @@ func fetchLatest(ctx context.Context, client *http.Client, api, owner, name, tok
 	defer res.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(res.Body, 1<<20))
 	if res.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("%w: GitHub returned 404 (no release yet, or APK_GITHUB_TOKEN is missing for a private repo)", ErrNotFound)
+		return nil, fmt.Errorf("%w: GitHub returned 404", ErrNotFound)
 	}
 	if res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden {
-		return nil, fmt.Errorf("GitHub auth failed (%d); set APK_GITHUB_TOKEN to a PAT with Contents: Read", res.StatusCode)
+		return nil, fmt.Errorf("GitHub API request was rejected (%d)", res.StatusCode)
 	}
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("github releases/latest: HTTP %d", res.StatusCode)
