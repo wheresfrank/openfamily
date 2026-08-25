@@ -347,12 +347,13 @@ spaces and dashes (`ab12-cd34` matches `AB12CD34`).
 
 The server does **not** build APKs. CI
 ([`.github/workflows/apk.yml`](.github/workflows/apk.yml)) builds a release
-APK on merge to `master` (when `app/` changes) and publishes it as a GitHub
+APK on merge to `main` (when `app/` changes) and publishes it as a GitHub
 Release. The admin **Download** button fetches that latest asset and caches
 it in `APK_DIR`.
 
-Because this repository is private, set `APK_GITHUB_TOKEN` in `.env` to a
-fine-grained PAT with **Contents: Read**, then recreate the API container.
+Public GitHub Releases do not need a token. Set `APK_GITHUB_TOKEN` in
+`.env` only if you fetch from a private fork or hit GitHub's
+unauthenticated rate limit, then recreate the API container.
 
 Release APKs are signed with a dedicated upload keystore so Android can
 install each new build as an in-place update. CI requires these repository
@@ -498,7 +499,7 @@ For a fully private map, host your own tiles. The simplest option is
 | `PUBLIC_BASE_URL` | *(empty)* | HTTPS origin for SMS share links |
 | `APK_DIR` | `/data/apk` | Directory that caches the GitHub Release APK |
 | `APK_GITHUB_REPO` | *(empty)* | GitHub `owner/name` whose latest Release holds the APK |
-| `APK_GITHUB_TOKEN` | *(empty)* | PAT used to fetch the APK (required for this private repo; Contents: Read) |
+| `APK_GITHUB_TOKEN` | *(empty)* | Optional PAT to fetch the APK (needed for a private fork; Contents: Read) |
 
 ### Flutter app (`--dart-define`)
 
@@ -681,12 +682,7 @@ platform constraints, not bugs we can fully paper over.
 
 ## Contributing
 
-Issues and pull requests are welcome. Please:
-
-1. Keep location data on the user's server — no analytics, crash reporters,
-   or third-party SDKs that exfiltrate coordinates.
-2. Match the existing Go / Flutter / TypeScript style in the tree you touch.
-3. Do not commit secrets, `.env`, or APNs keys.
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Report security issues privately — see [SECURITY.md](SECURITY.md).
 
