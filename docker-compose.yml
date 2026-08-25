@@ -21,9 +21,10 @@ services:
 
   api:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
       args:
-        GIT_COMMIT: ${GIT_COMMIT:-dev}
+        GIT_COMMIT: ${GIT_COMMIT:-}
     restart: unless-stopped
     environment:
       HTTP_ADDR: ":8080"

@@ -176,13 +176,10 @@ func (u *updater) saveState(st jobState) {
 	}
 }
 
-// handleStatus reports the current/last update job. Authenticated like apply:
-// only callers holding the shared token may probe the service.
+// handleStatus reports the current checkout and last update job. It is safe to
+// read on the internal Compose network without the apply token; this lets the
+// API identify manually deployed builds even when automatic updates are off.
 func (u *updater) handleStatus(w http.ResponseWriter, r *http.Request) {
-	if !u.authorized(r) {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
 	u.mu.Lock()
 	busy := u.busy
 	u.mu.Unlock()
@@ -194,6 +191,7 @@ func (u *updater) handleStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"available":   true,
 		"busy":        busy,
+		"can_apply":   u.token != "",
 		"job":         st,
 		"current_ref": currentRef,
 	})

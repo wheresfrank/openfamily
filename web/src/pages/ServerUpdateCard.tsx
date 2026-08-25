@@ -145,7 +145,7 @@ export function ServerUpdateCard() {
         </p>
       )}
 
-      {!status?.can_update && !loading && (
+      {!status?.can_update && status?.update_available && !loading && (
         <p className="wb-update-note">
           Automatic installation is unavailable on this deployment. Install the latest version from the server host, then check again.
         </p>
