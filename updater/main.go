@@ -16,7 +16,8 @@
 //	POST /apply    start an update; requires X-Updater-Token to match UPDATER_TOKEN
 //	GET  /log      tail of the current/last update log (text/plain)
 //
-// An update runs "git pull --ff-only" followed by
+// An update fetches origin, checks out the remote default branch (or
+// UPDATE_BRANCH), fast-forwards it with --ff-only, then runs
 // "docker compose up -d --build" in REPO_DIR. The job state is persisted to a
 // state file so a restart of this container can mark an interrupted update as
 // failed instead of leaving it "running" forever.
@@ -71,6 +72,7 @@ type updater struct {
 	dataDir   string
 	token     string
 	deployRef string // path of the deployed-ref file shared with the api
+	branch    string // UPDATE_BRANCH; empty means origin/HEAD, then main
 	busy      bool
 }
 
@@ -89,7 +91,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	u := &updater{repoDir: repoDir, dataDir: dataDir, token: os.Getenv("UPDATER_TOKEN"), deployRef: deployRef}
+	u := &updater{
+		repoDir:   repoDir,
+		dataDir:   dataDir,
+		token:     os.Getenv("UPDATER_TOKEN"),
+		deployRef: deployRef,
+		branch:    strings.TrimSpace(os.Getenv("UPDATE_BRANCH")),
+	}
 	u.recoverInterrupted()
 	u.writeDeployRef()
 
@@ -227,8 +235,9 @@ func (u *updater) authorized(r *http.Request) bool {
 	return u.token != "" && r.Header.Get("X-Updater-Token") == u.token
 }
 
-// run performs the update: git pull --ff-only, then docker compose up -d
-// --build. Output is written to the log file so the admin UI can display it.
+// run performs the update: fetch origin, check out the deploy branch, fast-
+// forward it, then docker compose up -d --build. Output is written to the log
+// file so the admin UI can display it.
 func (u *updater) run(st jobState) {
 	defer func() {
 		u.mu.Lock()
@@ -257,13 +266,13 @@ func (u *updater) run(st jobState) {
 		slog.Error("update failed", "err", st.Error)
 	}
 
-	// Step 1 — fast-forward the repo to origin's latest. --ff-only refuses to
-	// clobber local commits; uncommitted local modifications to tracked files
-	// block the pull and surface as a clear failure rather than silent breakage.
-	pull := exec.Command("git", "-C", u.repoDir, "pull", "--ff-only")
-	pull.Stdout, pull.Stderr = logFile, logFile
-	if err := runWithTimeout(pull); err != nil {
-		fail("git pull failed: %v", err)
+	// Step 1 — fast-forward the deploy branch to origin's latest. Bare
+	// `git pull` follows whatever the clone currently tracks, which breaks
+	// after a feature-branch checkout once that remote branch is deleted.
+	// --ff-only still refuses to clobber local commits; uncommitted local
+	// modifications block checkout/merge and surface as a clear failure.
+	if err := u.syncRepo(logFile); err != nil {
+		fail("%v", err)
 		return
 	}
 
@@ -331,6 +340,66 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+// syncRepo fetches origin, checks out the deploy branch, and fast-forwards it.
+func (u *updater) syncRepo(w io.Writer) error {
+	fetch := exec.Command("git", "-C", u.repoDir, "fetch", "origin")
+	fetch.Stdout, fetch.Stderr = w, w
+	if err := runWithTimeout(fetch); err != nil {
+		return fmt.Errorf("git fetch failed: %w", err)
+	}
+
+	branch := u.deployBranch()
+	fmt.Fprintf(w, "updating branch %s\n", branch)
+	if err := u.checkoutBranch(w, branch); err != nil {
+		return err
+	}
+
+	merge := exec.Command("git", "-C", u.repoDir, "merge", "--ff-only", "origin/"+branch)
+	merge.Stdout, merge.Stderr = w, w
+	if err := runWithTimeout(merge); err != nil {
+		return fmt.Errorf("git merge --ff-only origin/%s failed: %w", branch, err)
+	}
+	return nil
+}
+
+// deployBranch is the branch the admin Update button fast-forwards: UPDATE_BRANCH
+// if set, otherwise the remote default (origin/HEAD), otherwise main.
+func (u *updater) deployBranch() string {
+	if u.branch != "" {
+		return u.branch
+	}
+	out, err := exec.Command("git", "-C", u.repoDir, "symbolic-ref", "--short", "refs/remotes/origin/HEAD").Output()
+	if err == nil {
+		ref := strings.TrimSpace(string(out))
+		if branch, ok := strings.CutPrefix(ref, "origin/"); ok && branch != "" {
+			return branch
+		}
+	}
+	return "main"
+}
+
+func (u *updater) checkoutBranch(w io.Writer, branch string) error {
+	current, err := exec.Command("git", "-C", u.repoDir, "rev-parse", "--abbrev-ref", "HEAD").Output()
+	if err == nil && strings.TrimSpace(string(current)) == branch {
+		return nil
+	}
+
+	cmd := exec.Command("git", "-C", u.repoDir, "checkout", branch)
+	cmd.Stdout, cmd.Stderr = w, w
+	if err := runWithTimeout(cmd); err == nil {
+		return nil
+	}
+
+	// Local branch missing: create it tracking origin. If checkout failed for
+	// another reason (dirty tree), this will fail too and git's message is in w.
+	cmd = exec.Command("git", "-C", u.repoDir, "checkout", "--track", "origin/"+branch)
+	cmd.Stdout, cmd.Stderr = w, w
+	if err := runWithTimeout(cmd); err != nil {
+		return fmt.Errorf("git checkout %s failed: %w", branch, err)
+	}
+	return nil
 }
 
 func gitRev(dir string) (string, error) {

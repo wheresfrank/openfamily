@@ -383,8 +383,9 @@ no shell access required.
 
 The button is powered by the `updater` sidecar (docker-compose service), which
 mounts the compose project directory and the Docker socket and runs
-`git pull --ff-only` followed by `docker compose up -d --build` on behalf of
-the API, which cannot update itself from inside its own container.
+`git fetch`, checks out the remote default branch (or `UPDATE_BRANCH`),
+fast-forwards it with `--ff-only`, then `docker compose up -d --build` on
+behalf of the API, which cannot update itself from inside its own container.
 
 To enable it, set a long random shared token in `.env`:
 
@@ -405,13 +406,16 @@ Notes:
   That is inherent to in-panel updates; the sidecar is internal-only,
   token-gated, runs exactly two fixed commands, and update triggers are
   audit-logged as `admin.update_apply`.
-- Local changes in the clone make `git pull --ff-only` fail loudly rather than
-  silently clobbering them; resolve and re-run the button.
+- The updater always deploys the remote default branch (usually `main`), even
+  if the clone was left on a feature branch whose remote copy was deleted
+  after merge. Override with `UPDATE_BRANCH` if you deploy something else.
+- Local changes in the clone make checkout or `git merge --ff-only` fail
+  loudly rather than silently clobbering them; resolve and re-run the button.
 - If the sidecar's own image changed, its container may be recreated mid-run;
   the card then reports the run as *interrupted*. Verify container health and
   press the button again.
 - Without the sidecar enabled you can always update manually:
-  `git pull && docker compose up -d --build`.
+  `git checkout main && git pull --ff-only origin main && docker compose up -d --build`.
 
 ## Self-hosting map tiles
 
