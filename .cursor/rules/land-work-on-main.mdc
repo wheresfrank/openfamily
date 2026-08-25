@@ -1,0 +1,12 @@
+---
+description: Open pull requests against main; do not stack PRs on feature branches
+alwaysApply: true
+---
+
+# PRs target main
+
+Open one PR against `main`. Do not set another feature branch as the PR base.
+
+```bash
+gh pr create --base main --head feat/your-branch
+```
