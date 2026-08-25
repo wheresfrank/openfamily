@@ -74,11 +74,11 @@ func (s *Server) AdminUpdateStatus(w http.ResponseWriter, r *http.Request) {
 	out := updateStatusOut{DeployedRef: s.deployedRef()}
 
 	if s.UpdaterURL != "" {
-		job, busy, currentRef, err := s.updaterStatus(r.Context())
+		job, busy, canApply, currentRef, err := s.updaterStatus(r.Context())
 		if err != nil {
 			slog.Warn("admin update: updater unreachable", "err", err)
 		} else {
-			out.CanUpdate = true
+			out.CanUpdate = canApply
 			out.Busy = busy
 			out.Job = job
 			if currentRef != "" {
@@ -107,7 +107,7 @@ func (s *Server) AdminUpdateStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func refsDiffer(deployed, latest string) bool {
-	return latest != "" && deployed != latest
+	return latest != "" && deployed != "" && deployed != "dev" && deployed != latest
 }
 
 // AdminUpdateApply asks the updater sidecar to pull and rebuild. The HTTP
@@ -188,33 +188,34 @@ func (s *Server) AdminUpdateLog(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.Copy(w, io.LimitReader(resp.Body, 1<<20))
 }
 
-// updaterStatus fetches the updater's status endpoint. A missing token or an
-// unreachable service surfaces as an error so the UI can show the button as
-// unavailable rather than lying about state.
-func (s *Server) updaterStatus(ctx context.Context) (*updaterJob, bool, string, error) {
+// updaterStatus fetches the updater's read-only status endpoint. CanApply is
+// reported separately so version detection still works when applying updates
+// is disabled.
+func (s *Server) updaterStatus(ctx context.Context) (*updaterJob, bool, bool, string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
 		strings.TrimRight(s.UpdaterURL, "/")+"/status", nil)
 	if err != nil {
-		return nil, false, "", err
+		return nil, false, false, "", err
 	}
 	req.Header.Set("X-Updater-Token", s.UpdaterToken)
 
 	client := &http.Client{Timeout: updaterQuickTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, false, "", err
+		return nil, false, false, "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, false, "", errUpdaterUnavailable
+		return nil, false, false, "", errUpdaterUnavailable
 	}
 	var payload struct {
 		Busy       bool        `json:"busy"`
+		CanApply   bool        `json:"can_apply"`
 		Job        *updaterJob `json:"job"`
 		CurrentRef string      `json:"current_ref"`
 	}
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&payload); err != nil {
-		return nil, false, "", err
+		return nil, false, false, "", err
 	}
-	return payload.Job, payload.Busy, payload.CurrentRef, nil
+	return payload.Job, payload.Busy, payload.CanApply, payload.CurrentRef, nil
 }

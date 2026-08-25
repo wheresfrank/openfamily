@@ -1,0 +1,9 @@
+*
+!backend
+!backend/**
+!.git
+.git/*
+!.git/HEAD
+!.git/refs
+!.git/refs/**
+!.git/packed-refs

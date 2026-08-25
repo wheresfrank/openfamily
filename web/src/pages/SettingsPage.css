@@ -298,6 +298,10 @@
 }
 .wb-update-heading .wb-settings-title {
   margin: 0 0 2px;
+  line-height: 1.25;
+}
+.wb-update-heading .wb-settings-section-help {
+  margin: 0;
 }
 .wb-update-icon {
   display: inline-flex;
