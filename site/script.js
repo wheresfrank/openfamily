@@ -123,7 +123,7 @@
     if (copyButton) {
       copyButton.addEventListener("click", function () {
         var commands = [
-          "git clone https://github.com/wheresfrank/whereabouts.git openfamily",
+          "git clone https://github.com/wheresfrank/openfamily.git openfamily",
           "cd openfamily",
           "cp .env.example .env",
           "docker compose up -d --build"
