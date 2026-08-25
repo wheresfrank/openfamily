@@ -62,7 +62,10 @@ class Keys {
   static const String SETTINGS_IOS_STOP_WITH_TERMINATE =
       'settings_ios_stopWithTerminate';
 
+  static const String ARG_HEARTBEAT_CALLBACK = 'heartbeatCallback';
+
   static const String BCM_SEND_LOCATION = 'BCM_SEND_LOCATION';
+  static const String BCM_SEND_HEARTBEAT = 'BCM_SEND_HEARTBEAT';
   static const String BCM_NOTIFICATION_CLICK = 'BCM_NOTIFICATION_CLICK';
   static const String BCM_INIT = 'BCM_INIT';
   static const String BCM_DISPOSE = 'BCM_DISPOSE';

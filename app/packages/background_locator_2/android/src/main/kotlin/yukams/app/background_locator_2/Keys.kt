@@ -148,6 +148,9 @@ class Keys {
         val BCM_SEND_LOCATION = "BCM_SEND_LOCATION"
 
         @JvmStatic
+        val BCM_SEND_HEARTBEAT = "BCM_SEND_HEARTBEAT"
+
+        @JvmStatic
         val BCM_NOTIFICATION_CLICK = "BCM_NOTIFICATION_CLICK"
 
         @JvmStatic
@@ -158,5 +161,38 @@ class Keys {
 
         @JvmStatic
         val NOTIFICATION_ACTION = "com.yukams.background_locator_2.notification"
+
+        // Delivered by the liveness alarm so the app can report presence even
+        // when the location stream is quiet (device stationary, GPS deferred
+        // by the OS power manager).
+        @JvmStatic
+        val ACTION_HEARTBEAT = "yukams.app.background_locator_2.HEARTBEAT"
+
+        // Sent when the activity-recognition receiver detects a movement-state
+        // transition, so the service can swap between moving / stationary
+        // location request profiles.
+        @JvmStatic
+        val ACTION_ACTIVITY_CHANGE = "yukams.app.background_locator_2.ACTIVITY_CHANGE"
+
+        @JvmStatic
+        val EXTRA_IS_MOVING = "is_moving"
+
+        @JvmStatic
+        val EXTRA_MOTION_STATE = "motion_state"
+
+        @JvmStatic
+        val ARG_HEARTBEAT_CALLBACK = "heartbeatCallback"
+
+        @JvmStatic
+        val SETTINGS_HEARTBEAT_CALLBACK = "settings_heartbeatCallback"
+
+        @JvmStatic
+        val HEARTBEAT_CALLBACK_HANDLE_KEY = "HEARTBEAT_CALLBACK_HANDLE_KEY"
+
+        // Preference key holding the most recent motion classification
+        // ("driving", "walking", ... or "" when unknown). Written by the
+        // activity-recognition receiver and read by the Dart background
+        // isolate to populate the report's motion_state field.
+        const val MOTION_STATE_KEY = "wb_motion_state"
     }
 }

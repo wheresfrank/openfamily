@@ -22,6 +22,15 @@ void callbackDispatcher() {
       if (callback != null) {
         callback(location);
       }
+    } else if (Keys.BCM_SEND_HEARTBEAT == call.method) {
+      // Liveness tick from the native alarm: no location payload, just a
+      // signal that the app should report presence to its backend.
+      final Map<dynamic, dynamic> args = call.arguments;
+      final Function? callback = PluginUtilities.getCallbackFromHandle(
+          CallbackHandle.fromRawHandle(args[Keys.ARG_HEARTBEAT_CALLBACK]));
+      if (callback != null) {
+        callback();
+      }
     } else if (Keys.BCM_NOTIFICATION_CLICK == call.method) {
       final Map<dynamic, dynamic> args = call.arguments;
       final Function? notificationCallback =

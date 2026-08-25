@@ -165,6 +165,12 @@ func (s *Server) Stream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A viewer just looked at this family: opportunistically ask any member
+	// whose devices have gone quiet for one fresh fix (rate-limited per member
+	// inside MaybeRequestStaleLocations). Runs in the background; never blocks
+	// or fails the stream.
+	s.MaybeRequestStaleLocations(familyID, members)
+
 	// Start the writer goroutine only after the welcome and snapshot frames
 	// are written, so there is a single writer at any time (coder/websocket
 	// permits one concurrent writer). Broadcasts queued in the meantime are

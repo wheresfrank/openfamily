@@ -72,6 +72,7 @@ class PushService {
       await initUnifiedPush(
         onNewEndpoint: _onUnifiedPushEndpoint,
         onMessage: _onUnifiedPushMessage,
+        onUnregistered: _onUnifiedPushUnregistered,
       );
     } catch (_) {}
   }
@@ -161,6 +162,20 @@ class PushService {
       await ApiClient.updateDevicePush(
         deviceId: deviceId,
         unifiedpushEndpoint: endpoint,
+      );
+    } catch (_) {}
+  }
+
+  /// The distributor dropped the registration (reinstalled, switched
+  /// distributor, revoked the topic...). The server-side endpoint is now dead:
+  /// clear it so location requests and alerts stop targeting an unreachable
+  /// device. The next [sync] re-registers a fresh endpoint.
+  static Future<void> _onUnifiedPushUnregistered() async {
+    try {
+      final String deviceId = await DeviceService.ensureRegistered();
+      await ApiClient.updateDevicePush(
+        deviceId: deviceId,
+        unifiedpushEndpoint: '',
       );
     } catch (_) {}
   }

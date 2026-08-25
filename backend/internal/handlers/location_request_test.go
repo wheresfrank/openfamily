@@ -9,7 +9,7 @@ import (
 )
 
 func TestLocationRequestGateQueuesCoalescesAndCoolsDown(t *testing.T) {
-	gate := newLocationRequestGate()
+	gate := newLocationRequestGate(locationRequestCooldown)
 	start := time.Date(2026, 8, 25, 12, 0, 0, 0, time.UTC)
 
 	first := gate.reserve("member-1", "request-1", start)
@@ -37,7 +37,7 @@ func TestLocationRequestGateQueuesCoalescesAndCoolsDown(t *testing.T) {
 }
 
 func TestLocationRequestGateReleaseOnlyMatchingRequest(t *testing.T) {
-	gate := newLocationRequestGate()
+	gate := newLocationRequestGate(locationRequestCooldown)
 	now := time.Now()
 	gate.reserve("member-1", "request-1", now)
 	gate.release("member-1", "different")

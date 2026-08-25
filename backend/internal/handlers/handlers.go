@@ -109,6 +109,11 @@ type Server struct {
 	// locationRequests coalesces simultaneous on-demand refreshes and prevents
 	// repeated map taps from waking the same phone more than once per cooldown.
 	locationRequests *locationRequestGate
+
+	// staleWatchdog rate-limits the automatic refresh requests sent when a
+	// family snapshot shows a member has gone quiet (one attempt per member
+	// per watchdog cooldown, independent of the user-facing cooldown).
+	staleWatchdog *staleRequestGate
 }
 
 // New builds a Server.
@@ -118,7 +123,8 @@ func New(pool *pgxpool.Pool, tm *auth.TokenManager, push push.Dispatcher) *Serve
 		TM:               tm,
 		Push:             push,
 		hub:              newHub(),
-		locationRequests: newLocationRequestGate(),
+		locationRequests: newLocationRequestGate(locationRequestCooldown),
+		staleWatchdog:    newStaleRequestGate(staleRequestCooldown),
 	}
 }
 

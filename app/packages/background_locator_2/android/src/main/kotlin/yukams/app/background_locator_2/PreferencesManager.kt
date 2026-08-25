@@ -178,6 +178,22 @@ class PreferencesManager {
         }
 
         @JvmStatic
+        fun setMotionState(context: Context, state: String) {
+            context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(Keys.MOTION_STATE_KEY, state)
+                    .apply()
+        }
+
+        @JvmStatic
+        fun getMotionState(context: Context): String {
+            return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+                    .getString(Keys.MOTION_STATE_KEY, "") ?: ""
+        }
+    }
+}
+
+        @JvmStatic
         fun setDataCallback(context: Context, key: String, data: Map<*, *>?) {
             if (data == null) {
                 context.getSharedPreferences(Keys.SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)

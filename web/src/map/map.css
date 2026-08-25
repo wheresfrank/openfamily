@@ -395,6 +395,31 @@
   margin-top: 2px;
 }
 
+/* Inline "request fresh location" affordance on stale member rows. */
+.wb-member-row-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  align-self: center;
+  width: 28px;
+  height: 28px;
+  margin-left: var(--space-2);
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  color: var(--accent);
+  cursor: pointer;
+}
+.wb-member-row-refresh:hover,
+.wb-member-row-refresh:focus-visible {
+  background: var(--surface-hover);
+  outline: none;
+}
+.wb-member-row-refresh-busy {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 /* Panel collapsed re-open tab. */
 .wb-panel-open {
   position: absolute;
