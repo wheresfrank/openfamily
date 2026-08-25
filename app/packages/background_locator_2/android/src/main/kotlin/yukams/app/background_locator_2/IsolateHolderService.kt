@@ -74,6 +74,9 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
     private var notificationIconColor = 0
     private var icon = 0
     private var locatorClient: BLLocationProvider? = null
+    private val serviceHandler by lazy { Handler(mainLooper) }
+    private var usingGoogleLocationClient = false
+    private var googleFallbackRunnable: Runnable? = null
     private var wakeLock: PowerManager.WakeLock? = null
     internal lateinit var backgroundChannel: MethodChannel
     internal var context: Context? = null
@@ -210,8 +213,8 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         notificationIconColor =
             intent.getLongExtra(Keys.SETTINGS_ANDROID_NOTIFICATION_ICON_COLOR, 0).toInt()
 
-        locatorClient = context?.let { getLocationClient(it) }
-        locatorClient?.requestLocationUpdates(getLocationRequest(intent))
+        val request = getLocationRequest(intent)
+        context?.let { startLocationClient(it, request) }
 
         // Fill pluggable list
         if (intent.hasExtra(Keys.SETTINGS_INIT_PLUGGABLE)) {
@@ -229,6 +232,10 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         Log.e("IsolateHolderService", "shutdownHolderService")
         wakeLock?.takeIf { it.isHeld }?.release()
         wakeLock = null
+
+        googleFallbackRunnable?.let { serviceHandler.removeCallbacks(it) }
+        googleFallbackRunnable = null
+        usingGoogleLocationClient = false
 
         locatorClient?.removeLocationUpdates()
         stopForeground(true)
@@ -296,15 +303,88 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
     }
 
 
-    private fun getLocationClient(context: Context): BLLocationProvider {
-        return when (PreferencesManager.getLocationClient(context)) {
-            LocationClient.Google -> GoogleLocationProviderClient(context, this)
-            LocationClient.Android -> AndroidLocationProviderClient(context, this)
+    private fun startLocationClient(context: Context, request: LocationRequestOptions) {
+        when (PreferencesManager.getLocationClient(context)) {
+            LocationClient.Google -> {
+                try {
+                    val googleClient = GoogleLocationProviderClient(context, this) { error ->
+                        Log.w(
+                            "IsolateHolderService",
+                            "Google location request failed; using Android LocationManager",
+                            error
+                        )
+                        fallBackToAndroid(request)
+                    }
+                    locatorClient = googleClient
+                    usingGoogleLocationClient = true
+                    googleClient.requestLocationUpdates(request)
+                    scheduleSilentGoogleFallback(request)
+                } catch (error: Exception) {
+                    Log.w(
+                        "IsolateHolderService",
+                        "Google location unavailable; using Android LocationManager",
+                        error
+                    )
+                    fallBackToAndroid(request)
+                }
+            }
+            LocationClient.Android -> {
+                usingGoogleLocationClient = false
+                locatorClient = AndroidLocationProviderClient(context, this).also {
+                    it.requestLocationUpdates(request)
+                }
+            }
         }
+    }
+
+    /**
+     * Fused Location can be present but unusable (for example when Google Play
+     * Services is absent or its location permission is unavailable). Switch
+     * the already-running foreground service to Android's platform GPS/network
+     * providers instead of silently running without updates.
+     */
+    @Synchronized
+    private fun fallBackToAndroid(request: LocationRequestOptions) {
+        if (locatorClient is AndroidLocationProviderClient) return
+        googleFallbackRunnable?.let { serviceHandler.removeCallbacks(it) }
+        googleFallbackRunnable = null
+        usingGoogleLocationClient = false
+        try {
+            locatorClient?.removeLocationUpdates()
+        } catch (_: Exception) {
+            // The failed Google client may not have registered a callback.
+        }
+        locatorClient = AndroidLocationProviderClient(this, this).also {
+            it.requestLocationUpdates(request)
+        }
+    }
+
+    /** Some Fused Location implementations accept the request but never call
+     * either success or failure. If no first fix arrives, use AOSP after one
+     * configured interval plus a small grace period. */
+    private fun scheduleSilentGoogleFallback(request: LocationRequestOptions) {
+        googleFallbackRunnable?.let { serviceHandler.removeCallbacks(it) }
+        val runnable = Runnable {
+            if (usingGoogleLocationClient) {
+                Log.w(
+                    "IsolateHolderService",
+                    "Google location produced no first update; using Android LocationManager"
+                )
+                fallBackToAndroid(request)
+            }
+        }
+        googleFallbackRunnable = runnable
+        val delayMs = (request.interval + 15_000L).coerceIn(30_000L, 120_000L)
+        serviceHandler.postDelayed(runnable, delayMs)
     }
 
     override fun onLocationUpdated(location: HashMap<Any, Any>?) {
         try {
+            if (usingGoogleLocationClient) {
+                googleFallbackRunnable?.let { serviceHandler.removeCallbacks(it) }
+                googleFallbackRunnable = null
+                usingGoogleLocationClient = false
+            }
             context?.let {
                 FlutterInjector.instance().flutterLoader().ensureInitializationComplete(
                     it, null

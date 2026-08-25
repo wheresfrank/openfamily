@@ -175,7 +175,9 @@ func (s *Server) IngestLocation(w http.ResponseWriter, r *http.Request) {
 			defer cancel()
 			s.evaluateGeofences(evalCtx, ownerID, req.Lon, req.Lat, ts)
 		}()
-		go s.broadcastPresence(ownerID, ts, req.BatteryPct)
+		// Presence is liveness, so use server receipt time rather than the GPS
+		// fix timestamp. A delayed fix must never move "last seen" backwards.
+		go s.broadcastPresence(ownerID, time.Now().UTC(), req.BatteryPct)
 
 		writeJSON(w, http.StatusOK, map[string]any{
 			"status": "deduplicated",
@@ -257,6 +259,7 @@ func (s *Server) IngestLocation(w http.ResponseWriter, r *http.Request) {
 			Lat:            req.Lat,
 			Lon:            req.Lon,
 			TS:             ts,
+			LastSeenAt:     time.Now().UTC(),
 			BatteryPct:     req.BatteryPct,
 			SpeedMPS:       req.SpeedMPS,
 			MotionState:    motionState,

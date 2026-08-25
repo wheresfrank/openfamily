@@ -947,6 +947,40 @@
   background: var(--purple-dark);
   color: var(--on-accent);
 }
+.wb-member-card-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-4);
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.wb-member-card-refresh:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+.wb-member-card-refresh:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.wb-member-card-refresh-status {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+  line-height: 1.35;
+  text-align: center;
+}
+.wb-member-card-refresh + .wb-member-card-refresh-status + .wb-member-card-history,
+.wb-member-card-refresh + .wb-member-card-history {
+  margin-top: var(--space-3);
+}
 
 /* Responsive: on narrow screens, collapse the panel below the switcher. */
 @media (max-width: 640px) {

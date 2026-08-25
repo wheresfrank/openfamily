@@ -4,7 +4,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import com.google.android.gms.location.*
 
-class GoogleLocationProviderClient(context: Context, override var listener: LocationUpdateListener?) : BLLocationProvider {
+class GoogleLocationProviderClient(
+    context: Context,
+    override var listener: LocationUpdateListener?,
+    private val onRequestFailure: ((Exception) -> Unit)? = null
+) : BLLocationProvider {
     private val client: FusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
     private val locationCallback = LocationListener(listener)
 
@@ -15,6 +19,7 @@ class GoogleLocationProviderClient(context: Context, override var listener: Loca
     @SuppressLint("MissingPermission")
     override fun requestLocationUpdates(request: LocationRequestOptions) {
         client.requestLocationUpdates(getLocationRequest(request), locationCallback, null)
+            .addOnFailureListener { error -> onRequestFailure?.invoke(error) }
     }
 
     private fun getLocationRequest(request: LocationRequestOptions): LocationRequest {

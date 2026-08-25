@@ -1,0 +1,207 @@
+import 'dart:convert';
+
+import 'package:battery_plus/battery_plus.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'api_client.dart';
+import 'device_service.dart';
+import 'location_sharing_service.dart';
+
+enum LocationRefreshResult {
+  notCommand,
+  expired,
+  duplicate,
+  sharingDisabled,
+  locationSent,
+  heartbeatSent,
+  failed,
+}
+
+class LocationRefreshCommand {
+  const LocationRefreshCommand({
+    required this.requestId,
+    required this.expiresAt,
+  });
+
+  final String requestId;
+  final DateTime expiresAt;
+
+  static LocationRefreshCommand? parse(String raw) {
+    try {
+      final dynamic decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic> ||
+          decoded['type'] != 'location_request') {
+        return null;
+      }
+      final String? requestId = decoded['request_id'] as String?;
+      final String? expiresAt = decoded['expires_at'] as String?;
+      final DateTime? expiry = DateTime.tryParse(expiresAt ?? '')?.toUtc();
+      if (requestId == null ||
+          requestId.isEmpty ||
+          requestId.length > 128 ||
+          expiry == null) {
+        return null;
+      }
+      return LocationRefreshCommand(
+        requestId: requestId,
+        expiresAt: expiry,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+typedef RefreshSharingEnabled = Future<bool> Function();
+typedef RefreshGetPosition = Future<Position> Function();
+typedef RefreshGetDeviceId = Future<String> Function();
+typedef RefreshGetBattery = Future<int?> Function();
+typedef RefreshPost = Future<dynamic> Function(
+  String path,
+  Map<String, dynamic> body,
+);
+typedef RefreshWasProcessed = Future<bool> Function(String requestId);
+typedef RefreshMarkProcessed = Future<void> Function(String requestId);
+
+/// Executes a short-lived location request received over UnifiedPush.
+///
+/// Dependencies are injectable so expiry, duplicate delivery, GPS failure,
+/// and successful uploads can be unit tested without native plugins.
+class LocationRefreshHandler {
+  LocationRefreshHandler({
+    required this.sharingEnabled,
+    required this.getPosition,
+    required this.getDeviceId,
+    required this.getBattery,
+    required this.post,
+    required this.wasProcessed,
+    required this.markProcessed,
+    DateTime Function()? now,
+  }) : now = now ?? (() => DateTime.now().toUtc());
+
+  final RefreshSharingEnabled sharingEnabled;
+  final RefreshGetPosition getPosition;
+  final RefreshGetDeviceId getDeviceId;
+  final RefreshGetBattery getBattery;
+  final RefreshPost post;
+  final RefreshWasProcessed wasProcessed;
+  final RefreshMarkProcessed markProcessed;
+  final DateTime Function() now;
+
+  Future<LocationRefreshResult> handle(String raw) async {
+    final LocationRefreshCommand? command = LocationRefreshCommand.parse(raw);
+    if (command == null) return LocationRefreshResult.notCommand;
+    if (!command.expiresAt.isAfter(now())) return LocationRefreshResult.expired;
+    if (await wasProcessed(command.requestId)) {
+      return LocationRefreshResult.duplicate;
+    }
+    await markProcessed(command.requestId);
+    if (!await sharingEnabled()) return LocationRefreshResult.sharingDisabled;
+
+    String deviceId;
+    int? batteryPct;
+    try {
+      deviceId = await getDeviceId();
+      batteryPct = await getBattery();
+    } catch (_) {
+      return LocationRefreshResult.failed;
+    }
+
+    try {
+      final Position position = await getPosition();
+      if (position.isMocked) return LocationRefreshResult.failed;
+      final Map<String, dynamic> body = <String, dynamic>{
+        'device_id': deviceId,
+        'ts': position.timestamp.toUtc().toIso8601String(),
+        'lat': position.latitude,
+        'lon': position.longitude,
+        'accuracy_meters': position.accuracy,
+        'altitude_meters': position.altitude,
+        'source': 'requested',
+      };
+      if (position.speed >= 0) body['speed_mps'] = position.speed;
+      if (position.heading >= 0) body['heading_deg'] = position.heading;
+      if (batteryPct != null) body['battery_pct'] = batteryPct;
+      await post('/locations', body);
+      return LocationRefreshResult.locationSent;
+    } catch (_) {
+      // A heartbeat lets viewers distinguish a reachable phone from one that
+      // is entirely offline, without inventing or moving its last position.
+      try {
+        final Map<String, dynamic> body = <String, dynamic>{
+          'device_id': deviceId,
+        };
+        if (batteryPct != null) body['battery_pct'] = batteryPct;
+        await post('/devices/heartbeat', body);
+        return LocationRefreshResult.heartbeatSent;
+      } catch (_) {
+        return LocationRefreshResult.failed;
+      }
+    }
+  }
+}
+
+class LocationRefreshService {
+  LocationRefreshService._();
+
+  static const String _processedKey = 'processed_location_request_ids';
+  static const int _maxProcessedIds = 32;
+
+  static final LocationRefreshHandler _handler = LocationRefreshHandler(
+    sharingEnabled: LocationSharingService.load,
+    getPosition: () async {
+      final LocationPermission permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.always) {
+        throw StateError('background location permission is not granted');
+      }
+      return Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 20),
+        ),
+      );
+    },
+    getDeviceId: DeviceService.ensureRegistered,
+    getBattery: () async {
+      try {
+        return await Battery().batteryLevel;
+      } catch (_) {
+        return null;
+      }
+    },
+    post: (String path, Map<String, dynamic> body) =>
+        ApiClient.post(path, body: body),
+    wasProcessed: _wasProcessed,
+    markProcessed: _markProcessed,
+  );
+
+  static Future<LocationRefreshResult> handlePush(String body) =>
+      _handler.handle(body);
+
+  static Future<Map<String, dynamic>> request(String memberId) async {
+    final dynamic response = await ApiClient.post(
+      '/family/members/${Uri.encodeComponent(memberId)}/location-request',
+    );
+    return response as Map<String, dynamic>;
+  }
+
+  static Future<bool> _wasProcessed(String requestId) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return (prefs.getStringList(_processedKey) ?? const <String>[])
+        .contains(requestId);
+  }
+
+  static Future<void> _markProcessed(String requestId) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<String> ids = <String>[
+      requestId,
+      ...(prefs.getStringList(_processedKey) ?? const <String>[])
+          .where((String id) => id != requestId),
+    ];
+    await prefs.setStringList(
+      _processedKey,
+      ids.take(_maxProcessedIds).toList(growable: false),
+    );
+  }
+}

@@ -23,8 +23,8 @@ Member memberFromJson(Map<String, dynamic> json) {
   final int avatarVersion = _parseAvatarVersion(json['avatar_version']) ?? 0;
 
   final LatLng? position = (lat != null && lon != null)
-       ? LatLng(lat.toDouble(), lon.toDouble())
-       : null;
+      ? LatLng(lat.toDouble(), lon.toDouble())
+      : null;
   final DateTime? timestamp = _parseTs(ts);
   // The backend also reports `last_seen_at` (the freshest device
   // heartbeat/ingest time across the member's devices), which can be newer
@@ -100,9 +100,14 @@ Member memberFromLocationUpdate(Member existing, Map<String, dynamic> json) {
   final LatLng? position = (lat != null && lon != null)
       ? LatLng(lat.toDouble(), lon.toDouble())
       : existing.position;
-  // A `location` frame may omit `ts`; fall back to the member's last-seen time
-  // so a missing timestamp does not spuriously flip them to "stopped".
-  final DateTime? timestamp = _parseTs(ts) ?? existing.lastSeen;
+  // Location time describes the fix; last_seen_at describes when the server
+  // heard from the phone. Never let an older/delayed fix regress liveness that
+  // a newer heartbeat already established.
+  final DateTime? fixTimestamp = _parseTs(ts);
+  final DateTime? timestamp = _newer(
+    existing.lastSeen,
+    _newer(fixTimestamp, _parseTs(json['last_seen_at'])),
+  );
   // A `location` frame may omit `motion_state` (the backend emits null when the
   // value is empty); keep the existing movement rather than dropping a driving
   // member back to "none".

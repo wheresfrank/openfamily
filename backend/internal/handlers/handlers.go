@@ -105,11 +105,21 @@ type Server struct {
 
 	// hub fans out live location updates to connected WebSocket clients.
 	hub *hub
+
+	// locationRequests coalesces simultaneous on-demand refreshes and prevents
+	// repeated map taps from waking the same phone more than once per cooldown.
+	locationRequests *locationRequestGate
 }
 
 // New builds a Server.
 func New(pool *pgxpool.Pool, tm *auth.TokenManager, push push.Dispatcher) *Server {
-	return &Server{Pool: pool, TM: tm, Push: push, hub: newHub()}
+	return &Server{
+		Pool:             pool,
+		TM:               tm,
+		Push:             push,
+		hub:              newHub(),
+		locationRequests: newLocationRequestGate(),
+	}
 }
 
 // familyIDForUser resolves a user's current family ID from the database. It
