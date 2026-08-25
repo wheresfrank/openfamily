@@ -249,12 +249,12 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
                     updateNotification(intent)
                 }
             }
-            ACTION_HEARTBEAT == intent?.action -> {
+            Keys.ACTION_HEARTBEAT == intent?.action -> {
                 if (isServiceRunning) {
                     dispatchHeartbeat(this)
                 }
             }
-            ACTION_ACTIVITY_CHANGE == intent?.action -> {
+            Keys.ACTION_ACTIVITY_CHANGE == intent?.action -> {
                 if (isServiceRunning) {
                     applyMotionProfileInternal(
                         intent.getBooleanExtra(Keys.EXTRA_IS_MOVING, false),

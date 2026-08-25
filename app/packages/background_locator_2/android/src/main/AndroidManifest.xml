@@ -1,4 +1,5 @@
-<manifest package="yukams.app.background_locator_2">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="yukams.app.background_locator_2">
     <application>
         <!-- Fires on the repeating liveness alarm (see HeartbeatScheduler). -->
         <receiver

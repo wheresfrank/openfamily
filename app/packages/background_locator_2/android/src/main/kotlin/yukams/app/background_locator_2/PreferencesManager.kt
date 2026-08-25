@@ -190,8 +190,6 @@ class PreferencesManager {
             return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
                     .getString(Keys.MOTION_STATE_KEY, "") ?: ""
         }
-    }
-}
 
         @JvmStatic
         fun setDataCallback(context: Context, key: String, data: Map<*, *>?) {
