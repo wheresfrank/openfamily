@@ -19,6 +19,7 @@ import { ThemeToggle } from '../components/ThemeToggle'
 import { Button, Card, CopyButton, Mono, Spinner } from '../components/primitives'
 import { ServerUpdateCard } from './ServerUpdateCard'
 import { TwilioSettingsCard } from './TwilioSettingsCard'
+import { DomainSettingsCard } from './DomainSettingsCard'
 import './pages.css'
 import './SettingsPage.css'
 
@@ -325,6 +326,11 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
             </p>
             <ThemeToggle />
           </Card>
+
+          {/* Domain status is a read-only mirror of the deployment's
+              SITE_ADDRESS plus live DNS/TLS checks. Always shown for platform
+              admins — including before a domain exists, with the setup guide. */}
+          {isPlatformAdmin && <DomainSettingsCard />}
 
           {/* Twilio SMS is a server-wide setting: platform admins only. The
               apps never expose it to regular users either. */}
