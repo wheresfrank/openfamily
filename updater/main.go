@@ -190,10 +190,12 @@ func (u *updater) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		st = jobState{Status: jobIdle}
 	}
+	currentRef, _ := gitRev(u.repoDir)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"available": true,
-		"busy":      busy,
-		"job":       st,
+		"available":   true,
+		"busy":        busy,
+		"job":         st,
+		"current_ref": currentRef,
 	})
 }
 
@@ -279,6 +281,7 @@ func (u *updater) run(st jobState) {
 	// only touches services whose build inputs or config changed, so an
 	// api-only code change leaves postgres, ntfy, and caddy untouched.
 	up := exec.Command("docker", "compose", "--project-directory", u.repoDir, "up", "-d", "--build")
+	up.Env = append(os.Environ(), "GIT_COMMIT="+newRef)
 	up.Stdout, up.Stderr = logFile, logFile
 	if err := runWithTimeout(up); err != nil {
 		fail("docker compose up failed: %v", err)

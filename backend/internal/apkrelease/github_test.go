@@ -12,7 +12,46 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
+
+func TestLatestInfoReturnsAPKReleaseMetadata(t *testing.T) {
+	published := time.Date(2026, time.August, 24, 22, 15, 0, 0, time.UTC)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/repos/acme/openfamily/releases/latest" {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(release{
+			TagName:     "apk-42",
+			Name:        "OpenFamily 0.4.2",
+			Body:        "Faster location updates.",
+			HTMLURL:     "https://github.com/acme/openfamily/releases/tag/apk-42",
+			PublishedAt: published,
+			Assets: []asset{{
+				ID:   42,
+				Name: "openfamily-0.4.2.apk",
+				Size: 19_200_000,
+			}},
+		})
+	}))
+	defer srv.Close()
+
+	got, err := LatestInfo(context.Background(), Options{
+		Repo:   "acme/openfamily",
+		API:    srv.URL,
+		Client: srv.Client(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.TagName != "apk-42" || got.Name != "OpenFamily 0.4.2" || got.AssetName != "openfamily-0.4.2.apk" {
+		t.Fatalf("unexpected release info: %+v", got)
+	}
+	if got.AssetSize != 19_200_000 || !got.PublishedAt.Equal(published) {
+		t.Fatalf("unexpected asset metadata: %+v", got)
+	}
+}
 
 func TestSyncDownloadsAndCaches(t *testing.T) {
 	dir := t.TempDir()
@@ -118,7 +157,7 @@ func TestSyncRedownloadsWhenAssetChanges(t *testing.T) {
 	}
 }
 
-func TestSyncPrivateRepoWithoutToken(t *testing.T) {
+func TestSyncReportsMissingRelease(t *testing.T) {
 	dir := t.TempDir()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
@@ -129,8 +168,8 @@ func TestSyncPrivateRepoWithoutToken(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !strings.Contains(err.Error(), "APK_GITHUB_TOKEN") {
-		t.Fatalf("error should mention the token: %v", err)
+	if !strings.Contains(err.Error(), "GitHub returned 404") {
+		t.Fatalf("error should report the missing release: %v", err)
 	}
 }
 

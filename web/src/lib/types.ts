@@ -167,6 +167,26 @@ export interface UpdateStatus {
   check_error?: string
 }
 
+export interface ApkReleaseInfo {
+  tag_name: string
+  name?: string
+  body?: string
+  html_url?: string
+  published_at?: string
+  asset_name: string
+  asset_size: number
+}
+
+export interface ApkStatus {
+  status: 'idle' | 'building' | 'success' | 'failed'
+  started_at?: string
+  finished_at?: string
+  artifact_path?: string
+  last_error?: string
+  release?: ApkReleaseInfo
+  release_error?: string
+}
+
 /** A saved place as returned by GET /family/places (snake_case backend shape). */
 export interface FamilyPlace {
   id: string
