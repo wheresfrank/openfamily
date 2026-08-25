@@ -9,6 +9,7 @@ import 'package:battery_plus/battery_plus.dart';
 import 'package:geolocator/geolocator.dart'
     hide AndroidSettings, LocationAccuracy;
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'background_credential_store.dart';
 import 'token_storage.dart';
@@ -36,6 +37,55 @@ import 'token_storage.dart';
 
 /// How long to wait for a single HTTP request before giving up.
 const Duration _httpTimeout = Duration(seconds: 15);
+
+/// Preference key holding the most recent motion classification written by
+/// the native activity-recognition receiver ("driving", "walking", ... or
+/// "" when unknown). Must match Keys.MOTION_STATE_KEY on the Android side.
+const String _motionStateKey = 'wb_motion_state';
+
+/// Top-level liveness callback, invoked by the plugin's native alarm (roughly
+/// every 10 minutes) even when no location fixes are produced — the device
+/// stationary, GPS deferred by the OS power manager, etc. POSTs a bare
+/// heartbeat so the family's "last seen" stays fresh without a location row.
+@pragma('vm:entry-point')
+Future<void> onHeartbeatTick() async {
+  try {
+    final String? apiBaseUrl = await BackgroundCredentialStore.readApiBaseUrl();
+    final String? accessToken =
+        await BackgroundCredentialStore.readAccessToken();
+    final String? deviceId = await BackgroundCredentialStore.readDeviceId();
+    if (apiBaseUrl == null ||
+        apiBaseUrl.isEmpty ||
+        accessToken == null ||
+        accessToken.isEmpty ||
+        deviceId == null ||
+        deviceId.isEmpty) {
+      return;
+    }
+
+    final int? batteryPct = await _readBattery();
+    final Map<String, dynamic> body = <String, dynamic>{'device_id': deviceId};
+    if (batteryPct != null) body['battery_pct'] = batteryPct;
+
+    http.Response response = await _post(apiBaseUrl, accessToken,
+        '/devices/heartbeat', body);
+    if (response.statusCode == 204 || response.statusCode == 200) return;
+
+    if (response.statusCode == 401) {
+      // Same refresh path as the location callback: read the refresh token
+      // from secure storage, rotate, retry once.
+      final String? refreshToken = await _readRefreshToken();
+      if (refreshToken == null || refreshToken.isEmpty) return;
+      final String? newAccess = await _refresh(apiBaseUrl, refreshToken);
+      if (newAccess == null) return;
+      response =
+          await _post(apiBaseUrl, newAccess, '/devices/heartbeat', body);
+      // Any status here is terminal for this tick; the next alarm retries.
+    }
+  } catch (_) {
+    // Never throw from the background callback.
+  }
+}
 
 /// Top-level location callback, invoked by the plugin in the background isolate.
 ///
@@ -66,10 +116,12 @@ Future<void> onLocationUpdate(LocationDto location) async {
     }
 
     final int? batteryPct = await _readBattery();
-    final Map<String, dynamic> body = _buildBody(location, deviceId, batteryPct);
+    final String? motionState = await _readMotionState();
+    final Map<String, dynamic> body = _buildBody(location, deviceId, batteryPct,
+        motionState: motionState);
 
     final http.Response response =
-        await _postLocation(apiBaseUrl, accessToken, body);
+        await _post(apiBaseUrl, accessToken, '/locations', body);
     // 201 = stored; 200 = stationary-deduped (the server refreshed liveness
     // and skipped the locations row). Both are successes.
     if (response.statusCode == 201 || response.statusCode == 200) return;
@@ -83,7 +135,7 @@ Future<void> onLocationUpdate(LocationDto location) async {
       if (refreshToken == null || refreshToken.isEmpty) return;
       final String? newAccess = await _refresh(apiBaseUrl, refreshToken);
       if (newAccess == null) return; // Refresh failed; foreground re-logs in.
-      await _postLocation(apiBaseUrl, newAccess, body);
+      await _post(apiBaseUrl, newAccess, '/locations', body);
       // 201 / 400 / anything else: done for this update.
     }
     // 400 (stale ts / non-monotonic) and all other statuses: skip silently.
@@ -105,12 +157,24 @@ Future<int?> _readBattery() async {
   }
 }
 
+/// Reads the most recent motion classification written by the native
+/// activity-recognition receiver, or null when unavailable.
+Future<String?> _readMotionState() async {
+  try {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_motionStateKey);
+  } catch (_) {
+    return null;
+  }
+}
+
 /// Builds the `POST /locations` body from a [LocationDto].
 Map<String, dynamic> _buildBody(
   LocationDto location,
   String deviceId,
-  int? batteryPct,
-) {
+  int? batteryPct, {
+  String? motionState,
+}) {
   final Map<String, dynamic> body = <String, dynamic>{
     'device_id': deviceId,
     'ts': DateTime.fromMillisecondsSinceEpoch(
@@ -119,7 +183,7 @@ Map<String, dynamic> _buildBody(
     ).toUtc().toIso8601String(),
     'lat': location.latitude,
     'lon': location.longitude,
-    'motion_state': '',
+    'motion_state': motionState ?? '',
     'source': 'background',
   };
   if (batteryPct != null) body['battery_pct'] = batteryPct;
@@ -131,15 +195,16 @@ Map<String, dynamic> _buildBody(
   return body;
 }
 
-/// POSTs a location report with the given access token.
-Future<http.Response> _postLocation(
+/// POSTs a JSON body to the API with the given access token.
+Future<http.Response> _post(
   String apiBaseUrl,
   String accessToken,
+  String path,
   Map<String, dynamic> body,
 ) {
   return http
       .post(
-        Uri.parse('$apiBaseUrl/locations'),
+        Uri.parse('$apiBaseUrl$path'),
         headers: <String, String>{
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
@@ -219,9 +284,15 @@ class BackgroundLocationService {
 
   /// Starts background location tracking.
   ///
-  /// Tuned for battery: a 60-second interval and 50-meter distance filter are
-  /// far less aggressive than the foreground reporter's continuous 10-meter
-  /// stream, while still keeping the family's view of the user fresh.
+  /// Tuned for battery: a 60-second interval is far less aggressive than the
+  /// foreground reporter's continuous 10-meter stream, while still keeping the
+  /// family's view of the user fresh. The distance filter is deliberately zero:
+  /// with a displacement filter a stationary device produces no fixes at all,
+  /// which would silence both position updates and liveness. The server dedups
+  /// stationary points, so periodic fixes cost no storage and keep "last seen"
+  /// fresh. While stationary the native side further drops to a slow,
+  /// low-power request profile (see ActivityTransitionsManager), and the
+  /// native liveness alarm drives [onHeartbeatTick] as a safety net.
   static Future<void> start() async {
     _shouldRun = true;
     await BackgroundLocator.initialize();
@@ -244,10 +315,11 @@ class BackgroundLocationService {
     try {
       await BackgroundLocator.registerLocationUpdate(
         onLocationUpdate,
+        heartbeatCallback: onHeartbeatTick,
         androidSettings: const AndroidSettings(
           accuracy: LocationAccuracy.HIGH,
           interval: 60,
-          distanceFilter: 50,
+          distanceFilter: 0,
           wakeLockTime: 60,
           client: LocationClient.google,
           androidNotificationSettings: AndroidNotificationSettings(

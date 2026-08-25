@@ -29,6 +29,9 @@ class BackgroundLocator {
       {void Function(Map<String, dynamic>)? initCallback,
       Map<String, dynamic> initDataCallback = const {},
       void Function()? disposeCallback,
+      /// Invoked on a native liveness alarm (roughly every 10 minutes) so the
+      /// app can report presence even when no location fixes are produced.
+      void Function()? heartbeatCallback,
       bool autoStop = false,
       AndroidSettings androidSettings = const AndroidSettings(),
       IOSSettings iosSettings = const IOSSettings()}) async {
@@ -41,6 +44,7 @@ class BackgroundLocator {
         initCallback: initCallback,
         initDataCallback: initDataCallback,
         disposeCallback: disposeCallback,
+        heartbeatCallback: heartbeatCallback,
         androidSettings: androidSettings,
         iosSettings: iosSettings);
 

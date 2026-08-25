@@ -9,6 +9,8 @@ const String _instance = 'default';
 Future<void> initUnifiedPush({
   required Future<void> Function(String endpoint) onNewEndpoint,
   required Future<void> Function(String body) onMessage,
+  Future<void> Function()? onUnregistered,
+  Future<void> Function(String reason)? onRegistrationFailed,
 }) async {
   if (!Platform.isAndroid) return;
   await UnifiedPush.initialize(
@@ -21,8 +23,14 @@ Future<void> initUnifiedPush({
       final String body = utf8.decode(message.content, allowMalformed: true);
       onMessage(body);
     },
-    onRegistrationFailed: (FailedReason reason, String instance) {},
-    onUnregistered: (String instance) {},
+    onRegistrationFailed: (FailedReason reason, String instance) {
+      if (instance != _instance) return;
+      onRegistrationFailed?.call(reason.toString());
+    },
+    onUnregistered: (String instance) {
+      if (instance != _instance) return;
+      onUnregistered?.call();
+    },
   );
 }
 

@@ -10,7 +10,7 @@ import {
   StatusAvatar,
   statusLabel,
 } from "./memberBubble";
-import { isSpeeding, lastSeenLabel } from "./status";
+import { isSpeeding, lastSeenLabel, STALE_AFTER_MS } from "./status";
 import type { Member } from "./types";
 import { EmptyState } from "../components/primitives";
 
@@ -25,6 +25,18 @@ export interface MemberListProps {
   title: string;
   /** Reference "now" (epoch ms) used for last-seen labels; advances on a timer. */
   nowMs: number;
+  /**
+   * When provided, members whose last report is older than STALE_AFTER_MS
+   * show an inline "request fresh fix" affordance. Omit to hide it.
+   */
+  onRequestLocation?: (member: Member) => void;
+  /** The member whose location request is currently in flight, if any. */
+  requestingMemberId?: string | null;
+}
+
+/** Whether a member's last report is old enough to offer a refresh action. */
+function isStale(member: Member, nowMs: number): boolean {
+  return member.lastSeen == null || nowMs - member.lastSeen > STALE_AFTER_MS;
 }
 
 export function MemberList({
@@ -35,6 +47,8 @@ export function MemberList({
   onToggleCollapsed,
   title,
   nowMs,
+  onRequestLocation,
+  requestingMemberId = null,
 }: MemberListProps): JSX.Element {
   const [query, setQuery] = useState("");
 
@@ -156,6 +170,35 @@ export function MemberList({
                 <span className="wb-member-row-mover" style={{ color: "var(--accent-ink)" }}>
                   <MovementGlyph movement={m.movement} size={20} />
                 </span>
+              ) : onRequestLocation && isStale(m, nowMs) ? (
+                // A stale row gets an inline refresh affordance so pinging a
+                // quiet phone does not require finding and opening its card.
+                // Rendered as a span (rows are buttons; nesting buttons is
+                // invalid HTML) with button semantics via role + keyboard.
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className={`wb-member-row-refresh${requestingMemberId === m.id ? " wb-member-row-refresh-busy" : ""}`}
+                  title={
+                    requestingMemberId === m.id
+                      ? "Requesting…"
+                      : "Ask this phone for a fresh location"
+                  }
+                  aria-label={`Request fresh location for ${m.name}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (requestingMemberId !== m.id) onRequestLocation(m);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (requestingMemberId !== m.id) onRequestLocation(m);
+                    }
+                  }}
+                >
+                  <RefreshGlyph />
+                </span>
               ) : null}
             </button>
           ))
@@ -193,6 +236,14 @@ function ChevronIcon({ dir }: { dir: "right" | "left" }): JSX.Element {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d={d} />
+    </svg>
+  );
+}
+function RefreshGlyph(): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+      <path d="M20 3v4h-4" />
     </svg>
   );
 }

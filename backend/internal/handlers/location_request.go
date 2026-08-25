@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -18,6 +19,16 @@ import (
 const (
 	locationRequestCommandTTL = 30 * time.Second
 	locationRequestCooldown   = 2 * time.Minute
+
+	// A member whose devices have not reported within this window is
+	// considered quiet enough to justify one automatic refresh attempt.
+	staleLocationThreshold = 10 * time.Minute
+
+	// Minimum spacing between automatic refresh attempts for the same member.
+	// Deliberately much longer than the user-facing cooldown: this watchdog is
+	// a background convenience, not a polling loop, and each attempt costs a
+	// push notification plus a GPS fix on the target's phone.
+	staleRequestCooldown = 15 * time.Minute
 )
 
 type locationRequestState struct {
@@ -41,10 +52,10 @@ type locationRequestGate struct {
 	ttl      time.Duration
 }
 
-func newLocationRequestGate() *locationRequestGate {
+func newLocationRequestGate(cooldown time.Duration) *locationRequestGate {
 	return &locationRequestGate{
 		byUser:   make(map[string]locationRequestState),
-		cooldown: locationRequestCooldown,
+		cooldown: cooldown,
 		ttl:      locationRequestCommandTTL,
 	}
 }
@@ -122,30 +133,8 @@ func (s *Server) RequestMemberLocation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := s.Pool.Query(r.Context(), `
-		SELECT unifiedpush_endpoint
-		FROM devices
-		WHERE user_id = $1
-		  AND platform = 'android'
-		  AND unifiedpush_endpoint IS NOT NULL
-		  AND unifiedpush_endpoint <> ''
-		ORDER BY last_seen DESC NULLS LAST, created_at DESC
-		LIMIT 1`, targetID)
+	endpoints, err := s.androidPushEndpoints(r.Context(), targetID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to load member devices")
-		return
-	}
-	defer rows.Close()
-	var endpoints []string
-	for rows.Next() {
-		var endpoint string
-		if err := rows.Scan(&endpoint); err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to scan member device")
-			return
-		}
-		endpoints = append(endpoints, endpoint)
-	}
-	if err := rows.Err(); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to load member devices")
 		return
 	}
@@ -153,7 +142,6 @@ func (s *Server) RequestMemberLocation(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "member has no reachable Android device")
 		return
 	}
-
 	now := time.Now().UTC()
 	requestID, err := newLocationRequestID()
 	if err != nil {
@@ -162,7 +150,7 @@ func (s *Server) RequestMemberLocation(w http.ResponseWriter, r *http.Request) {
 	}
 	gate := s.locationRequests
 	if gate == nil {
-		gate = newLocationRequestGate()
+		gate = newLocationRequestGate(locationRequestCooldown)
 		s.locationRequests = gate
 	}
 	decision := gate.reserve(targetID, requestID, now)
@@ -226,4 +214,131 @@ func encodeLocationRequestCommand(requestID string, now time.Time) ([]byte, loca
 	}
 	body, err := json.Marshal(command)
 	return body, command, err
+}
+
+// androidPushEndpoints lists the registered UnifiedPush endpoints for a
+// member's Android devices, newest-seen first.
+func (s *Server) androidPushEndpoints(ctx context.Context, userID string) ([]string, error) {
+	rows, err := s.Pool.Query(ctx, `
+		SELECT unifiedpush_endpoint
+		FROM devices
+		WHERE user_id = $1
+		  AND platform = 'android'
+		  AND unifiedpush_endpoint IS NOT NULL
+		  AND unifiedpush_endpoint <> ''
+		ORDER BY last_seen DESC NULLS LAST, created_at DESC
+		LIMIT 1`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var endpoints []string
+	for rows.Next() {
+		var endpoint string
+		if err := rows.Scan(&endpoint); err != nil {
+			return nil, err
+		}
+		endpoints = append(endpoints, endpoint)
+	}
+	return endpoints, rows.Err()
+}
+
+// staleRequestGate rate-limits automatic refresh attempts per member. Unlike
+// [locationRequestGate] there is no request id or coalescing: it is purely a
+// per-member cooldown with opportunistic pruning of expired entries.
+type staleRequestGate struct {
+	mu       sync.Mutex
+	lastSent map[string]time.Time
+	cooldown time.Duration
+}
+
+func newStaleRequestGate(cooldown time.Duration) *staleRequestGate {
+	return &staleRequestGate{
+		lastSent: make(map[string]time.Time),
+		cooldown: cooldown,
+	}
+}
+
+// reserve returns true if an automatic refresh may be sent for targetID now.
+func (g *staleRequestGate) reserve(targetID string, now time.Time) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if last, ok := g.lastSent[targetID]; ok && now.Sub(last) < g.cooldown {
+		return false
+	}
+	if len(g.lastSent) > 1024 {
+		// Opportunistic pruning so long uptimes cannot grow the map without
+		// bound; members that went quiet long ago re-qualify normally.
+		for id, t := range g.lastSent {
+			if now.Sub(t) >= g.cooldown {
+				delete(g.lastSent, id)
+			}
+		}
+	}
+	g.lastSent[targetID] = now
+	return true
+}
+
+// MaybeRequestStaleLocations inspects a freshly built family snapshot and asks
+// quiet members' phones for one fresh fix each. This is what lets a viewer who
+// simply opens the family map converge on current positions without tapping
+// anything: stale pins trigger at most one push per member per watchdog
+// cooldown, and the resulting fix arrives over the normal ingest path.
+//
+// Runs entirely in the background; failures are logged, never surfaced — the
+// snapshot response must not depend on push delivery.
+func (s *Server) MaybeRequestStaleLocations(familyID string, members []wsMember) {
+	if s.Push == nil || s.Pool == nil {
+		return
+	}
+	now := time.Now().UTC()
+	watchdog := s.staleWatchdog
+	if watchdog == nil {
+		watchdog = newStaleRequestGate(staleRequestCooldown)
+		s.staleWatchdog = watchdog
+	}
+
+	for _, m := range members {
+		if m.LastSeenAt == nil || now.Sub(*m.LastSeenAt) < staleLocationThreshold {
+			continue
+		}
+		target := m.ID
+		if !watchdog.reserve(target, now) {
+			continue
+		}
+
+		go func(target string) {
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			endpoints, err := s.androidPushEndpoints(ctx, target)
+			if err != nil || len(endpoints) == 0 {
+				return
+			}
+			requestID, err := newLocationRequestID()
+			if err != nil {
+				return
+			}
+			body, _, err := encodeLocationRequestCommand(requestID, time.Now().UTC())
+			if err != nil {
+				return
+			}
+			for _, endpoint := range endpoints {
+				dispatchCtx, cancel := context.WithTimeout(ctx, 12*time.Second)
+				err := s.Push.Dispatch(dispatchCtx, push.Notification{
+					Title:               "OpenFamily location refresh",
+					Body:                string(body),
+					Platform:            "android",
+					UnifiedPushEndpoint: endpoint,
+				})
+				cancel()
+				if err == nil {
+					slog.Info("stale-member refresh requested",
+						"family_id", familyID, "user_id", target)
+					return
+				}
+			}
+			slog.Warn("stale-member refresh could not be delivered", "user_id", target)
+		}(target)
+	}
 }

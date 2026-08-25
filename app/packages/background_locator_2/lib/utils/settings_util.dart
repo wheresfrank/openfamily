@@ -12,12 +12,14 @@ class SettingsUtil {
       void Function(Map<String, dynamic>)? initCallback,
       Map<String, dynamic>? initDataCallback,
       void Function()? disposeCallback,
+      void Function()? heartbeatCallback,
       AndroidSettings androidSettings = const AndroidSettings(),
       IOSSettings iosSettings = const IOSSettings()}) {
     final args = _getCommonArgumentsMap(callback: callback,
         initCallback: initCallback,
         initDataCallback: initDataCallback,
-        disposeCallback: disposeCallback);
+        disposeCallback: disposeCallback,
+        heartbeatCallback: heartbeatCallback);
 
     if (Platform.isAndroid) {
       args.addAll(_getAndroidArgumentsMap(androidSettings));
@@ -32,12 +34,18 @@ class SettingsUtil {
     required void Function(LocationDto) callback,
     void Function(Map<String, dynamic>)? initCallback,
     Map<String, dynamic>? initDataCallback,
-    void Function()? disposeCallback
+    void Function()? disposeCallback,
+    void Function()? heartbeatCallback
   }) {
     final Map<String, dynamic> args = {
       Keys.ARG_CALLBACK:
           PluginUtilities.getCallbackHandle(callback)!.toRawHandle(),
     };
+
+    if (heartbeatCallback != null) {
+      args[Keys.ARG_HEARTBEAT_CALLBACK] =
+          PluginUtilities.getCallbackHandle(heartbeatCallback)!.toRawHandle();
+    }
 
     if (initCallback != null) {
       args[Keys.ARG_INIT_CALLBACK] =

@@ -61,6 +61,11 @@ class BackgroundLocatorPlugin
             val notificationCallback = args[Keys.ARG_NOTIFICATION_CALLBACK] as? Long
             PreferencesManager.setCallbackHandle(context, Keys.NOTIFICATION_CALLBACK_HANDLE_KEY, notificationCallback)
 
+            // Persisted so the liveness alarm can find the Dart entry point
+            // even after the process (or the device) restarts.
+            val heartbeatCallback = args[Keys.ARG_HEARTBEAT_CALLBACK] as? Long
+            PreferencesManager.setCallbackHandle(context, Keys.HEARTBEAT_CALLBACK_HANDLE_KEY, heartbeatCallback)
+
             // Call InitPluggable with initCallbackHandle
             (args[Keys.ARG_INIT_CALLBACK] as? Long)?.let { initCallbackHandle ->
                 val initPluggable = InitPluggable()

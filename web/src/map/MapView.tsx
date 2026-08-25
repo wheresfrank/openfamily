@@ -46,7 +46,9 @@ import {
   applyPresenceUpdate,
   avatarVersionFrom,
   deriveMember,
+  parseTs,
   refreshStaleness,
+  STALE_AFTER_MS,
 } from "./status";
 import type { Group, LatLng, Member, Place, RawMember, StreamFrame } from "./types";
 import { placeBubbleIcon } from "./placeBubble";
@@ -329,36 +331,68 @@ export function MapView(props: MapViewProps): JSX.Element {
     [members, groupFilter],
   );
 
-  const requestSelectedLocation = useCallback(async (): Promise<void> => {
-    if (!selectedMemberId || !token || scope !== "family") return;
-    const memberId = selectedMemberId;
-    setLocationRequest({ memberId, sending: true, message: "Requesting a fresh location…" });
-    try {
+  // Shared requester used by both the member card button and the automatic
+  // refresh of quiet members after load. The backend authorizes same-family
+  // membership (and reports conflicts/unreachability), so this works from
+  // either portal scope.
+  const requestLocation = useCallback(
+    async (memberId: string): Promise<{ ok: boolean; message: string }> => {
+      if (!token) return { ok: false, message: "Not signed in." };
       const base = resolveBase(apiBase);
-      const response = await fetch(
-        `${base}/family/members/${encodeURIComponent(memberId)}/location-request`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      const data = (await response.json().catch(() => ({}))) as {
-        status?: string;
-        error?: string;
-      };
-      if (!response.ok) throw new Error(data.error ?? `Request failed (${response.status})`);
-      const message =
-        data.status === "cooldown"
-          ? "A recent request is still cooling down."
-          : data.status === "coalesced"
-            ? "A location request is already in progress."
-            : "Request sent. The map will update when the phone responds.";
-      setLocationRequest({ memberId, sending: false, message });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not request a location.";
-      setLocationRequest({ memberId, sending: false, message });
-    }
-  }, [apiBase, scope, selectedMemberId, token]);
+      try {
+        const response = await fetch(
+          `${base}/family/members/${encodeURIComponent(memberId)}/location-request`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        const data = (await response.json().catch(() => ({}))) as {
+          status?: string;
+          error?: string;
+        };
+        if (!response.ok) {
+          let message: string;
+          if (response.status === 409) {
+            message =
+              "This phone has no registered push connection. Open the app on the phone once to reconnect it.";
+          } else if (response.status >= 500) {
+            message = "Could not reach the phone right now. Try again shortly.";
+          } else {
+            message = data.error ?? `Request failed (${response.status})`;
+          }
+          return { ok: false, message };
+        }
+        const message =
+          data.status === "cooldown"
+            ? "A recent request is still cooling down."
+            : data.status === "coalesced"
+              ? "A location request is already in progress."
+              : "Request sent. The map will update when the phone responds.";
+        return { ok: true, message };
+      } catch {
+        return { ok: false, message: "Could not reach the server." };
+      }
+    },
+    [apiBase, token],
+  );
+
+  const requestSelectedLocation = useCallback(async (): Promise<void> => {
+    if (!selectedMemberId) return;
+    setLocationRequest({ memberId: selectedMemberId, sending: true, message: "Requesting a fresh location…" });
+    const result = await requestLocation(selectedMemberId);
+    setLocationRequest({ memberId: selectedMemberId, sending: false, message: result.message });
+  }, [requestLocation, selectedMemberId]);
+
+  const requestMemberLocation = useCallback(
+    (member: Member): void => {
+      setLocationRequest({ memberId: member.id, sending: true, message: "Requesting a fresh location…" });
+      void requestLocation(member.id).then((result) => {
+        setLocationRequest({ memberId: member.id, sending: false, message: result.message });
+      });
+    },
+    [requestLocation],
+  );
 
   // --- visible places for the current group filter ---
   const visiblePlaces = useMemo(
@@ -492,6 +526,23 @@ export function MapView(props: MapViewProps): JSX.Element {
         setLoading(false);
         retries = 0;
         connect();
+
+        // A viewer opening the map usually wants current positions, and the
+        // snapshot can only show what the database holds. Ask quiet members'
+        // phones (one or two of them, once per page load) for a fresh fix;
+        // the server rate-limits each member to one attempt per watchdog
+        // window, so this stays cheap even with many viewers. Failures are
+        // silent here — the member card surfaces errors for manual requests.
+        const quiet = raw
+          .map((m) => ({
+            id: m.id,
+            seen: parseTs(m.last_seen_at ?? m.ts),
+          }))
+          .filter((m) => m.seen == null || Date.now() - m.seen > STALE_AFTER_MS)
+          .slice(0, 2);
+        for (const m of quiet) {
+          void requestLocation(m.id);
+        }
       } catch (e) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : "Could not load families. Check your connection and try again.");
@@ -505,7 +556,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       if (reconnectTimer) clearTimeout(reconnectTimer);
       ws?.close();
     };
-  }, [selfManaged, token, apiBase, scope, reloadKey]);
+  }, [selfManaged, token, apiBase, scope, reloadKey, requestLocation]);
 
   /* ----------------------------- staleness timer ----------------------------- */
   useEffect(() => {
@@ -738,6 +789,8 @@ export function MapView(props: MapViewProps): JSX.Element {
         onToggleCollapsed={() => setPanelCollapsed((c) => !c)}
         title={panelTitle}
         nowMs={nowMs}
+        onRequestLocation={selfManaged && token ? requestMemberLocation : undefined}
+        requestingMemberId={locationRequest?.sending ? locationRequest.memberId : null}
       />
 
       {selectedMember && (
@@ -746,7 +799,7 @@ export function MapView(props: MapViewProps): JSX.Element {
           nowMs={nowMs}
           onClose={() => setSelectedMemberId(null)}
           onRequestLocation={
-            selfManaged && scope === "family" && token ? requestSelectedLocation : undefined
+            selfManaged && token ? requestSelectedLocation : undefined
           }
           requestingLocation={
             locationRequest?.memberId === selectedMember.id && locationRequest.sending

@@ -20,6 +20,7 @@ import yukams.app.background_locator_2.pluggables.DisposePluggable
 import yukams.app.background_locator_2.pluggables.InitPluggable
 import yukams.app.background_locator_2.pluggables.Pluggable
 import yukams.app.background_locator_2.provider.*
+import com.google.android.gms.location.LocationRequest
 import java.util.HashMap
 import androidx.core.app.ActivityCompat
 
@@ -54,6 +55,15 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         @JvmStatic
         var isServiceInitialized = false
 
+        /**
+         * The live service instance, if any. Receivers run in the same process
+         * but cannot (and must not — background service-start restrictions)
+         * rebind the service via intents, so they talk to this reference
+         * directly. Null when the tracking service is not running.
+         */
+        @JvmStatic
+        internal var activeInstance: IsolateHolderService? = null
+
         fun getBinaryMessenger(context: Context?): BinaryMessenger? {
             val messenger = backgroundEngine?.dartExecutor?.binaryMessenger
             return messenger
@@ -63,6 +73,37 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
                 }else{
                     messenger
                 }
+        }
+
+        /**
+         * Forwards a liveness-alarm tick into the Dart background isolate,
+         * which POSTs a heartbeat (no location row, no GPS fix). No-op when
+         * the engine or the registered heartbeat callback is missing: without
+         * an active tracking session a bare liveness signal would be wrong.
+         */
+        @JvmStatic
+        fun dispatchHeartbeat(context: Context?) {
+            val appContext = context?.applicationContext ?: return
+            if (backgroundEngine == null) return
+            val callback = PreferencesManager.getCallbackHandle(
+                appContext,
+                Keys.HEARTBEAT_CALLBACK_HANDLE_KEY,
+            ) ?: return
+            val messenger = getBinaryMessenger(appContext) ?: return
+            val channel = MethodChannel(messenger, Keys.BACKGROUND_CHANNEL_ID)
+            Handler(appContext.mainLooper).post {
+                channel.invokeMethod(
+                    Keys.BCM_SEND_HEARTBEAT,
+                    hashMapOf<Any, Any>(Keys.ARG_HEARTBEAT_CALLBACK to callback),
+                )
+            }
+        }
+
+        /** Entry point for movement-state transitions detected by
+         *  [ActivityTransitionsReceiver]. */
+        @JvmStatic
+        internal fun applyMotionProfile(context: Context?, moving: Boolean) {
+            activeInstance?.applyMotionProfileInternal(moving)
         }
     }
 
@@ -82,12 +123,21 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
     internal var context: Context? = null
     private var pluggables: ArrayList<Pluggable> = ArrayList()
 
+    /** The location request the moving-profile was started with, kept so the
+     *  stationary profile can restore it on the next movement transition. */
+    private var activeRequest: LocationRequestOptions? = null
+
+    /** Whether [locatorClient] is currently running the low-power stationary
+     *  profile. Guards against redundant client churn on repeated events. */
+    private var isStillProfile = false
+
     override fun onBind(intent: Intent?): IBinder? {
         return null
     }
 
     override fun onCreate() {
         super.onCreate()
+        activeInstance = this
         startLocatorService(this)
         startForeground(notificationId, getNotification())
     }
@@ -96,6 +146,15 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         // Starting Service as foreground with a notification prevent service from closing
         val notification = getNotification()
         startForeground(notificationId, notification)
+
+        // Keep "last seen" fresh even when no location fixes arrive (device
+        // stationary / GPS deferred by the OS power manager).
+        HeartbeatScheduler.schedule(this)
+
+        // Track movement transitions so GPS sampling can drop to a slow,
+        // low-power profile while stationary; the motion-sensor pipeline that
+        // provides these transitions costs a fraction of continuous GPS.
+        ActivityTransitionsManager.start(this)
 
         pluggables.forEach {
             context?.let { it1 -> it.onServiceStart(it1) }
@@ -190,6 +249,18 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
                     updateNotification(intent)
                 }
             }
+            Keys.ACTION_HEARTBEAT == intent?.action -> {
+                if (isServiceRunning) {
+                    dispatchHeartbeat(this)
+                }
+            }
+            Keys.ACTION_ACTIVITY_CHANGE == intent?.action -> {
+                if (isServiceRunning) {
+                    applyMotionProfileInternal(
+                        intent.getBooleanExtra(Keys.EXTRA_IS_MOVING, false),
+                    )
+                }
+            }
         }
 
         return START_STICKY
@@ -214,6 +285,8 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
             intent.getLongExtra(Keys.SETTINGS_ANDROID_NOTIFICATION_ICON_COLOR, 0).toInt()
 
         val request = getLocationRequest(intent)
+        activeRequest = request
+        isStillProfile = false
         context?.let { startLocationClient(it, request) }
 
         // Fill pluggable list
@@ -232,6 +305,11 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         Log.e("IsolateHolderService", "shutdownHolderService")
         wakeLock?.takeIf { it.isHeld }?.release()
         wakeLock = null
+
+        HeartbeatScheduler.cancel(this)
+        ActivityTransitionsManager.stop(this)
+        activeRequest = null
+        isStillProfile = false
 
         googleFallbackRunnable?.let { serviceHandler.removeCallbacks(it) }
         googleFallbackRunnable = null
@@ -299,12 +377,50 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
 
     override fun onDestroy() {
         isServiceRunning = false
+        activeInstance = null
         super.onDestroy()
     }
 
 
-    private fun startLocationClient(context: Context, request: LocationRequestOptions) {
-        when (PreferencesManager.getLocationClient(context)) {
+    /**
+     * Swaps between the moving and stationary location profiles based on
+     * movement transitions from the activity-recognition pipeline.
+     *
+     * Stationary profile: slow interval, balanced-power priority, no distance
+     * filter — one cheap periodic fix keeps the server's stationary-dedup
+     * path fed so liveness never goes quiet. Moving profile: the user's
+     * configured request. No-op when the requested state is already active.
+     */
+    @Synchronized
+    private fun applyMotionProfileInternal(moving: Boolean) {
+        val base = activeRequest ?: return
+        if (moving == !isStillProfile) return
+
+        val profile = if (moving) {
+            base
+        } else {
+            LocationRequestOptions(
+                interval = maxOf(base.interval, ActivityTransitionsManager.STILL_INTERVAL_MS),
+                accuracy = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY,
+                distanceFilter = 0f,
+            )
+        }
+        isStillProfile = !moving
+        Log.d("IsolateHolderService", "applying ${if (moving) "moving" else "stationary"} location profile")
+
+        googleFallbackRunnable?.let { serviceHandler.removeCallbacks(it) }
+        googleFallbackRunnable = null
+        usingGoogleLocationClient = false
+        try {
+            locatorClient?.removeLocationUpdates()
+        } catch (_: Exception) {
+            // The previous client may not have registered a callback.
+        }
+
+        context?.let { startLocationClient(it, profile) }
+    }
+
+    private fun startLocationClient(context: Context, request: LocationRequestOptions) {        when (PreferencesManager.getLocationClient(context)) {
             LocationClient.Google -> {
                 try {
                     val googleClient = GoogleLocationProviderClient(context, this) { error ->
