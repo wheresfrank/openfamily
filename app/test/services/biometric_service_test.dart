@@ -95,6 +95,61 @@ void main() {
     });
   });
 
+  group('SharedPreferencesLockGraceStore', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+    });
+
+    test('defaults to immediate locking and persists changes', () async {
+      final SharedPreferencesLockGraceStore store =
+          SharedPreferencesLockGraceStore();
+
+      expect(await store.readGrace(), Duration.zero);
+      expect(await store.writeGrace(const Duration(minutes: 5)), isTrue);
+      expect(await store.readGrace(), const Duration(minutes: 5));
+    });
+  });
+
+  group('BiometricService lock grace period', () {
+    test('a failed grace read fails closed to immediate locking', () async {
+      final BiometricService service = BiometricService(
+        authenticator: _FakeAuthenticator(),
+        preferenceStore: _FakePreferenceStore(),
+        graceStore: _FakeLockGraceStore(
+          readError: StateError('read failed'),
+        ),
+      );
+
+      expect(await service.lockGrace(), Duration.zero);
+    });
+
+    test('out-of-range stored grace values collapse to immediate', () async {
+      final BiometricService service = BiometricService(
+        authenticator: _FakeAuthenticator(),
+        preferenceStore: _FakePreferenceStore(),
+        graceStore:
+            _FakeLockGraceStore(grace: const Duration(hours: 2)),
+      );
+
+      expect(await service.lockGrace(), Duration.zero);
+    });
+
+    test('setLockGrace clamps oversize values instead of storing them',
+        () async {
+      final _FakeLockGraceStore store = _FakeLockGraceStore();
+      final BiometricService service = BiometricService(
+        authenticator: _FakeAuthenticator(),
+        preferenceStore: _FakePreferenceStore(),
+        graceStore: store,
+      );
+
+      expect(await service.setLockGrace(const Duration(days: 1)), isTrue);
+      expect(store.grace, Duration.zero);
+      expect(await service.setLockGrace(const Duration(minutes: 5)), isTrue);
+      expect(store.grace, const Duration(minutes: 5));
+    });
+  });
+
   group('BiometricService authentication', () {
     test('propagates enabled-preference read failures for fail-closed callers',
         () async {
@@ -297,6 +352,30 @@ class _FakeAuthenticator implements BiometricAuthenticator {
     if (error != null) {
       throw error;
     }
+  }
+}
+
+class _FakeLockGraceStore implements LockGraceStore {
+  _FakeLockGraceStore({
+    this.grace = Duration.zero,
+    this.readError,
+  });
+
+  Duration grace;
+  final Object? readError;
+
+  @override
+  Future<Duration> readGrace() async {
+    if (readError != null) {
+      throw readError!;
+    }
+    return grace;
+  }
+
+  @override
+  Future<bool> writeGrace(Duration grace) async {
+    this.grace = grace;
+    return true;
   }
 }
 

@@ -22,6 +22,7 @@ class BackgroundCredentialStore {
   static const String _apiBaseUrlKey = 'wb_api_base_url';
   static const String _accessTokenKey = 'wb_access_token';
   static const String _deviceIdKey = 'wb_device_id';
+  static const String _ingestKeyKey = 'wb_ingest_key';
 
   /// Writes the background-visible credentials to shared_preferences.
   static Future<void> sync({
@@ -41,6 +42,7 @@ class BackgroundCredentialStore {
     await prefs.remove(_apiBaseUrlKey);
     await prefs.remove(_accessTokenKey);
     await prefs.remove(_deviceIdKey);
+    await prefs.remove(_ingestKeyKey);
   }
 
   static Future<String?> readApiBaseUrl() async =>
@@ -59,4 +61,18 @@ class BackgroundCredentialStore {
   /// Persists the device id (called from the foreground app after registration).
   static Future<void> saveDeviceId(String id) async =>
       (await SharedPreferences.getInstance()).setString(_deviceIdKey, id);
+
+  /// Persists the device ingest key (returned once at registration or after a
+  /// rotation). The key is a write-only, device-scoped credential: it only
+  /// authorizes POST /locations and POST /devices/heartbeat. It lives here
+  /// (not in secure storage) precisely because the background isolate cannot
+  /// rely on the Keystore-backed secure store in a headless engine; unlike
+  /// the refresh token it carries no read access to any user data, so its
+  /// exposure is limited to fabricated location reports for one device, which
+  /// server-side rotation can revoke.
+  static Future<void> saveIngestKey(String key) async =>
+      (await SharedPreferences.getInstance()).setString(_ingestKeyKey, key);
+
+  static Future<String?> readIngestKey() async =>
+      (await SharedPreferences.getInstance()).getString(_ingestKeyKey);
 }

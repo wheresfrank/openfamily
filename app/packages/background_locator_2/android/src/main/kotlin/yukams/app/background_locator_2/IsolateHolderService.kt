@@ -218,14 +218,23 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.e("IsolateHolderService", "onStartCommand => intent.action : ${intent?.action}")
         if(intent == null) {
+            // The OS restarted the service after killing the process
+            // (START_STICKY). Without re-registering the location client, the
+            // heartbeat alarm, and the motion transitions here, the service
+            // would sit alive but idle — reporting nothing — until the app
+            // was next opened. That was the production cause of background
+            // updates dying silently a while after the app was closed.
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 || ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                Log.e("IsolateHolderService", "app has crashed, stopping it")
+                Log.e("IsolateHolderService", "location permission missing after restart, stopping")
                 stopSelf()
+                return START_NOT_STICKY
             }
-            else {
-                return super.onStartCommand(intent, flags, startId)
+            if (!restartFromStoredSettings()) {
+                stopSelf()
+                return START_NOT_STICKY
             }
+            return START_STICKY
         }
 
         when {
@@ -299,6 +308,47 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
         }
 
         start()
+    }
+
+    /**
+     * Re-arms tracking after an OS-initiated restart (null-intent
+     * onStartCommand), using the settings persisted by the last registration.
+     * Mirrors [startHolderService]: notification chrome, location client,
+     * heartbeat alarm, and movement-transition registration. Returns false
+     * when nothing was ever registered on this device.
+     */
+    private fun restartFromStoredSettings(): Boolean {
+        Log.e("IsolateHolderService", "restarting from stored settings")
+        val settings = PreferencesManager.getSettings(this)[Keys.ARG_SETTINGS] as? Map<*, *>
+            ?: return false
+        val intervalSeconds = (settings[Keys.SETTINGS_INTERVAL] as? Int) ?: 0
+        if (intervalSeconds <= 0) return false // never registered here
+
+        notificationChannelName =
+            (settings[Keys.SETTINGS_ANDROID_NOTIFICATION_CHANNEL_NAME] as? String) ?: notificationChannelName
+        notificationTitle =
+            (settings[Keys.SETTINGS_ANDROID_NOTIFICATION_TITLE] as? String) ?: notificationTitle
+        notificationMsg =
+            (settings[Keys.SETTINGS_ANDROID_NOTIFICATION_MSG] as? String) ?: notificationMsg
+        notificationBigMsg =
+            (settings[Keys.SETTINGS_ANDROID_NOTIFICATION_BIG_MSG] as? String) ?: notificationBigMsg
+        val iconName = (settings[Keys.SETTINGS_ANDROID_NOTIFICATION_ICON] as? String)
+            .takeUnless { it.isNullOrEmpty() } ?: "ic_launcher"
+        icon = resources.getIdentifier(iconName, "mipmap", packageName)
+        notificationIconColor =
+            (settings[Keys.SETTINGS_ANDROID_NOTIFICATION_ICON_COLOR] as? Long)?.toInt() ?: 0
+
+        val request = LocationRequestOptions(
+            interval = intervalSeconds * 1000L,
+            accuracy = getAccuracy((settings[Keys.SETTINGS_ACCURACY] as? Int) ?: 4),
+            distanceFilter = (settings[Keys.SETTINGS_DISTANCE_FILTER] as? Double)?.toFloat() ?: 0f,
+        )
+        activeRequest = request
+        isStillProfile = false
+        isServiceRunning = true
+        startLocationClient(this, request)
+        start()
+        return true
     }
 
     private fun shutdownHolderService() {
@@ -519,6 +569,13 @@ class IsolateHolderService : MethodChannel.MethodCallHandler, LocationUpdateList
                             Keys.CALLBACK_HANDLE_KEY
                         )
                     } as Long
+
+                // Attach the latest activity-recognition classification so the
+                // report carries motion_state without the Dart isolate reading
+                // cross-file shared preferences (which never worked — the two
+                // sides used different prefs files).
+                location[Keys.EXTRA_MOTION_STATE] =
+                    context?.let { PreferencesManager.getMotionState(it) } ?: ""
 
                 val result: HashMap<Any, Any> =
                     hashMapOf(

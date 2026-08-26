@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'api_client.dart';
+import 'background_credential_store.dart';
 import 'token_storage.dart';
 
 /// Registers the current device with the backend so later location reporting
@@ -48,7 +49,40 @@ class DeviceService {
     );
     final String id = device['id'] as String;
     await TokenStorage.saveDeviceId(id);
+    // The server returns the ingest key exactly once. Persist it for the
+    // background isolate; older servers omit the field (the background
+    // reporter then keeps using its access-token fallback).
+    final String? ingestKey = device['ingest_key'] as String?;
+    if (ingestKey != null && ingestKey.isNotEmpty) {
+      await BackgroundCredentialStore.saveIngestKey(ingestKey);
+    }
     return id;
+  }
+
+  /// Ensures the background reporter holds a device ingest key.
+  ///
+  /// Called on app foreground entry so installs whose device was registered
+  /// before ingest keys existed receive one through the rotation endpoint.
+  /// Fire-and-forget by design: any failure (old server without the route,
+  /// offline, expired session mid-flight) leaves the access-token fallback in
+  /// place, and the next foreground entry retries.
+  static Future<void> ensureIngestKey() async {
+    try {
+      final String? existing = await BackgroundCredentialStore.readIngestKey();
+      if (existing != null && existing.isNotEmpty) return;
+      final String deviceId = await ensureRegistered();
+      // A fresh registration may already have delivered a key.
+      final String? afterRegister =
+          await BackgroundCredentialStore.readIngestKey();
+      if (afterRegister != null && afterRegister.isNotEmpty) return;
+      final String key = await ApiClient.rotateDeviceIngestKey(deviceId);
+      if (key.isNotEmpty) {
+        await BackgroundCredentialStore.saveIngestKey(key);
+      }
+    } catch (_) {
+      // Never throw: reporting still works via the JWT fallback while the
+      // foreground app is alive, and the next launch retries this.
+    }
   }
 
   /// Detects the current platform: ios / android / web.

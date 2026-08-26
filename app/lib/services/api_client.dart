@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/user_profile.dart';
 import 'server_config.dart';
+import 'session_gate.dart';
 import 'token_storage.dart';
 
 /// Thrown when the backend returns a non-2xx response.
@@ -260,6 +261,21 @@ class ApiClient {
   /// DELETE /me → wipe this account. 409 means last admin of a shared family.
   static Future<void> deleteAccount() async {
     await _send('DELETE', _uri('/me'));
+  }
+
+  /// POST /devices/{id}/ingest-key → a fresh ingest key for the background
+  /// reporter. The previous key is invalidated; the new one is returned once.
+  static Future<String> rotateDeviceIngestKey(String deviceId) async {
+    final String id = deviceId.trim();
+    if (id.isEmpty) {
+      throw ArgumentError.value(deviceId, 'deviceId', 'must not be empty');
+    }
+    final dynamic data = await _send(
+      'POST',
+      _uri('/devices/${Uri.encodeComponent(id)}/ingest-key'),
+      body: <String, dynamic>{},
+    );
+    return (data as Map<String, dynamic>)['ingest_key'] as String;
   }
 
   /// PATCH /devices/{id} with push credentials. Empty strings clear them.
@@ -625,43 +641,56 @@ class ApiClient {
     _sessionExpiredFired = false;
   }
 
-  /// Whether a valid (non-expired) session is stored, for the app's session
-  /// gate. Checks that both tokens are present and that the access token's JWT
-  /// `exp` claim is still in the future, so an expired-but-present token does
-  /// not route the user onto a protected screen.
-  static Future<bool> hasValidSession() async {
-    final String? access = await TokenStorage.readAccessToken();
-    final String? refresh = await TokenStorage.readRefreshToken();
-    if (access == null || access.isEmpty) return false;
-    if (refresh == null || refresh.isEmpty) return false;
-    final DateTime? expiry = _jwtExpiry(access);
-    return expiry != null && expiry.isAfter(DateTime.now().toUtc());
+  /// The startup session check used by the app's session gate.
+  ///
+  /// Unlike the retired `hasValidSession` (which wiped the session whenever
+  /// the 15-minute access JWT had expired — forcing a password login at
+  /// nearly every open), this refreshes through the 30-day refresh token when
+  /// needed and only reports [SessionGateResult.expired] on a definitive
+  /// server rejection; transport failures report
+  /// [SessionGateResult.unreachable] so an offline open never logs the user
+  /// out. The caller (the gate in main.dart) decides whether to clear.
+  static Future<SessionGateResult> checkSession() {
+    final SessionGate gate = SessionGate(
+      loadTokens: () async => (
+        access: await TokenStorage.readAccessToken(),
+        refresh: await TokenStorage.readRefreshToken(),
+      ),
+      postRefresh: _refreshForGate,
+      saveTokens: ({required String access, required String refresh}) =>
+          TokenStorage.saveTokens(access: access, refresh: refresh),
+    );
+    return gate.evaluate();
   }
 
-  /// Decodes a JWT's `exp` claim (seconds since epoch) into a UTC [DateTime],
-  /// or null if the token is malformed or has no `exp`.
-  static DateTime? _jwtExpiry(String token) {
-    final List<String> parts = token.split('.');
-    if (parts.length != 3) return null;
+  /// The gate's refresh call: distinguishes a definitive rejection (401/403)
+  /// from every other failure so the session is destroyed only on purpose.
+  static Future<SessionGateRefreshOutcome> _refreshForGate(
+    String refreshToken,
+  ) async {
     try {
-      final String payload = parts[1];
-      final String normalized =
-          payload.replaceAll('-', '+').replaceAll('_', '/');
-      final String padded = normalized.padRight(
-        ((normalized.length + 3) ~/ 4) * 4,
-        '=',
+      final http.Response response = await _rawSend(
+        'POST',
+        _uri('/auth/refresh'),
+        body: <String, dynamic>{'refresh_token': refreshToken},
+        auth: false,
       );
-      final List<int> bytes = base64Decode(padded);
-      final dynamic decoded = jsonDecode(utf8.decode(bytes));
-      if (decoded is! Map) return null;
-      final dynamic exp = decoded['exp'];
-      if (exp is! num) return null;
-      return DateTime.fromMillisecondsSinceEpoch(
-        (exp * 1000).round(),
-        isUtc: true,
-      );
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data =
+            jsonDecode(response.body) as Map<String, dynamic>;
+        return SessionGateRefreshOutcome.ok(
+          access: data['access_token'] as String,
+          refresh: data['refresh_token'] as String,
+        );
+      }
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        return const SessionGateRefreshOutcome.rejected();
+      }
+      return const SessionGateRefreshOutcome.unreachable();
     } catch (_) {
-      return null;
+      // Offline, timeout, malformed body, storage hiccup — none of these say
+      // anything about whether the session is still valid.
+      return const SessionGateRefreshOutcome.unreachable();
     }
   }
 

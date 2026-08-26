@@ -41,6 +41,14 @@ func (s *Server) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Issue a fresh ingest key for the background reporter. Only the SHA-256
+	// hash is stored; the plaintext key is returned exactly once, here.
+	ingestKey, err := middleware.GenerateDeviceIngestKey()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to generate device key")
+		return
+	}
+
 	var device struct {
 		ID         string `json:"id"`
 		UserID     string `json:"user_id"`
@@ -48,17 +56,63 @@ func (s *Server) RegisterDevice(w http.ResponseWriter, r *http.Request) {
 		Name       string `json:"name"`
 		AppVersion string `json:"app_version"`
 	}
-	err := s.Pool.QueryRow(r.Context(), `
-		INSERT INTO devices (user_id, platform, name, push_token, unifiedpush_endpoint, app_version)
-		VALUES ($1, $2, $3, $4, $5, $6)
+	err = s.Pool.QueryRow(r.Context(), `
+		INSERT INTO devices (user_id, platform, name, push_token, unifiedpush_endpoint, app_version, ingest_key_hash)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, user_id, platform, name, app_version`,
 		claims.UserID, req.Platform, req.Name, req.PushToken, req.UnifiedPushEndpoint, req.AppVersion,
+		middleware.EncodeIngestKeyHash(middleware.HashDeviceIngestKey(ingestKey)),
 	).Scan(&device.ID, &device.UserID, &device.Platform, &device.Name, &device.AppVersion)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to register device")
 		return
 	}
-	writeJSON(w, http.StatusCreated, device)
+	writeJSON(w, http.StatusCreated, struct {
+		ID         string `json:"id"`
+		UserID     string `json:"user_id"`
+		Platform   string `json:"platform"`
+		Name       string `json:"name"`
+		AppVersion string `json:"app_version"`
+		IngestKey  string `json:"ingest_key"`
+	}{device.ID, device.UserID, device.Platform, device.Name, device.AppVersion, ingestKey})
+}
+
+// RotateDeviceIngestKey issues a fresh ingest key for an existing device
+// (`POST /devices/{id}/ingest-key`), invalidating the previous one.
+//
+// This is how installs that registered before ingest keys existed (their
+// devices.ingest_key_hash is NULL) obtain one, and how a suspected-leaked key
+// is replaced. The plaintext key is returned exactly once; only its hash is
+// stored.
+func (s *Server) RotateDeviceIngestKey(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFromContext(r.Context())
+	if claims == nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated")
+		return
+	}
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "device id required")
+		return
+	}
+
+	ingestKey, err := middleware.GenerateDeviceIngestKey()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to generate device key")
+		return
+	}
+	tag, err := s.Pool.Exec(r.Context(), `
+		UPDATE devices SET ingest_key_hash = $1 WHERE id = $2 AND user_id = $3`,
+		middleware.EncodeIngestKeyHash(middleware.HashDeviceIngestKey(ingestKey)), id, claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to rotate device key")
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		writeError(w, http.StatusNotFound, "device not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"ingest_key": ingestKey})
 }
 
 // UpdateDevice attaches or clears push credentials on an existing device.

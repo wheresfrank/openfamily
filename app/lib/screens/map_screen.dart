@@ -9,6 +9,7 @@ import '../services/api_client.dart';
 import '../services/app_config.dart';
 import '../services/background_location_service.dart';
 import '../services/battery_optimization_service.dart';
+import '../services/device_service.dart';
 import '../services/family_service.dart';
 import '../services/location_reporter.dart';
 import '../services/location_service.dart';
@@ -305,6 +306,10 @@ class _MapScreenState extends State<MapScreen>
   Future<void> _initLocationSharing() async {
     await LocationSharingService.load();
     if (!mounted) return;
+    // Hand the background reporter its long-lived ingest key if it doesn't
+    // have one yet (devices registered before ingest keys existed, or a
+    // rotated key). Fire-and-forget: failures keep the JWT fallback working.
+    unawaited(DeviceService.ensureIngestKey());
     LocationSharingService.enabled.addListener(_onSharingChanged);
     _applyLocationSharing(startBackgroundAfterFrame: true);
   }

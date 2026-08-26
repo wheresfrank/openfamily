@@ -327,6 +327,60 @@ void main() {
     expect(authenticator.authenticationCalls, 2);
     expect(find.text('OpenFamily is locked'), findsNothing);
   });
+
+  testWidgets('grace period keeps the app unlocked on a quick resume',
+      (WidgetTester tester) async {
+    final _FakeAuthenticator authenticator = _FakeAuthenticator();
+    final BiometricService service = BiometricService(
+      authenticator: authenticator,
+      preferenceStore: _MemoryPreferenceStore(true),
+      graceStore: _MemoryLockGraceStore(const Duration(minutes: 5)),
+    );
+
+    await _pumpLock(tester, service: service);
+    expect(authenticator.authenticationCalls, 1);
+    expect(find.text('OpenFamily is locked'), findsNothing);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    await tester.pump(const Duration(minutes: 1));
+
+    // Inside the grace window the app is still unlocked and no new
+    // authentication has been queued.
+    expect(find.text('OpenFamily is locked'), findsNothing);
+    expect(find.text('Private map'), findsOneWidget);
+    expect(authenticator.authenticationCalls, 1);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(authenticator.authenticationCalls, 1);
+    expect(find.text('Private map'), findsOneWidget);
+  });
+
+  testWidgets('grace expiry while backgrounded locks and re-authenticates',
+      (WidgetTester tester) async {
+    final _FakeAuthenticator authenticator = _FakeAuthenticator();
+    final BiometricService service = BiometricService(
+      authenticator: authenticator,
+      preferenceStore: _MemoryPreferenceStore(true),
+      graceStore: _MemoryLockGraceStore(const Duration(minutes: 5)),
+    );
+
+    await _pumpLock(tester, service: service);
+    expect(authenticator.authenticationCalls, 1);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    // Past the grace window while still backgrounded: the cover lands (the
+    // test binding, like the platform, stops producing frames once paused,
+    // so the cover itself is not renderable mid-pause).
+    await tester.pump(const Duration(minutes: 6));
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(authenticator.authenticationCalls, 2);
+    expect(find.text('OpenFamily is locked'), findsNothing);
+  });
 }
 
 Future<void> _pumpLock(
@@ -370,6 +424,21 @@ class _MemoryPreferenceStore implements BiometricPreferenceStore {
   @override
   Future<bool> setEnabled(bool enabled) async {
     this.enabled = enabled;
+    return true;
+  }
+}
+
+class _MemoryLockGraceStore implements LockGraceStore {
+  _MemoryLockGraceStore(this.grace);
+
+  Duration grace;
+
+  @override
+  Future<Duration> readGrace() async => grace;
+
+  @override
+  Future<bool> writeGrace(Duration grace) async {
+    this.grace = grace;
     return true;
   }
 }

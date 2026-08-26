@@ -38,6 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _biometricEnabled = false;
   BiometricAvailability? _biometricAvailability;
   String? _biometricError;
+  Duration _lockGrace = Duration.zero;
 
   @override
   void initState() {
@@ -80,10 +81,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final bool enabled = await _biometricService.isEnabled();
       final BiometricAvailability availability =
           await _biometricService.getAvailability();
+      final Duration lockGrace = await _biometricService.lockGrace();
       if (!mounted) return;
       setState(() {
         _biometricEnabled = enabled;
         _biometricAvailability = availability;
+        _lockGrace = lockGrace;
         _biometricLoading = false;
       });
     } catch (_) {
@@ -155,6 +158,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _setLockGrace(Duration? grace) async {
+    if (grace == null) return;
+    final bool saved = await _biometricService.setLockGrace(grace);
+    if (!mounted) return;
+    if (!saved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save the lock delay.')),
+      );
+      return;
+    }
+    setState(() => _lockGrace = grace);
   }
 
   void _finishBiometricUpdateWithError(String message) {
@@ -384,6 +400,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ? _setBiometricEnabled
                 : null,
           ),
+          if (_biometricEnabled) ...[
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(
+                Icons.lock_clock_outlined,
+                color: AppColors.purple,
+              ),
+              title: const Text('Lock delay'),
+              subtitle: const Text(
+                'How long the app can stay in the background before it '
+                'locks. Longer delays are convenient but let the recents '
+                'screen show your family map.',
+              ),
+              trailing: DropdownButton<Duration>(
+                value: _lockGrace,
+                underline: const SizedBox.shrink(),
+                onChanged: _biometricUpdating ? null : _setLockGrace,
+                items: const [
+                  DropdownMenuItem(
+                    value: Duration.zero,
+                    child: Text('Immediately'),
+                  ),
+                  DropdownMenuItem(
+                    value: Duration(seconds: 30),
+                    child: Text('30 seconds'),
+                  ),
+                  DropdownMenuItem(
+                    value: Duration(minutes: 1),
+                    child: Text('1 minute'),
+                  ),
+                  DropdownMenuItem(
+                    value: Duration(minutes: 5),
+                    child: Text('5 minutes'),
+                  ),
+                  DropdownMenuItem(
+                    value: Duration(minutes: 15),
+                    child: Text('15 minutes'),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const Divider(height: 1),
           const _SectionHeader('Location'),
           SwitchListTile(

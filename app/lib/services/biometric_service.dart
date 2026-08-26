@@ -201,6 +201,35 @@ class SharedPreferencesBiometricPreferenceStore
   }
 }
 
+/// Injectable persistence for the app-lock grace period.
+///
+/// The grace period is how long the app may sit backgrounded before the
+/// biometric lock takes over. Zero (the default, and the historical behavior)
+/// means locking on every backgrounding — including transient ones like
+/// pulling down the notification shade.
+abstract interface class LockGraceStore {
+  Future<Duration> readGrace();
+
+  Future<bool> writeGrace(Duration grace);
+}
+
+/// SharedPreferences-backed [LockGraceStore].
+class SharedPreferencesLockGraceStore implements LockGraceStore {
+  static const String graceSecondsKey = 'app_lock_grace_seconds';
+
+  @override
+  Future<Duration> readGrace() async {
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
+    return Duration(seconds: preferences.getInt(graceSecondsKey) ?? 0);
+  }
+
+  @override
+  Future<bool> writeGrace(Duration grace) async {
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
+    return preferences.setInt(graceSecondsKey, grace.inSeconds);
+  }
+}
+
 /// Coordinates biometric availability, opt-in persistence, and authentication.
 class BiometricService {
   static final BiometricService instance = BiometricService();
@@ -208,16 +237,23 @@ class BiometricService {
   BiometricService({
     BiometricAuthenticator? authenticator,
     BiometricPreferenceStore? preferenceStore,
+    LockGraceStore? graceStore,
   })  : _authenticator = authenticator ?? LocalAuthBiometricAuthenticator(),
         _preferenceStore =
-            preferenceStore ?? SharedPreferencesBiometricPreferenceStore();
+            preferenceStore ?? SharedPreferencesBiometricPreferenceStore(),
+        _graceStore = graceStore ?? SharedPreferencesLockGraceStore();
 
   static const String defaultReason =
       'Use your biometric to unlock OpenFamily.';
 
   final BiometricAuthenticator _authenticator;
   final BiometricPreferenceStore _preferenceStore;
+  final LockGraceStore _graceStore;
   int _activeAuthentications = 0;
+
+  /// The longest accepted lock grace period; longer stored values (corrupt or
+  /// tampered preferences) fall back to immediate locking.
+  static const Duration maxLockGrace = Duration(minutes: 15);
 
   /// Whether this service is currently waiting on a native biometric prompt.
   ///
@@ -238,6 +274,31 @@ class BiometricService {
       return await _preferenceStore.setEnabled(enabled);
     } catch (_) {
       return false;
+    }
+  }
+
+  /// The user-chosen app-lock grace period (zero = lock immediately).
+  ///
+  /// Read failures are fail-closed: an unreadable preference means immediate
+  /// locking, never a silently weaker lock.
+  Future<Duration> lockGrace() async {
+    try {
+      final Duration grace = await _graceStore.readGrace();
+      if (grace.isNegative || grace > maxLockGrace) return Duration.zero;
+      return grace;
+    } catch (_) {
+      return Duration.zero;
+    }
+  }
+
+  /// Persists the lock grace period, clamped to [maxLockGrace].
+  Future<bool> setLockGrace(Duration grace) {
+    final Duration clamped =
+        grace.isNegative || grace > maxLockGrace ? Duration.zero : grace;
+    try {
+      return _graceStore.writeGrace(clamped);
+    } catch (_) {
+      return Future<bool>.value(false);
     }
   }
 

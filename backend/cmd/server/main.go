@@ -185,16 +185,26 @@ func main() {
 		r.Get("/audit", srv.ListAudit)
 
 		r.Post("/devices", srv.RegisterDevice)
-		r.Post("/devices/heartbeat", srv.HeartbeatDevice)
 		r.Get("/devices", srv.ListDevices)
 		r.Patch("/devices/{id}", srv.UpdateDevice)
+		r.Post("/devices/{id}/ingest-key", srv.RotateDeviceIngestKey)
 
-		r.Post("/locations", srv.IngestLocation)
 		r.Post("/alerts/check-in", srv.PostCheckIn)
 		r.Post("/alerts/help", srv.PostHelp)
 		r.Post("/alerts/sos", srv.PostSOS)
 		r.Get("/alerts/{id}", srv.GetAlert)
 		r.Post("/alerts/{id}/resolve", srv.ResolveAlert)
+	})
+
+	// Location ingest: accepts either a Bearer access token or the per-device
+	// ingest key (X-Device-Key), so the headless background reporter keeps
+	// working after the 15-minute access token expires without ever holding
+	// the 30-day refresh token outside secure storage.
+	r.Group(func(r chi.Router) {
+		r.Use(mid.RequireAuthOrDeviceIngestKey(tm, pool))
+
+		r.Post("/devices/heartbeat", srv.HeartbeatDevice)
+		r.Post("/locations", srv.IngestLocation)
 	})
 
 	// Platform admin API, namespaced under /api/admin/* so it never collides
