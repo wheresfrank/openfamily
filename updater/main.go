@@ -17,8 +17,10 @@
 //	GET  /log      tail of the current/last update log (text/plain)
 //
 // An update fetches origin, checks out the remote default branch (or
-// UPDATE_BRANCH), fast-forwards it with --ff-only, then runs
-// "docker compose up -d --build" in REPO_DIR. The job state is persisted to a
+// UPDATE_BRANCH), fast-forwards it with --ff-only, rebuilds the images, and
+// recreates every service EXCEPT this updater (which cannot survive the
+// recreation of its own container); the updater replaces itself last through
+// a detached one-shot bootstrap container. The job state is persisted to a
 // state file so a restart of this container can mark an interrupted update as
 // failed instead of leaving it "running" forever.
 package main
@@ -39,11 +41,13 @@ import (
 )
 
 const (
-	defaultAddr    = ":8081"
-	stateFileName  = "update-state.json"
-	logFileName    = "update.log"
-	logTailBytes   = 64 * 1024 // /log returns at most the last 64KB
-	commandTimeout = 30 * time.Minute
+	defaultAddr          = ":8081"
+	stateFileName        = "update-state.json"
+	logFileName          = "update.log"
+	logTailBytes         = 64 * 1024 // /log returns at most the last 64KB
+	commandTimeout       = 30 * time.Minute
+	updaterService       = "updater"
+	selfInstallContainer = "openfamily-updater-selfinstall"
 )
 
 type jobStatus string
@@ -284,14 +288,37 @@ func (u *updater) run(st jobState) {
 	fmt.Fprintf(logFile, "now at %s\n", dashIfEmpty(newRef))
 	u.writeDeployRef()
 
-	// Step 2 — rebuild changed images and recreate changed services. Compose
-	// only touches services whose build inputs or config changed, so an
-	// api-only code change leaves postgres, ntfy, and caddy untouched.
-	up := exec.Command("docker", "compose", "--project-directory", u.repoDir, "up", "-d", "--build")
-	up.Env = append(os.Environ(), "GIT_COMMIT="+newRef)
-	up.Stdout, up.Stderr = logFile, logFile
-	if err := runWithTimeout(up); err != nil {
+	// Step 2 — rebuild the images. Building touches no containers, so this
+	// can never take the stack down.
+	build := exec.Command("docker", "compose", "--project-directory", u.repoDir, "build")
+	build.Env = append(os.Environ(), "GIT_COMMIT="+st.NewRef)
+	build.Stdout, build.Stderr = logFile, logFile
+	if err := runWithTimeout(build); err != nil {
+		fail("docker compose build failed: %v", err)
+		return
+	}
+
+	// Step 3 — recreate every service EXCEPT this updater. Recreating the
+	// updater from inside the updater kills this very process mid-command
+	// (it is the client driving compose through the mounted docker.sock),
+	// which left freshly created containers never started and the whole
+	// stack down (production incident 2026-08-26: any api image change
+	// cascaded through compose's depends_on into an updater recreation).
+	if err := u.upOtherServices(logFile, newRef); err != nil {
 		fail("docker compose up failed: %v", err)
+		return
+	}
+
+	// Step 4 — replace this updater last, if its image changed. The stack is
+	// already fully up at this point, so a failed self-swap degrades to "the
+	// updater still runs its previous image" rather than an outage.
+	swapped, err := u.selfInstallIfChanged(logFile, st)
+	if err != nil {
+		fmt.Fprintf(logFile, "\nWARNING: updater self-install failed (%v); the stack is up, but the updater still runs its previous image. Run the update again to retry.\n", err)
+	}
+	if swapped {
+		// The bootstrap container is replacing this process right now; the
+		// success state was written before the swap was scheduled.
 		return
 	}
 
@@ -300,6 +327,172 @@ func (u *updater) run(st jobState) {
 	fmt.Fprintf(logFile, "update finished successfully %s\n", st.FinishedAt.Format(time.RFC3339))
 	u.saveState(st)
 	slog.Info("update finished", "ref", newRef)
+}
+
+// upOtherServices recreates every compose service except the updater itself,
+// so this process is never the victim of its own deployment. The explicit
+// service list also sidesteps compose's depends_on cascade, which otherwise
+// recreates the updater whenever a dependency (api) is recreated.
+func (u *updater) upOtherServices(w io.Writer, gitRef string) error {
+	services, err := u.otherServices()
+	if err != nil {
+		return fmt.Errorf("docker compose config --services failed: %w", err)
+	}
+	if len(services) == 0 {
+		return fmt.Errorf("compose defines no services other than %q", updaterService)
+	}
+	args := append([]string{
+		"compose", "--project-directory", u.repoDir, "up", "-d", "--build", "--no-deps",
+	}, services...)
+	up := exec.Command("docker", args...)
+	up.Env = append(os.Environ(), "GIT_COMMIT="+gitRef)
+	up.Stdout, up.Stderr = w, w
+	if err := runWithTimeout(up); err != nil {
+		return fmt.Errorf("docker compose up %s failed: %w", strings.Join(services, " "), err)
+	}
+	return nil
+}
+
+// otherServices lists the compose services of this project, excluding the
+// updater itself. The output of `docker compose config --services` is one
+// service name per line.
+func (u *updater) otherServices() ([]string, error) {
+	out, err := exec.Command("docker", "compose", "--project-directory", u.repoDir, "config", "--services").Output()
+	if err != nil {
+		return nil, err
+	}
+	return filterServices(string(out), updaterService), nil
+}
+
+// filterServices splits `docker compose config --services` output and drops
+// the updater's own service.
+func filterServices(servicesOutput, exclude string) []string {
+	var services []string
+	for _, line := range strings.Split(servicesOutput, "\n") {
+		svc := strings.TrimSpace(line)
+		if svc != "" && svc != exclude {
+			services = append(services, svc)
+		}
+	}
+	return services
+}
+
+// needsSelfInstall reports whether the freshly built updater image differs
+// from the image this container is running on.
+func needsSelfInstall(runningImage, latestImage string) bool {
+	return runningImage != latestImage
+}
+
+// selfInstallIfChanged replaces this updater container when its freshly built
+// image differs from the one it is currently running.
+//
+// The replacement must not run from this process: recreating the updater
+// container kills it. Instead, a detached one-shot "bootstrap" container
+// (the freshly built updater image itself, which bundles the docker CLI and
+// compose plugin) is started with access to the docker socket, and it runs
+// the final `docker compose up updater` after this process is gone. The job
+// is recorded as successful BEFORE the swap is scheduled, so the replacement
+// updater boots into a finished state instead of recovering a phantom
+// "running" job as interrupted.
+func (u *updater) selfInstallIfChanged(w io.Writer, st jobState) (bool, error) {
+	selfID, err := os.Hostname() // docker sets the container hostname to its short id
+	if err != nil {
+		return false, fmt.Errorf("cannot determine own container: %w", err)
+	}
+	runningImage, imageTag, err := u.selfImage(selfID)
+	if err != nil {
+		return false, err
+	}
+	latestImage, err := u.imageID(imageTag)
+	if err != nil {
+		return false, fmt.Errorf("cannot resolve freshly built image %s: %w", imageTag, err)
+	}
+	if !needsSelfInstall(runningImage, latestImage) {
+		fmt.Fprintln(w, "updater image unchanged; skipping self-install")
+		return false, nil
+	}
+	hostRepo, err := u.hostRepoDir(selfID)
+	if err != nil {
+		return false, err
+	}
+
+	// The update is fully applied at this point; only this container's own
+	// replacement remains. Record success first — this process dies during
+	// the swap.
+	st.Status = jobSuccess
+	st.FinishedAt = time.Now().UTC()
+	fmt.Fprintf(w, "update finished successfully %s\n", st.FinishedAt.Format(time.RFC3339))
+	fmt.Fprintln(w, "updater image changed; scheduling self-install via detached bootstrap container")
+	u.saveState(st)
+	slog.Info("update finished; scheduling updater self-install", "ref", st.NewRef)
+
+	// Drop any stale bootstrap from a previous failed attempt.
+	_ = exec.Command("docker", "rm", "-f", selfInstallContainer).Run()
+
+	run := exec.Command("docker", "run", "-d", "--rm",
+		"--name", selfInstallContainer,
+		"--entrypoint", "/bin/sh",
+		"-v", "/var/run/docker.sock:/var/run/docker.sock",
+		"-v", hostRepo+":/repo",
+		imageTag,
+		"-c", "docker compose --project-directory /repo up -d "+updaterService,
+	)
+	run.Stdout, run.Stderr = w, w
+	if err := runWithTimeout(run); err != nil {
+		return false, fmt.Errorf("starting bootstrap container failed: %w", err)
+	}
+	fmt.Fprintln(w, "self-install scheduled via bootstrap container")
+	return true, nil
+}
+
+// selfImage returns the image ID the given container runs and the image tag
+// it references.
+func (u *updater) selfImage(containerID string) (imageID, imageTag string, err error) {
+	out, err := exec.Command("docker", "inspect", containerID, "--format",
+		`{{.Image}} {{.Config.Image}}`).Output()
+	if err != nil {
+		return "", "", fmt.Errorf("docker inspect %s failed: %w", containerID, err)
+	}
+	parts := strings.Fields(string(out))
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("unexpected docker inspect output: %q", strings.TrimSpace(string(out)))
+	}
+	return parts[0], parts[1], nil
+}
+
+// imageID resolves an image tag to its image ID.
+func (u *updater) imageID(tag string) (string, error) {
+	out, err := exec.Command("docker", "images", tag, "--format", "{{.ID}}").Output()
+	if err != nil {
+		return "", err
+	}
+	id := strings.TrimSpace(string(out))
+	if id == "" {
+		return "", fmt.Errorf("image %s not found", tag)
+	}
+	return id, nil
+}
+
+// hostRepoDir resolves the HOST path backing the repo mount of the given
+// container, so a sibling container can bind-mount the same clone.
+func (u *updater) hostRepoDir(containerID string) (string, error) {
+	out, err := exec.Command("docker", "inspect", containerID, "--format", "{{json .Mounts}}").Output()
+	if err != nil {
+		return "", fmt.Errorf("docker inspect mounts failed: %w", err)
+	}
+	var mounts []struct {
+		Source      string `json:"Source"`
+		Destination string `json:"Destination"`
+	}
+	if err := json.Unmarshal(out, &mounts); err != nil {
+		return "", fmt.Errorf("cannot parse container mounts: %w", err)
+	}
+	for _, m := range mounts {
+		if m.Destination == u.repoDir && m.Source != "" {
+			return m.Source, nil
+		}
+	}
+	return "", fmt.Errorf("cannot find the host path for the %s mount", u.repoDir)
 }
 
 // handleLog serves the tail of the update log for live progress display.
