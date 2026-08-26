@@ -9,7 +9,6 @@ import 'package:battery_plus/battery_plus.dart';
 import 'package:geolocator/geolocator.dart'
     hide AndroidSettings, LocationAccuracy;
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'background_credential_store.dart';
 import 'token_storage.dart';
@@ -19,29 +18,32 @@ import 'token_storage.dart';
 ///
 /// `background_locator_2` runs [onLocationUpdate] in a **separate background
 /// isolate**, so it cannot touch the foreground app's [ApiClient] object. It
-/// instead reads the short-lived credentials (API base URL, access token,
-/// device id) from [BackgroundCredentialStore] (shared_preferences) and talks
-/// to the backend directly via `dart:http`, refreshing the access token itself
-/// on a 401. The refresh token is NOT kept in shared_preferences — that store
-/// is plaintext and the token lives 30 days (audit finding WB-002) — so the
-/// refresh path reads it directly from [TokenStorage] (secure storage). If
-/// secure storage is unavailable in the background isolate, refresh fails and
-/// reporting pauses until the app is next opened. On a successful refresh the
-/// new pair is written to [TokenStorage] best-effort, so the foreground app
-/// sees the rotated tokens.
+/// instead reads short-lived credentials (API base URL, device id, ingest key,
+/// access token) from [BackgroundCredentialStore] (shared_preferences) and
+/// talks to the backend directly via `dart:http`.
 ///
-/// The callback is deliberately non-throwing: any failure (missing credentials,
-/// network error, stale `ts`, non-monotonic ordering) is skipped silently and
-/// the next update retries. The foreground app handles re-login when the
-/// refresh token itself is dead.
+/// Authentication — preferred path is the **device ingest key**
+/// (`X-Device-Key: <device_id>.<key>` header): a write-only, device-scoped
+/// credential issued at registration and accepted by `POST /locations` and
+/// `POST /devices/heartbeat`. It never expires, so background reporting no
+/// longer depends on the Keystore-backed secure store being reachable from a
+/// headless isolate — that dependency (reading the refresh token there on a
+/// 401, WB-002) was production-proven to silently stop reporting at the first
+/// access-token expiry (~15 minutes after the app was last open).
+///
+/// The legacy path — short-lived access JWT with refresh-on-401 — is kept as
+/// a fallback for devices whose server predates ingest keys, or whose ingest
+/// key was rejected (401/403). The refresh token itself is still never
+/// mirrored into shared_preferences (WB-002): it is read straight from
+/// [TokenStorage] only on that fallback path.
+///
+/// The callbacks are deliberately non-throwing: any failure (missing
+/// credentials, network error, stale `ts`, non-monotonic ordering) is skipped
+/// silently and the next update retries. The foreground app handles re-login
+/// when the refresh token itself is dead.
 
 /// How long to wait for a single HTTP request before giving up.
 const Duration _httpTimeout = Duration(seconds: 15);
-
-/// Preference key holding the most recent motion classification written by
-/// the native activity-recognition receiver ("driving", "walking", ... or
-/// "" when unknown). Must match Keys.MOTION_STATE_KEY on the Android side.
-const String _motionStateKey = 'wb_motion_state';
 
 /// Top-level liveness callback, invoked by the plugin's native alarm (roughly
 /// every 10 minutes) even when no location fixes are produced — the device
@@ -50,38 +52,16 @@ const String _motionStateKey = 'wb_motion_state';
 @pragma('vm:entry-point')
 Future<void> onHeartbeatTick() async {
   try {
-    final String? apiBaseUrl = await BackgroundCredentialStore.readApiBaseUrl();
-    final String? accessToken =
-        await BackgroundCredentialStore.readAccessToken();
-    final String? deviceId = await BackgroundCredentialStore.readDeviceId();
-    if (apiBaseUrl == null ||
-        apiBaseUrl.isEmpty ||
-        accessToken == null ||
-        accessToken.isEmpty ||
-        deviceId == null ||
-        deviceId.isEmpty) {
-      return;
-    }
+    final _BackgroundCredentials? credentials = await _readCredentials();
+    if (credentials == null) return;
 
     final int? batteryPct = await _readBattery();
-    final Map<String, dynamic> body = <String, dynamic>{'device_id': deviceId};
+    final Map<String, dynamic> body = <String, dynamic>{
+      'device_id': credentials.deviceId,
+    };
     if (batteryPct != null) body['battery_pct'] = batteryPct;
 
-    http.Response response = await _post(apiBaseUrl, accessToken,
-        '/devices/heartbeat', body);
-    if (response.statusCode == 204 || response.statusCode == 200) return;
-
-    if (response.statusCode == 401) {
-      // Same refresh path as the location callback: read the refresh token
-      // from secure storage, rotate, retry once.
-      final String? refreshToken = await _readRefreshToken();
-      if (refreshToken == null || refreshToken.isEmpty) return;
-      final String? newAccess = await _refresh(apiBaseUrl, refreshToken);
-      if (newAccess == null) return;
-      response =
-          await _post(apiBaseUrl, newAccess, '/devices/heartbeat', body);
-      // Any status here is terminal for this tick; the next alarm retries.
-    }
+    await _report(credentials, '/devices/heartbeat', body);
   } catch (_) {
     // Never throw from the background callback.
   }
@@ -97,51 +77,135 @@ Future<void> onLocationUpdate(LocationDto location) async {
     // Skip spoofed locations (Android mock-location detection).
     if (location.isMocked) return;
 
-    final String? apiBaseUrl = await BackgroundCredentialStore.readApiBaseUrl();
-    final String? accessToken =
-        await BackgroundCredentialStore.readAccessToken();
-    final String? deviceId = await BackgroundCredentialStore.readDeviceId();
-
-    // Without the core credential set there is nothing to report. The refresh
-    // token is optional here: uploads work with a fresh access token alone,
-    // and the refresh token is only fetched from secure storage when a 401
-    // demands it (WB-002: it is never stored in shared_preferences).
-    if (apiBaseUrl == null ||
-        apiBaseUrl.isEmpty ||
-        accessToken == null ||
-        accessToken.isEmpty ||
-        deviceId == null ||
-        deviceId.isEmpty) {
-      return;
-    }
+    final _BackgroundCredentials? credentials = await _readCredentials();
+    if (credentials == null) return;
 
     final int? batteryPct = await _readBattery();
-    final String? motionState = await _readMotionState();
-    final Map<String, dynamic> body = _buildBody(location, deviceId, batteryPct,
-        motionState: motionState);
+    final Map<String, dynamic> body =
+        _buildBody(location, credentials.deviceId, batteryPct);
 
-    final http.Response response =
-        await _post(apiBaseUrl, accessToken, '/locations', body);
-    // 201 = stored; 200 = stationary-deduped (the server refreshed liveness
-    // and skipped the locations row). Both are successes.
-    if (response.statusCode == 201 || response.statusCode == 200) return;
-
-    if (response.statusCode == 401) {
-      // Access token expired (TTL 15 min). Refresh and retry once, reading the
-      // refresh token straight from secure storage — it is never mirrored to
-      // shared_preferences (WB-002), so this fails gracefully when secure
-      // storage is unavailable in the background isolate.
-      final String? refreshToken = await _readRefreshToken();
-      if (refreshToken == null || refreshToken.isEmpty) return;
-      final String? newAccess = await _refresh(apiBaseUrl, refreshToken);
-      if (newAccess == null) return; // Refresh failed; foreground re-logs in.
-      await _post(apiBaseUrl, newAccess, '/locations', body);
-      // 201 / 400 / anything else: done for this update.
-    }
-    // 400 (stale ts / non-monotonic) and all other statuses: skip silently.
+    await _report(credentials, '/locations', body);
   } catch (_) {
     // Never throw from the background callback.
   }
+}
+
+/// The credentials the background isolate can see (shared_preferences mirror).
+class _BackgroundCredentials {
+  const _BackgroundCredentials({
+    required this.apiBaseUrl,
+    required this.deviceId,
+    this.accessToken,
+    this.ingestKey,
+  });
+
+  final String apiBaseUrl;
+  final String deviceId;
+  final String? accessToken;
+  final String? ingestKey;
+}
+
+/// Reads the credential set, requiring the base URL and device id plus at
+/// least one usable credential (ingest key or access token).
+Future<_BackgroundCredentials?> _readCredentials() async {
+  final String? apiBaseUrl = await BackgroundCredentialStore.readApiBaseUrl();
+  final String? deviceId = await BackgroundCredentialStore.readDeviceId();
+  if (apiBaseUrl == null ||
+      apiBaseUrl.isEmpty ||
+      deviceId == null ||
+      deviceId.isEmpty) {
+    return null;
+  }
+  final String? accessToken =
+      await BackgroundCredentialStore.readAccessToken();
+  final String? ingestKey = await BackgroundCredentialStore.readIngestKey();
+  final bool hasAccess = accessToken != null && accessToken.isNotEmpty;
+  final bool hasKey = ingestKey != null && ingestKey.isNotEmpty;
+  if (!hasKey && !hasAccess) return null;
+  return _BackgroundCredentials(
+    apiBaseUrl: apiBaseUrl,
+    deviceId: deviceId,
+    accessToken: hasAccess ? accessToken : null,
+    ingestKey: hasKey ? ingestKey : null,
+  );
+}
+
+/// Delivers one report (location or heartbeat), trying the ingest key first
+/// and falling back to the access-token + refresh path.
+///
+/// Only a definitive rejection of BOTH credentials ends the report; transient
+/// failures are left for the next update. This function never throws to the
+/// caller's catch block for "expected" statuses — it simply returns.
+Future<void> _report(
+  _BackgroundCredentials credentials,
+  String path,
+  Map<String, dynamic> body,
+) async {
+  final String? ingestKey = credentials.ingestKey;
+  if (ingestKey != null) {
+    final http.Response response = await _post(
+      credentials.apiBaseUrl,
+      <String, String>{
+        'X-Device-Key': '${credentials.deviceId}.$ingestKey',
+        'Content-Type': 'application/json',
+      },
+      path,
+      body,
+    );
+    // 201 = stored; 200 = stationary-deduped (the server refreshed liveness
+    // and skipped the locations row); 204 = heartbeat ack.
+    if (response.statusCode == 201 ||
+        response.statusCode == 200 ||
+        response.statusCode == 204) {
+      return;
+    }
+    if (response.statusCode != 401 && response.statusCode != 403) {
+      // 400 (stale ts / non-monotonic), 5xx, ...: terminal for this update.
+      return;
+    }
+    // 401/403: key rejected (rotated or the device was re-registered
+    // elsewhere). Fall through to the legacy token path when available.
+  }
+
+  // Legacy path: the 15-minute access JWT, with a one-shot refresh on 401.
+  final String? accessToken = credentials.accessToken;
+  if (accessToken == null) return;
+  http.Response response = await _post(
+    credentials.apiBaseUrl,
+    <String, String>{
+      'Authorization': 'Bearer $accessToken',
+      'Content-Type': 'application/json',
+    },
+    path,
+    body,
+  );
+  if (response.statusCode == 201 ||
+      response.statusCode == 200 ||
+      response.statusCode == 204) {
+    return;
+  }
+  if (response.statusCode == 401) {
+    // Access token expired. Refresh and retry once, reading the refresh token
+    // straight from secure storage — it is never mirrored to
+    // shared_preferences (WB-002), so this fails gracefully when secure
+    // storage is unavailable in the background isolate.
+    final String? refreshToken = await _readRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) return;
+    final String? newAccess =
+        await _refresh(credentials.apiBaseUrl, refreshToken);
+    if (newAccess == null) return; // Refresh failed; foreground re-logs in.
+    await _post(
+      credentials.apiBaseUrl,
+      <String, String>{
+        'Authorization': 'Bearer $newAccess',
+        'Content-Type': 'application/json',
+      },
+      path,
+      body,
+    );
+    // 201 / 400 / anything else: done for this update.
+  }
+  // All other statuses: skip silently; the next update retries.
 }
 
 /// Reads the battery level, or null if unavailable (e.g. web, or the method
@@ -157,24 +221,16 @@ Future<int?> _readBattery() async {
   }
 }
 
-/// Reads the most recent motion classification written by the native
-/// activity-recognition receiver, or null when unavailable.
-Future<String?> _readMotionState() async {
-  try {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_motionStateKey);
-  } catch (_) {
-    return null;
-  }
-}
-
-/// Builds the `POST /locations` body from a [LocationDto].
+/// Builds the `POST /locations` body from a [LocationDto]. The motion state
+/// arrives piggybacked on the location payload from the native side — the
+/// earlier design read it through shared_preferences, which never worked
+/// (native writes the plugin's own prefs file; Dart reads Flutter's), leaving
+/// every background row's motion_state empty.
 Map<String, dynamic> _buildBody(
   LocationDto location,
   String deviceId,
-  int? batteryPct, {
-  String? motionState,
-}) {
+  int? batteryPct,
+) {
   final Map<String, dynamic> body = <String, dynamic>{
     'device_id': deviceId,
     'ts': DateTime.fromMillisecondsSinceEpoch(
@@ -183,7 +239,7 @@ Map<String, dynamic> _buildBody(
     ).toUtc().toIso8601String(),
     'lat': location.latitude,
     'lon': location.longitude,
-    'motion_state': motionState ?? '',
+    'motion_state': location.motionState,
     'source': 'background',
   };
   if (batteryPct != null) body['battery_pct'] = batteryPct;
@@ -195,20 +251,17 @@ Map<String, dynamic> _buildBody(
   return body;
 }
 
-/// POSTs a JSON body to the API with the given access token.
+/// POSTs a JSON body to the API with the given headers.
 Future<http.Response> _post(
   String apiBaseUrl,
-  String accessToken,
+  Map<String, String> headers,
   String path,
   Map<String, dynamic> body,
 ) {
   return http
       .post(
         Uri.parse('$apiBaseUrl$path'),
-        headers: <String, String>{
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: jsonEncode(body),
       )
       .timeout(_httpTimeout);
@@ -229,14 +282,9 @@ Future<String?> _readRefreshToken() async {
 /// access token to shared_preferences and the full pair best-effort to
 /// flutter_secure_storage. Returns the new access token, or null on failure.
 ///
-/// The backend rotates refresh tokens (each refresh revokes the old one), so
-/// the foreground and background must converge on the same pair or they will
-/// revoke each other's tokens. The refresh token itself is never written to
-/// shared_preferences (WB-002): it is persisted only to secure storage, which
-/// may fail in the background isolate. In that case the rotated refresh token
-/// is lost when the isolate dies; [TokenStorage.syncFromBackgroundStore] on
-/// app resume salvages the still-valid access token, and the user signs in
-/// again after it expires.
+/// Legacy fallback for installs without an ingest key. The rotated token pair
+/// reconciliation with the foreground is unchanged: best-effort secure-storage
+/// write plus foreground resume-sync.
 Future<String?> _refresh(String apiBaseUrl, String refreshToken) async {
   try {
     final http.Response response = await http
@@ -260,9 +308,7 @@ Future<String?> _refresh(String apiBaseUrl, String refreshToken) async {
       try {
         await TokenStorage.saveTokens(access: access, refresh: refresh);
       } catch (_) {
-        // Secure storage unavailable in the background isolate. The rotated
-        // refresh token is lost with this isolate; reporting continues on the
-        // new access token until its TTL expires.
+        // Secure storage unavailable in the background isolate.
       }
       return access;
     }

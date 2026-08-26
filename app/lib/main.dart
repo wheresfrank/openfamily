@@ -9,6 +9,7 @@ import 'services/auth_service.dart';
 import 'services/background_location_service.dart';
 import 'services/push_service.dart';
 import 'services/server_config.dart';
+import 'services/session_gate.dart';
 import 'services/theme_preference.dart';
 import 'services/tile_config.dart';
 import 'services/token_storage.dart';
@@ -134,20 +135,28 @@ class _SessionGateState extends State<_SessionGate> {
     try {
       await TokenStorage.syncFromBackgroundStore();
     } catch (_) {
-      // Ignore sync failures; the reporter's 401→refresh path recovers.
+      // Ignore sync failures; the reporter's auth path recovers.
     }
-    final bool hasSession = await ApiClient.hasValidSession();
-    if (!hasSession) {
-      // Remove an incomplete, malformed, or expired token pair. Besides
-      // keeping startup deterministic, this clears biometric opt-in so it can
-      // never carry over to a future account on the same device.
-      await TokenStorage.clear();
+    // The gate refreshes the session through the 30-day refresh token when
+    // the 15-minute access token has expired, and it never destroys the
+    // session on a transport failure — only a definitive server rejection
+    // (or an empty token store) clears local credentials.
+    final SessionGateResult session = await ApiClient.checkSession();
+    switch (session) {
+      case SessionGateResult.valid:
+      case SessionGateResult.unreachable:
+        // Unreachable (offline/5xx): keep the session and open the map; the
+        // individual API calls surface connectivity errors on their own.
+        return _GateResult.hasSession;
+      case SessionGateResult.expired:
+        // The server rejected the refresh token: the session is truly dead.
+        // Clearing also resets the biometric opt-in so it can never carry
+        // over to a future account on the same device.
+        await TokenStorage.clear();
+        return _GateResult.noSession;
+      case SessionGateResult.none:
+        return _GateResult.noSession;
     }
-    // Background location reporting is started by MapScreen once it is shown
-    // (and the app is in the foreground), not here — starting a `location`
-    // foreground service during startup, before the activity is visible, is
-    // rejected on Android 15+.
-    return hasSession ? _GateResult.hasSession : _GateResult.noSession;
   }
 
   @override

@@ -49,6 +49,10 @@ class _BiometricAppLockState extends State<BiometricAppLock>
   String? _error;
   int _evaluationId = 0;
 
+  /// Pending lock application during the user-configured grace period. Null
+  /// when no grace timer is armed (grace period zero → lock is immediate).
+  Timer? _graceTimer;
+
   @override
   void initState() {
     super.initState();
@@ -58,6 +62,7 @@ class _BiometricAppLockState extends State<BiometricAppLock>
 
   @override
   void dispose() {
+    _graceTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -113,6 +118,9 @@ class _BiometricAppLockState extends State<BiometricAppLock>
 
     switch (state) {
       case AppLifecycleState.resumed:
+        // Returning within the grace period cancels the pending lock; the app
+        // stays unlocked.
+        _graceTimer?.cancel();
         if (_successfulAuthenticationPendingResume) {
           _successfulAuthenticationPendingResume = false;
           _rootAuthenticationBackgrounded = false;
@@ -130,9 +138,38 @@ class _BiometricAppLockState extends State<BiometricAppLock>
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
       case AppLifecycleState.detached:
-        _coverForPrivacy();
+        unawaited(_beginGracePeriod(state));
         break;
     }
+  }
+
+  /// Applies the lock when the app leaves the foreground, honoring the user's
+  /// configured grace period.
+  ///
+  /// With a zero grace period (the default, and the historical behavior) the
+  /// app locks on ANY non-resumed transition — including `inactive` from the
+  /// notification shade. With a non-zero grace, `inactive` alone never locks,
+  /// and the cover/lock land only if the app is still backgrounded when the
+  /// grace expires. Note the deliberate privacy trade-off of a non-zero grace:
+  /// the OS app-switcher snapshot may show the uncovered UI.
+  Future<void> _beginGracePeriod(AppLifecycleState state) async {
+    final Duration grace = await _service.lockGrace();
+    if (!mounted) return;
+    _graceTimer?.cancel();
+    if (grace <= Duration.zero) {
+      _coverForPrivacy();
+      return;
+    }
+    if (state == AppLifecycleState.inactive) return;
+    _graceTimer = Timer(grace, () {
+      if (!mounted) return;
+      // A resume during the grace period cancels the timer; if lifecycle
+      // delivery raced, double-check before covering.
+      if (WidgetsBinding.instance.lifecycleState !=
+          AppLifecycleState.resumed) {
+        _coverForPrivacy();
+      }
+    });
   }
 
   Future<void> _waitForExternalAuthentication() async {

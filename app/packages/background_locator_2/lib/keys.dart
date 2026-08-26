@@ -27,6 +27,7 @@ class Keys {
   static const String ARG_HEADING = 'heading';
   static const String ARG_TIME = 'time';
   static const String ARG_PROVIDER = 'provider';
+  static const String ARG_MOTION_STATE = 'motion_state';
   static const String ARG_CALLBACK = 'callback';
   static const String ARG_NOTIFICATION_CALLBACK = 'notificationCallback';
   static const String ARG_INIT_CALLBACK = 'initCallback';

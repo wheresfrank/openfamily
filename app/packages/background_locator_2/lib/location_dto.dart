@@ -14,6 +14,11 @@ class LocationDto {
   final bool isMocked;
   final String provider;
 
+  /// The latest activity-recognition classification ("driving", "walking",
+  /// "stationary", ... or "" when unknown), attached by the native side at
+  /// delivery time.
+  final String motionState;
+
   LocationDto._(
     this.latitude,
     this.longitude,
@@ -25,6 +30,7 @@ class LocationDto {
     this.time,
     this.isMocked,
     this.provider,
+    this.motionState,
   );
 
   factory LocationDto.fromJson(Map<dynamic, dynamic> json) {
@@ -41,6 +47,7 @@ class LocationDto {
       json[Keys.ARG_TIME],
       isLocationMocked,
       json[Keys.ARG_PROVIDER] ?? '',
+      json[Keys.ARG_MOTION_STATE] ?? '',
     );
   }
 
@@ -56,11 +63,12 @@ class LocationDto {
       Keys.ARG_TIME: this.time,
       Keys.ARG_IS_MOCKED: this.isMocked,
       Keys.ARG_PROVIDER: this.provider,
+      Keys.ARG_MOTION_STATE: this.motionState,
     };
   }
 
   @override
   String toString() {
-    return 'LocationDto{latitude: $latitude, longitude: $longitude, accuracy: $accuracy, altitude: $altitude, speed: $speed, speedAccuracy: $speedAccuracy, heading: $heading, time: $time, isMocked: $isMocked, provider: $provider}';
+    return 'LocationDto{latitude: $latitude, longitude: $longitude, accuracy: $accuracy, altitude: $altitude, speed: $speed, speedAccuracy: $speedAccuracy, heading: $heading, time: $time, isMocked: $isMocked, provider: $provider, motionState: $motionState}';
   }
 }

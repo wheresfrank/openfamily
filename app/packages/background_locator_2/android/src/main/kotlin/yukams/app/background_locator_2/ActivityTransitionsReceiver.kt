@@ -24,8 +24,18 @@ class ActivityTransitionsReceiver : BroadcastReceiver() {
             val entering = event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER
             when (event.activityType) {
                 DetectedActivity.STILL -> {
-                    isMoving = false
-                    label = "stationary"
+                    if (entering) {
+                        isMoving = false
+                        label = "stationary"
+                    } else {
+                        // Exiting STILL means the device just started moving,
+                        // even if the target activity hasn't been classified
+                        // yet. Treating an exit as "stationary" (the previous
+                        // behavior) pinned the tracker to the slow, low-power
+                        // GPS profile exactly when the user started driving.
+                        isMoving = true
+                        label = ""
+                    }
                 }
                 DetectedActivity.IN_VEHICLE -> {
                     isMoving = true
