@@ -53,10 +53,23 @@ class _BiometricAppLockState extends State<BiometricAppLock>
   /// when no grace timer is armed (grace period zero → lock is immediate).
   Timer? _graceTimer;
 
+  /// The configured grace period, cached so lifecycle handling stays
+  /// synchronous: with a zero grace the cover must land inside the lifecycle
+  /// callback itself (as it did before grace periods existed), not a
+  /// microtask later. Refreshed on start and on every resume — the only
+  /// moments the Settings screen can have been visited in between.
+  Duration _grace = Duration.zero;
+
+  Future<void> _refreshGrace() async {
+    final Duration grace = await _service.lockGrace();
+    if (mounted) _grace = grace;
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(_refreshGrace());
     unawaited(_evaluateLock());
   }
 
@@ -121,6 +134,8 @@ class _BiometricAppLockState extends State<BiometricAppLock>
         // Returning within the grace period cancels the pending lock; the app
         // stays unlocked.
         _graceTimer?.cancel();
+        // Pick up grace-period changes made in Settings while foregrounded.
+        unawaited(_refreshGrace());
         if (_successfulAuthenticationPendingResume) {
           _successfulAuthenticationPendingResume = false;
           _rootAuthenticationBackgrounded = false;
@@ -138,38 +153,31 @@ class _BiometricAppLockState extends State<BiometricAppLock>
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
       case AppLifecycleState.detached:
-        unawaited(_beginGracePeriod(state));
+        // With a zero grace period (the default, and the historical
+        // behavior) the app locks on ANY non-resumed transition — including
+        // `inactive` from the notification shade — synchronously, exactly as
+        // before grace periods existed. With a non-zero grace, `inactive`
+        // alone never locks, and the cover/lock land only if the app is
+        // still backgrounded when the grace expires. Note the deliberate
+        // privacy trade-off of a non-zero grace: the OS app-switcher
+        // snapshot may show the uncovered UI.
+        _graceTimer?.cancel();
+        if (_grace <= Duration.zero) {
+          _coverForPrivacy();
+          return;
+        }
+        if (state == AppLifecycleState.inactive) break;
+        _graceTimer = Timer(_grace, () {
+          if (!mounted) return;
+          // A resume during the grace period cancels the timer; if lifecycle
+          // delivery raced, double-check before covering.
+          if (WidgetsBinding.instance.lifecycleState !=
+              AppLifecycleState.resumed) {
+            _coverForPrivacy();
+          }
+        });
         break;
     }
-  }
-
-  /// Applies the lock when the app leaves the foreground, honoring the user's
-  /// configured grace period.
-  ///
-  /// With a zero grace period (the default, and the historical behavior) the
-  /// app locks on ANY non-resumed transition — including `inactive` from the
-  /// notification shade. With a non-zero grace, `inactive` alone never locks,
-  /// and the cover/lock land only if the app is still backgrounded when the
-  /// grace expires. Note the deliberate privacy trade-off of a non-zero grace:
-  /// the OS app-switcher snapshot may show the uncovered UI.
-  Future<void> _beginGracePeriod(AppLifecycleState state) async {
-    final Duration grace = await _service.lockGrace();
-    if (!mounted) return;
-    _graceTimer?.cancel();
-    if (grace <= Duration.zero) {
-      _coverForPrivacy();
-      return;
-    }
-    if (state == AppLifecycleState.inactive) return;
-    _graceTimer = Timer(grace, () {
-      if (!mounted) return;
-      // A resume during the grace period cancels the timer; if lifecycle
-      // delivery raced, double-check before covering.
-      if (WidgetsBinding.instance.lifecycleState !=
-          AppLifecycleState.resumed) {
-        _coverForPrivacy();
-      }
-    });
   }
 
   Future<void> _waitForExternalAuthentication() async {
