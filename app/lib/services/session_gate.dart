@@ -44,11 +44,9 @@ enum SessionGateRefreshStatus { ok, rejected, unreachable }
 
 class SessionGateRefreshOutcome {
   const SessionGateRefreshOutcome.ok({
-    required String access,
-    required String refresh,
-  })  : status = SessionGateRefreshStatus.ok,
-        access = access,
-        refresh = refresh;
+    required this.access,
+    required this.refresh,
+  }) : status = SessionGateRefreshStatus.ok;
 
   const SessionGateRefreshOutcome.rejected()
       : status = SessionGateRefreshStatus.rejected,
@@ -95,13 +93,14 @@ class SessionGate {
     final SessionTokens tokens = await _loadTokens();
     final String? access = tokens.access;
     final String? refresh = tokens.refresh;
-    final bool hasAccess = access != null && access.isNotEmpty;
-    final bool hasRefresh = refresh != null && refresh.isNotEmpty;
 
-    if (!hasAccess && !hasRefresh) return SessionGateResult.none;
+    if ((access == null || access.isEmpty) &&
+        (refresh == null || refresh.isEmpty)) {
+      return SessionGateResult.none;
+    }
 
-    if (hasAccess) {
-      final DateTime? expiry = jwtExpiryOf(access!);
+    if (access != null && access.isNotEmpty) {
+      final DateTime? expiry = jwtExpiryOf(access);
       if (expiry != null && expiry.isAfter(_now())) {
         // Unexpired access token: usable session regardless of refresh state.
         return SessionGateResult.valid;
@@ -110,11 +109,11 @@ class SessionGate {
 
     // Access is expired or missing. Without a refresh token the session is
     // unrecoverable locally.
-    if (!hasRefresh) return SessionGateResult.expired;
+    if (refresh == null || refresh.isEmpty) return SessionGateResult.expired;
 
     SessionGateRefreshOutcome outcome;
     try {
-      outcome = await _postRefresh(refresh!);
+      outcome = await _postRefresh(refresh);
     } catch (_) {
       // The IO layer is expected to classify failures itself, but a throwing
       // transport must never destroy the session.

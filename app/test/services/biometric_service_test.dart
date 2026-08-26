@@ -359,12 +359,10 @@ class _FakeLockGraceStore implements LockGraceStore {
   _FakeLockGraceStore({
     this.grace = Duration.zero,
     this.readError,
-    this.writeError,
   });
 
   Duration grace;
   final Object? readError;
-  final Object? writeError;
 
   @override
   Future<Duration> readGrace() async {
@@ -376,9 +374,6 @@ class _FakeLockGraceStore implements LockGraceStore {
 
   @override
   Future<bool> writeGrace(Duration grace) async {
-    if (writeError != null) {
-      throw writeError!;
-    }
     this.grace = grace;
     return true;
   }
