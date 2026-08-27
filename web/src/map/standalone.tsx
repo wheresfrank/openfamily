@@ -130,7 +130,7 @@ function makeMembers(): Member[] {
       status: "stopped",
       batteryPercent: 0,
       lastSeen: NOW - 35 * MIN,
-      address: "Last seen 35m ago",
+      address: "Position from 35m ago",
     }),
 
     // --- Roommates (blue) — one fresh, one low battery, one never reported ---

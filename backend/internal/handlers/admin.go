@@ -65,9 +65,10 @@ func (s *Server) AdminListFamilies(w http.ResponseWriter, r *http.Request) {
 
 // AdminListFamilyMembers returns the members of one family (by id) joined to
 // their last-known position. It reuses the same MemberWithLocation shape and
-// the same users -> member_positions JOIN as the family-scoped ListMembers, but
-// is not family-scoped to the caller and does not redact emails (platform admin
-// sees everything). Requires RequireAuth + RequirePlatformAdmin.
+// the same users -> member_positions + devices.last_seen JOIN as the
+// family-scoped ListMembers, but is not family-scoped to the caller and does
+// not redact emails (platform admin sees everything). Requires RequireAuth +
+// RequirePlatformAdmin.
 func (s *Server) AdminListFamilyMembers(w http.ResponseWriter, r *http.Request) {
 	if middleware.ClaimsFromContext(r.Context()) == nil {
 		writeError(w, http.StatusUnauthorized, "unauthenticated")
@@ -82,9 +83,14 @@ func (s *Server) AdminListFamilyMembers(w http.ResponseWriter, r *http.Request) 
 	rows, err := s.Pool.Query(r.Context(), `
 		SELECT u.id, u.email, u.name, u.role, u.totp_enabled, u.created_at, u.updated_at,
 		       u.avatar_data IS NOT NULL, u.avatar_version, u.avatar_updated_at,
-		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters
+		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters,
+		       d.last_seen
 		FROM users u
 		LEFT JOIN member_positions mp ON mp.user_id = u.id
+		LEFT JOIN (
+			SELECT user_id, MAX(last_seen) AS last_seen
+			FROM devices GROUP BY user_id
+		) d ON d.user_id = u.id
 		WHERE u.family_id = $1
 		ORDER BY u.name`, familyID)
 	if err != nil {
@@ -98,7 +104,8 @@ func (s *Server) AdminListFamilyMembers(w http.ResponseWriter, r *http.Request) 
 		var m models.MemberWithLocation
 		if err := rows.Scan(&m.ID, &m.Email, &m.Name, &m.Role, &m.TOTPEnabled, &m.CreatedAt, &m.UpdatedAt,
 			&m.HasAvatar, &m.AvatarVersion, &m.AvatarUpdatedAt,
-			&m.Lat, &m.Lon, &m.TS, &m.BatteryPct, &m.SpeedMPS, &m.MotionState, &m.AccuracyMeters); err != nil {
+			&m.Lat, &m.Lon, &m.TS, &m.BatteryPct, &m.SpeedMPS, &m.MotionState, &m.AccuracyMeters,
+			&m.LastSeenAt); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to scan member")
 			return
 		}
@@ -135,7 +142,10 @@ type adminMember struct {
 // AdminListMembers returns every member across every family, each tagged with
 // family_id and family_name, for a single platform-wide map render. Members
 // with no family (orphaned accounts) have null family_id/family_name and are
-// still included. Requires RequireAuth + RequirePlatformAdmin.
+// still included. Each member also carries last_seen_at (the most recent
+// device heartbeat/ingest time across their devices) so admin viewers see the
+// same liveness freshness as the family map. Requires RequireAuth +
+// RequirePlatformAdmin.
 func (s *Server) AdminListMembers(w http.ResponseWriter, r *http.Request) {
 	if middleware.ClaimsFromContext(r.Context()) == nil {
 		writeError(w, http.StatusUnauthorized, "unauthenticated")
@@ -145,9 +155,14 @@ func (s *Server) AdminListMembers(w http.ResponseWriter, r *http.Request) {
 		SELECT u.id, u.email, u.name, u.role, u.totp_enabled, u.created_at, u.updated_at,
 		       u.avatar_data IS NOT NULL, u.avatar_version, u.avatar_updated_at,
 		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters,
+		       d.last_seen,
 		       u.family_id, f.name
 		FROM users u
 		LEFT JOIN member_positions mp ON mp.user_id = u.id
+		LEFT JOIN (
+			SELECT user_id, MAX(last_seen) AS last_seen
+			FROM devices GROUP BY user_id
+		) d ON d.user_id = u.id
 		LEFT JOIN families f ON f.id = u.family_id
 		ORDER BY f.name NULLS LAST, u.name`)
 	if err != nil {
@@ -163,6 +178,7 @@ func (s *Server) AdminListMembers(w http.ResponseWriter, r *http.Request) {
 		if err := rows.Scan(&m.ID, &m.Email, &m.Name, &m.Role, &m.TOTPEnabled, &m.CreatedAt, &m.UpdatedAt,
 			&m.HasAvatar, &m.AvatarVersion, &m.AvatarUpdatedAt,
 			&m.Lat, &m.Lon, &m.TS, &m.BatteryPct, &m.SpeedMPS, &m.MotionState, &m.AccuracyMeters,
+			&m.LastSeenAt,
 			&m.FamilyID, &familyName); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to scan member")
 			return

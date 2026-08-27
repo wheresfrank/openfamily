@@ -128,6 +128,11 @@ export function statusFrom(
  * A fresh fix with no driving / cycling context is "Stationary", not "Moving".
  * Callers overlay a saved place name via `applyPlaceAddress` when the member
  * is inside a place radius.
+ *
+ * When the member's reports are stale, the label deliberately describes the
+ * PIN ("Position from 8h ago") rather than repeating the liveness "Last seen"
+ * label — the two facts appear side by side in the member card and list, and
+ * identical strings there read as a duplicated field (see `lastSeenLabel`).
  */
 export function addressFrom(
   position: LatLng | null,
@@ -142,7 +147,7 @@ export function addressFrom(
   if (movement === "running") return "Running";
   if (ts == null) return "No location yet";
   const age = nowMs - ts;
-  if (age > STALE_AFTER_MS) return `Last seen ${formatAgo(age)} ago`;
+  if (age > STALE_AFTER_MS) return `Position from ${formatAgo(age)} ago`;
   return "Stationary";
 }
 
@@ -188,7 +193,9 @@ export function placeContaining<T extends { lat: number; lon: number; radiusMete
 export function applyPlaceAddress(member: Member, places: { lat: number; lon: number; radiusMeters?: number | null; name: string; familyId?: string }[]): Member {
   if (places.length === 0) return member;
   if (member.movement === "car" || member.movement === "bike") return member;
-  if (member.address.startsWith("Last seen")) return member;
+  // Stale members keep their "Position from …" label: the saved-place overlay
+  // is for describing where a live member is, not for dressing up an old pin.
+  if (isStaleAddress(member.address)) return member;
   const mine = places.filter((p) => !p.familyId || p.familyId === member.familyId);
   const place = placeContaining(member.position, mine);
   if (!place || member.address === place.name) return member;
@@ -358,21 +365,33 @@ export function applyLocationUpdate(
 }
 
 /**
+ * Whether an address string is the stale-report fallback (the "Position from
+ * 8h ago" pin-age label) rather than a real place or activity. Mirrors the
+ * guard in `applyPlaceAddress` so callers can skip place overlays for stale
+ * members without duplicating the prefix knowledge.
+ */
+export function isStaleAddress(address: string): boolean {
+  return address.startsWith("Position from");
+}
+
+/**
  * Re-evaluates a member's staleness from their `lastSeen`, returning a new
- * Member with the grey "stopped" status (and a "Last seen Xm ago" address)
+ * Member with the grey "stopped" status (and a "Position from Xm ago" address)
  * once their last report is older than STALE_AFTER_MS. Returns the member
  * unchanged when they are still fresh or have never reported.
  *
  * Ports `refreshStaleness`. Called on a periodic timer so a member whose
  * updates stop (phone off / no signal) transitions to "stopped" even though no
  * `location` frame arrives. The label still advances ("10m" → "1h" → "1d") on
- * later ticks because it is recomputed each time.
+ * later ticks because it is recomputed each time. The address uses the
+ * pin-age wording (not the "Last seen" liveness label from `lastSeenLabel`)
+ * so the two fields never read as duplicates.
  */
 export function refreshStaleness(member: Member, nowMs: number): Member {
   if (member.position == null || member.lastSeen == null) return member;
   const age = nowMs - member.lastSeen;
   if (age <= STALE_AFTER_MS) return member;
-  const label = `Last seen ${formatAgo(age)} ago`;
+  const label = `Position from ${formatAgo(age)} ago`;
   if (member.status === "stopped" && member.address === label) return member;
   return { ...member, status: "stopped", address: label };
 }
