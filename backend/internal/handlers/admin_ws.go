@@ -133,7 +133,9 @@ func (s *Server) AdminStream(w http.ResponseWriter, r *http.Request) {
 }
 
 // adminMembersSnapshot returns every member across every family, each joined to
-// their last-known position (users -> member_positions) and tagged with
+// their last-known position (users -> member_positions), their most recent
+// device heartbeat/ingest time (devices.last_seen, exposed as last_seen_at so
+// clients keep "last seen" fresh while only heartbeats arrive), and tagged with
 // family_id + family_name. A member with no position has null lat/lon/ts; a
 // member with no family has null family_id/family_name. Unlike the
 // family-scoped snapshot, emails are NOT redacted (platform admin sees all),
@@ -143,9 +145,14 @@ func (s *Server) adminMembersSnapshot(ctx context.Context) ([]adminWsMember, err
 		SELECT u.id, u.email, u.name, u.role,
 		       u.avatar_data IS NOT NULL, u.avatar_version, u.avatar_updated_at,
 		       mp.lat, mp.lon, mp.ts, mp.battery_pct, mp.speed_mps, mp.motion_state, mp.accuracy_meters,
+		       d.last_seen,
 		       u.family_id, f.name
 		FROM users u
 		LEFT JOIN member_positions mp ON mp.user_id = u.id
+		LEFT JOIN (
+			SELECT user_id, MAX(last_seen) AS last_seen
+			FROM devices GROUP BY user_id
+		) d ON d.user_id = u.id
 		LEFT JOIN families f ON f.id = u.family_id
 		ORDER BY f.name NULLS LAST, u.name`)
 	if err != nil {
@@ -166,11 +173,12 @@ func (s *Server) adminMembersSnapshot(ctx context.Context) ([]adminWsMember, err
 			battery, speed  *float64
 			motion          *string
 			accuracy        *float64
+			lastSeenAt      *time.Time
 			familyID        *string
 			familyName      *string
 		)
 		if err := rows.Scan(&id, &email, &name, &role, &hasAvatar, &avatarVersion, &avatarUpdatedAt,
-			&lat, &lon, &ts, &battery, &speed, &motion, &accuracy, &familyID, &familyName); err != nil {
+			&lat, &lon, &ts, &battery, &speed, &motion, &accuracy, &lastSeenAt, &familyID, &familyName); err != nil {
 			return nil, err
 		}
 		m := adminWsMember{
@@ -189,6 +197,7 @@ func (s *Server) adminMembersSnapshot(ctx context.Context) ([]adminWsMember, err
 				SpeedMPS:        speed,
 				MotionState:     motion,
 				AccuracyMeters:  accuracy,
+				LastSeenAt:      lastSeenAt,
 			},
 			FamilyID:   familyID,
 			FamilyName: familyName,
