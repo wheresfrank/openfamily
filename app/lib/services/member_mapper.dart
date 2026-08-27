@@ -211,6 +211,11 @@ MemberStatus _statusFrom({
 /// cycling context is "Stationary", not "Moving". Callers overlay a saved
 /// place name (Home, Work, …) via [applyPlaceAddress] when the member is
 /// inside a place radius.
+///
+/// When the member's reports are stale, the label deliberately describes the
+/// PIN ("Position from 8h ago") rather than repeating the liveness "Last seen"
+/// wording — the profile shows the address row and the list shows the same
+/// string, so identical "Last seen" text would read as a duplicated field.
 String _addressFrom({
   required LatLng? position,
   required DateTime? lastSeen,
@@ -221,7 +226,7 @@ String _addressFrom({
   if (movement == MovementType.bike) return 'Biking';
   if (lastSeen == null) return 'No location yet';
   final Duration age = DateTime.now().toUtc().difference(lastSeen);
-  if (age > kStaleAfter) return 'Last seen ${_formatAgo(age)} ago';
+  if (age > kStaleAfter) return 'Position from ${_formatAgo(age)} ago';
   return 'Stationary';
 }
 
@@ -246,18 +251,24 @@ Place? placeContaining(LatLng? position, List<Place> places) {
 
 /// Replaces a stationary/activity-free address with the saved place the
 /// member is standing in (e.g. "Home"). Driving and cycling keep their
-/// activity labels; stale "Last seen …" labels are left alone.
+/// activity labels; stale "Position from …" pin-age labels are left alone.
 Member applyPlaceAddress(Member member, List<Place> places) {
   if (places.isEmpty) return member;
   if (member.movement == MovementType.car ||
       member.movement == MovementType.bike) {
     return member;
   }
-  if (member.address.startsWith('Last seen')) return member;
+  if (isStaleAddress(member.address)) return member;
   final Place? place = placeContaining(member.position, places);
   if (place == null || member.address == place.name) return member;
   return member.copyWith(address: place.name);
 }
+
+/// Whether an address string is the stale-report fallback (the "Position from
+/// 8h ago" pin-age label) rather than a real place or activity. Mirrors the
+/// guard in [applyPlaceAddress] so callers can skip place overlays for stale
+/// members without duplicating the prefix knowledge.
+bool isStaleAddress(String address) => address.startsWith('Position from');
 
 /// Returns the later of two timestamps, treating null as "unknown" (the other
 /// value wins; both null → null).
@@ -325,18 +336,20 @@ String _formatAgo(Duration d) {
 }
 
 /// Re-evaluates [member]'s staleness from [Member.lastSeen], returning a new
-/// [Member] with the grey "stopped" status (and a "Last seen Xm ago" address)
-/// once their last report is older than [kStaleAfter]. Returns [member]
-/// unchanged when they are still fresh or have never reported.
+/// [Member] with the grey "stopped" status (and a "Position from Xm ago"
+/// address) once their last report is older than [kStaleAfter]. Returns
+/// [member] unchanged when they are still fresh or have never reported.
 ///
 /// Called on a periodic timer so a member whose updates stop (phone off / no
 /// signal) transitions to "stopped" even though no `location` frame arrives.
+/// The address uses the pin-age wording (not the "Last seen" liveness label)
+/// so it never reads as a duplicate of the last-seen field.
 Member refreshStaleness(Member member) {
   final DateTime? lastSeen = member.lastSeen;
   if (member.position == null || lastSeen == null) return member;
   final Duration age = DateTime.now().toUtc().difference(lastSeen);
   if (age <= kStaleAfter) return member;
-  final String label = 'Last seen ${_formatAgo(age)} ago';
+  final String label = 'Position from ${_formatAgo(age)} ago';
   // Already stopped with the current label — no change, so the staleness timer
   // does not fire a spurious `onMembersChanged`. The label still advances
   // ("10m" → "1h" → "1d") on later ticks because it is recomputed each time.

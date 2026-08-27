@@ -239,5 +239,72 @@ void main() {
 
       expect(applyPlaceAddress(member, <Place>[home]).address, 'Stationary');
     });
+
+    test('a stale member is labeled with the pin age, not the last-seen label',
+        () {
+      final member = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'name': 'Sam Rivera',
+        'lat': 37.0,
+        'lon': -122.0,
+        'ts': DateTime.now()
+            .toUtc()
+            .subtract(const Duration(hours: 8))
+            .toIso8601String(),
+      });
+
+      expect(member.status, MemberStatus.stopped);
+      // The address describes the pin so it never duplicates the liveness
+      // "Last seen" field shown beside it.
+      expect(member.address, startsWith('Position from '));
+      expect(member.address, isNot(startsWith('Last seen')));
+    });
+
+    test('a stale member inside a saved place keeps the pin-age label', () {
+      final member = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'name': 'Sam Rivera',
+        'lat': 37.7749,
+        'lon': -122.4194,
+        'ts': DateTime.now()
+            .toUtc()
+            .subtract(const Duration(hours: 8))
+            .toIso8601String(),
+      });
+      final Place home = Place(
+        id: 'home-1',
+        name: 'Home',
+        icon: Place.iconForType('home'),
+        address: '',
+        position: const LatLng(37.7749, -122.4194),
+        radiusMeters: 150,
+        type: 'home',
+      );
+
+      expect(isStaleAddress(member.address), isTrue);
+      expect(applyPlaceAddress(member, <Place>[home]).address,
+          member.address);
+    });
+
+    test('refreshStaleness uses the pin-age wording', () {
+      final member = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'name': 'Sam Rivera',
+        'lat': 37.0,
+        'lon': -122.0,
+        'ts': DateTime.now().toUtc().toIso8601String(),
+      });
+      expect(member.address, 'Stationary');
+
+      // Simulate the staleness timer firing long after the last report.
+      final DateTime eightHoursAgo =
+          DateTime.now().toUtc().subtract(const Duration(hours: 8));
+      final Member aged = member.copyWith(lastSeen: eightHoursAgo);
+      final Member refreshed = refreshStaleness(aged);
+
+      expect(refreshed.status, MemberStatus.stopped);
+      expect(refreshed.address, 'Position from 8h ago');
+      expect(isStaleAddress(refreshed.address), isTrue);
+    });
   });
 }
