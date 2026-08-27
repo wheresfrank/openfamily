@@ -47,6 +47,33 @@ func TestDeployBranchDefaultsToMainWithoutOriginHead(t *testing.T) {
 	}
 }
 
+func TestFilterServicesDropsUpdaterAndBlanks(t *testing.T) {
+	got := filterServices("api\nupdater\ncaddy\n\npostgres\n", "updater")
+	want := []string{"api", "caddy", "postgres"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("filterServices() = %v, want %v", got, want)
+	}
+	if got := filterServices("updater\n", "updater"); len(got) != 0 {
+		t.Fatalf("filterServices() = %v, want empty", got)
+	}
+}
+
+func TestNeedsSelfInstall(t *testing.T) {
+	cases := []struct {
+		name            string
+		running, latest string
+		want            bool
+	}{
+		{"same image", "sha256:aaa", "sha256:aaa", false},
+		{"changed image", "sha256:aaa", "sha256:bbb", true},
+	}
+	for _, c := range cases {
+		if got := needsSelfInstall(c.running, c.latest); got != c.want {
+			t.Errorf("needsSelfInstall(%q, %q) = %v, want %v", c.running, c.latest, got, c.want)
+		}
+	}
+}
+
 // Bare `git pull` follows the clone's current upstream. After a feature-branch
 // checkout, that upstream can vanish when the PR is merged and the remote
 // branch is deleted — which is exactly what the in-admin Update button hit.
