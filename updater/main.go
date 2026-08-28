@@ -288,10 +288,28 @@ func (u *updater) run(st jobState) {
 	fmt.Fprintf(logFile, "now at %s\n", dashIfEmpty(newRef))
 	u.writeDeployRef()
 
+	// Resolve the HOST path backing this container's /repo mount. Every
+	// compose invocation below runs from inside this container, where the
+	// compose file's relative bind mounts ("${REPO_DIR:-.}") would resolve
+	// to container paths that the daemon then interprets on the HOST —
+	// recreating services against a bogus "/repo" stub instead of the real
+	// checkout (production incident 2026-08-28: the self-install mounted
+	// host /repo, and the next update failed with "not a git repository").
+	selfID, err := os.Hostname() // docker sets the container hostname to its short id
+	if err != nil {
+		fail("cannot determine own container: %v", err)
+		return
+	}
+	hostRepo, err := u.hostRepoDir(selfID)
+	if err != nil {
+		fail("cannot resolve host path of the %s mount: %v — recreate the updater from the host so its repo mount points at the real checkout", u.repoDir, err)
+		return
+	}
+
 	// Step 2 — rebuild the images. Building touches no containers, so this
 	// can never take the stack down.
 	build := exec.Command("docker", "compose", "--project-directory", u.repoDir, "build")
-	build.Env = append(os.Environ(), "GIT_COMMIT="+st.NewRef)
+	build.Env = envSet(os.Environ(), "GIT_COMMIT", st.NewRef, "REPO_DIR", hostRepo)
 	build.Stdout, build.Stderr = logFile, logFile
 	if err := runWithTimeout(build); err != nil {
 		fail("docker compose build failed: %v", err)
@@ -304,7 +322,7 @@ func (u *updater) run(st jobState) {
 	// which left freshly created containers never started and the whole
 	// stack down (production incident 2026-08-26: any api image change
 	// cascaded through compose's depends_on into an updater recreation).
-	if err := u.upOtherServices(logFile, newRef); err != nil {
+	if err := u.upOtherServices(logFile, newRef, hostRepo); err != nil {
 		fail("docker compose up failed: %v", err)
 		return
 	}
@@ -312,7 +330,7 @@ func (u *updater) run(st jobState) {
 	// Step 4 — replace this updater last, if its image changed. The stack is
 	// already fully up at this point, so a failed self-swap degrades to "the
 	// updater still runs its previous image" rather than an outage.
-	swapped, err := u.selfInstallIfChanged(logFile, st)
+	swapped, err := u.selfInstallIfChanged(logFile, st, hostRepo)
 	if err != nil {
 		fmt.Fprintf(logFile, "\nWARNING: updater self-install failed (%v); the stack is up, but the updater still runs its previous image. Run the update again to retry.\n", err)
 	}
@@ -333,7 +351,10 @@ func (u *updater) run(st jobState) {
 // so this process is never the victim of its own deployment. The explicit
 // service list also sidesteps compose's depends_on cascade, which otherwise
 // recreates the updater whenever a dependency (api) is recreated.
-func (u *updater) upOtherServices(w io.Writer, gitRef string) error {
+//
+// hostRepo is exported to compose as REPO_DIR so the compose file's relative
+// bind mounts resolve to real host paths (see run).
+func (u *updater) upOtherServices(w io.Writer, gitRef, hostRepo string) error {
 	services, err := u.otherServices()
 	if err != nil {
 		return fmt.Errorf("docker compose config --services failed: %w", err)
@@ -345,7 +366,7 @@ func (u *updater) upOtherServices(w io.Writer, gitRef string) error {
 		"compose", "--project-directory", u.repoDir, "up", "-d", "--build", "--no-deps",
 	}, services...)
 	up := exec.Command("docker", args...)
-	up.Env = append(os.Environ(), "GIT_COMMIT="+gitRef)
+	up.Env = envSet(os.Environ(), "GIT_COMMIT", gitRef, "REPO_DIR", hostRepo)
 	up.Stdout, up.Stderr = w, w
 	if err := runWithTimeout(up); err != nil {
 		return fmt.Errorf("docker compose up %s failed: %w", strings.Join(services, " "), err)
@@ -390,11 +411,13 @@ func needsSelfInstall(runningImage, latestImage string) bool {
 // container kills it. Instead, a detached one-shot "bootstrap" container
 // (the freshly built updater image itself, which bundles the docker CLI and
 // compose plugin) is started with access to the docker socket, and it runs
-// the final `docker compose up updater` after this process is gone. The job
-// is recorded as successful BEFORE the swap is scheduled, so the replacement
-// updater boots into a finished state instead of recovering a phantom
-// "running" job as interrupted.
-func (u *updater) selfInstallIfChanged(w io.Writer, st jobState) (bool, error) {
+// the final `docker compose up updater` after this process is gone. The
+// bootstrap receives REPO_DIR=<hostRepo> so the compose file's relative bind
+// mounts resolve to real host paths rather than a bogus in-container "/repo"
+// (production incident 2026-08-28). The job is recorded as successful BEFORE
+// the swap is scheduled, so the replacement updater boots into a finished
+// state instead of recovering a phantom "running" job as interrupted.
+func (u *updater) selfInstallIfChanged(w io.Writer, st jobState, hostRepo string) (bool, error) {
 	selfID, err := os.Hostname() // docker sets the container hostname to its short id
 	if err != nil {
 		return false, fmt.Errorf("cannot determine own container: %w", err)
@@ -410,10 +433,6 @@ func (u *updater) selfInstallIfChanged(w io.Writer, st jobState) (bool, error) {
 	if !needsSelfInstall(runningImage, latestImage) {
 		fmt.Fprintln(w, "updater image unchanged; skipping self-install")
 		return false, nil
-	}
-	hostRepo, err := u.hostRepoDir(selfID)
-	if err != nil {
-		return false, err
 	}
 
 	// The update is fully applied at this point; only this container's own
@@ -432,6 +451,7 @@ func (u *updater) selfInstallIfChanged(w io.Writer, st jobState) (bool, error) {
 	run := exec.Command("docker", "run", "-d", "--rm",
 		"--name", selfInstallContainer,
 		"--entrypoint", "/bin/sh",
+		"-e", "REPO_DIR="+hostRepo,
 		"-v", "/var/run/docker.sock:/var/run/docker.sock",
 		"-v", hostRepo+":/repo",
 		imageTag,
@@ -619,4 +639,28 @@ func runWithTimeout(cmd *exec.Cmd) error {
 	})
 	defer timer.Stop()
 	return cmd.Run()
+}
+
+// envSet returns a copy of base with each key/value pair set, replacing any
+// existing entry for that key. Plain append would leave duplicate entries
+// (the compose service already exports REPO_DIR=/repo for the updater's own
+// filesystem), and which duplicate a child process sees is unspecified.
+func envSet(base []string, kv ...string) []string {
+	out := make([]string, 0, len(base)+len(kv)/2)
+	for _, e := range base {
+		dup := false
+		for i := 0; i < len(kv); i += 2 {
+			if strings.HasPrefix(e, kv[i]+"=") {
+				dup = true
+				break
+			}
+		}
+		if !dup {
+			out = append(out, e)
+		}
+	}
+	for i := 0; i < len(kv); i += 2 {
+		out = append(out, kv[i]+"="+kv[i+1])
+	}
+	return out
 }

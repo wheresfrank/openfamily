@@ -85,7 +85,14 @@ services:
       # the admin panel can show which commit is running.
       DEPLOY_REF_FILE: /data/deploy/deployed-ref
     volumes:
-      - ./apk:/data/apk
+      # REPO_DIR must be an absolute HOST path. The updater drives
+      # "docker compose" from inside its own container (deploys and the
+      # self-install bootstrap), where a relative path like "./apk" resolves
+      # to a container path that the daemon then interprets on the HOST —
+      # recreating services against a bogus "/repo/apk" stub. The updater
+      # passes REPO_DIR (resolved from its own mount) on every compose call;
+      # plain host-side invocations leave it unset and get the project dir.
+      - ${REPO_DIR:-.}/apk:/data/apk
       - deploy_meta:/data/deploy
     depends_on:
       postgres:
@@ -152,7 +159,12 @@ services:
       # Shared with the api service so it can read the deployed git ref.
       DEPLOY_REF_FILE: /data/deploy/deployed-ref
     volumes:
-      - .:/repo
+      # Same REPO_DIR rule as the api above: when the updater (or its
+      # self-install bootstrap) re-runs compose from inside a container, a
+      # relative "." would mount the HOST path "/repo" instead of this
+      # checkout. The updater overrides REPO_DIR with the host path it
+      # resolves from its own mount.
+      - ${REPO_DIR:-.}:/repo
       - /var/run/docker.sock:/var/run/docker.sock
       - updater_data:/data
       - deploy_meta:/data/deploy
