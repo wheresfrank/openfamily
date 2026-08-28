@@ -24,6 +24,15 @@ is the data controller for that instance.
 There is **no analytics SDK**, crash reporter, or vendor location pipeline in
 the app.
 
+## About this website
+
+This website (openfamily.app) is separate from the software. It uses
+[Plausible Analytics](https://plausible.io) — a cookieless, GDPR-friendly
+analytics tool hosted by the project author. No cookies are set and no
+personal data is collected from site visitors. If you fork and deploy this
+site yourself, no analytics code ships with the repository: the tracking
+snippet is injected at deploy time only in the official build.
+
 ## Who can see location
 
 - Members of the same family (including the child role, who can view the map
