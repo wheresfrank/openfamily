@@ -1,0 +1,36 @@
+# OpenFamily
+
+> OpenFamily is a self-hosted, privacy-first family location tracker (a Life360 alternative). You run the server. Family GPS locations never leave it.
+
+Canonical site: https://openfamily.app/
+Canonical repository: https://github.com/wheresfrank/openfamily
+
+## What it is
+
+- Self-hosted family GPS locator for a household (Life360-style live map, SOS, places, 90-day history)
+- Flutter apps for Android and iOS talking to a Go API you host with Docker Compose
+- Location, places, family roles, and history live in PostgreSQL + PostGIS + TimescaleDB on the operator's machine
+- Android push via UnifiedPush / ntfy (no Google Play Services required); iOS push via APNs (payloads contain no coordinates)
+- Maps are OpenStreetMap by default (no Google Maps SDK, no Google Places)
+
+## What it is not
+
+- Not NexaFlowFrance/OpenFamily (https://github.com/NexaFlowFrance/OpenFamily), a different product: a self-hosted family organizer for calendars, shopping, and chores
+- Not a fleet, vehicle, or asset tracker (see Traccar)
+- Not a commercial cloud family locator (Life360-class apps)
+- Not OwnTracks (an MQTT location recorder) and not Dawarich (a personal timeline)
+
+## Stack
+
+- Docker Compose, Caddy (TLS), Go API (REST + WebSocket)
+- PostgreSQL + PostGIS + TimescaleDB
+- Flutter (Android / iOS), ntfy / UnifiedPush on Android, APNs on iOS
+- OpenStreetMap maps; optional self-hosted raster tiles via TILE_URL
+
+## Pages
+
+- https://openfamily.app/
+- https://openfamily.app/compare/
+- https://openfamily.app/privacy/
+- https://openfamily.app/quick-start/
+- https://openfamily.app/docs/

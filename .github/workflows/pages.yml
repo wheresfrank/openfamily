@@ -33,8 +33,9 @@ jobs:
       - name: Inject analytics snippet (official deployment only)
         if: github.repository == 'wheresfrank/openfamily'
         run: |
-          sed -i 's#</head>#  <script defer data-domain="openfamily.app" src="https://stats.subwiz.ai/js/pa-L7jWcNReMehlGYzagVUpb.js"></script>\n</head>#' site/index.html
+          find site -name '*.html' -print0 | xargs -0 sed -i 's#</head>#  <script defer data-domain="openfamily.app" src="https://stats.subwiz.ai/js/pa-L7jWcNReMehlGYzagVUpb.js"></script>\n</head>#'
           grep -q 'stats.subwiz.ai/js/pa-' site/index.html
+          grep -q 'stats.subwiz.ai/js/pa-' site/compare/index.html
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

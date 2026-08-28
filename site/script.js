@@ -43,7 +43,7 @@
     var themeToggle = document.querySelector("[data-theme-toggle]");
     var themeText = document.querySelector("[data-theme-text]");
     var themeIcon = document.querySelector("[data-theme-icon]");
-    var copyButton = document.querySelector("[data-copy-command]");
+    var copyButtons = document.querySelectorAll("[data-copy-command]");
     var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     function syncThemeControl() {
@@ -100,7 +100,9 @@
     });
 
     function syncHeader() {
-      if (header) header.classList.toggle("is-scrolled", window.scrollY > 18);
+      if (!header) return;
+      var solid = header.hasAttribute("data-header-solid") || window.scrollY > 18;
+      header.classList.toggle("is-scrolled", solid);
     }
     syncHeader();
     window.addEventListener("scroll", syncHeader, { passive: true });
@@ -120,15 +122,16 @@
       revealItems.forEach(function (item) { observer.observe(item); });
     }
 
-    if (copyButton) {
-      copyButton.addEventListener("click", function () {
-        var commands = [
-          "git clone https://github.com/wheresfrank/openfamily.git openfamily",
-          "cd openfamily",
-          "cp .env.example .env",
-          "docker compose up -d --build"
-        ].join("\n");
+    var defaultCommands = [
+      "git clone https://github.com/wheresfrank/openfamily.git openfamily",
+      "cd openfamily",
+      "cp .env.example .env",
+      "docker compose up -d --build"
+    ].join("\n");
 
+    copyButtons.forEach(function (copyButton) {
+      copyButton.addEventListener("click", function () {
+        var commands = copyButton.getAttribute("data-copy-text") || defaultCommands;
         if (!navigator.clipboard) return;
         navigator.clipboard.writeText(commands).then(function () {
           var original = copyButton.textContent;
@@ -136,7 +139,7 @@
           window.setTimeout(function () { copyButton.textContent = original; }, 1800);
         });
       });
-    }
+    });
 
     document.querySelectorAll("[data-year]").forEach(function (element) {
       element.textContent = String(new Date().getFullYear());

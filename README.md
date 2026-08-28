@@ -8,9 +8,14 @@
 <h1 align="center">OpenFamily</h1>
 
 <p align="center">
-  <strong>A self-hosted family location tracker.</strong> You run the server.
+  <strong>A self-hosted family GPS locator.</strong> You run the server.
   Your family's location never leaves it.<br>
+  Life360-style live map, SOS, places, and history — not a calendar or shopping app.<br>
   <a href="https://openfamily.app">openfamily.app</a>
+  ·
+  <a href="https://openfamily.app/compare/">Compare</a>
+  ·
+  <a href="https://openfamily.app/quick-start/">Quick start</a>
 </p>
 
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](https://go.dev/)
@@ -19,10 +24,16 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-PostGIS%20%2B%20TimescaleDB-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-OpenFamily is an open-source alternative to commercial family locators. A
-Flutter app for Android and iOS talks to a Go API you host with Docker — on a
-VPS, a Synology NAS, or a machine on your LAN. There is no vendor cloud, no
-analytics SDK, and no Google Play Services requirement on Android.
+OpenFamily is an open-source alternative to commercial family locators
+(a self-hosted Life360 alternative). A Flutter app for Android and iOS talks
+to a Go API you host with Docker — on a VPS, a Synology NAS, or a machine on
+your LAN. There is no vendor cloud, no analytics SDK, and no Google Play
+Services requirement on Android.
+
+This repository is a **family GPS location tracker**. It is not
+[NexaFlowFrance/OpenFamily](https://github.com/NexaFlowFrance/OpenFamily), a
+different product: a self-hosted family **organizer** (calendar, shopping,
+chores) that currently ranks first in GitHub search for the same name.
 
 ![OpenFamily — keep your family close without giving up your privacy](assets/brand/openfamily/openfamily-social-card.png)
 
@@ -163,6 +174,8 @@ need a valid invite code.
 
 ## Compared to
 
+On-site write-up: [openfamily.app/compare](https://openfamily.app/compare/).
+
 | | OpenFamily | Life360-class apps | [OwnTracks](https://owntracks.org/) | [Traccar](https://www.traccar.org/) | [Dawarich](https://dawarich.app/) |
 |---|---|---|---|---|---|
 | Self-hosted | Yes | No | Yes | Yes | Yes |
@@ -234,8 +247,9 @@ before you invite anyone.
 5. Install [ntfy](https://ntfy.sh/) so SOS, geofence, and check-in alerts
    arrive when OpenFamily is closed.
 
-Privacy details: [PRIVACY.md](PRIVACY.md). Operator hardening:
-[docs/self-hosting.md](docs/self-hosting.md).
+Privacy details: [PRIVACY.md](PRIVACY.md) ([on the site](https://openfamily.app/privacy/)).
+Operator hardening: [docs/self-hosting.md](docs/self-hosting.md)
+([on the site](https://openfamily.app/docs/)).
 
 ## Mobile apps
 

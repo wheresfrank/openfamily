@@ -4,25 +4,101 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
-    <meta name="description" content="OpenFamily is a private, open-source family location tracker with live maps, safety alerts, places, and history—running on your server." />
+    <meta name="description" content="OpenFamily is a self-hosted family location tracker and Life360 alternative. Live GPS maps, SOS, places, and 90-day history on your server—not a calendar or shopping app." />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eef2f6" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1e22" />
-    <meta property="og:title" content="OpenFamily — your family, your server" />
-    <meta property="og:description" content="Know where your family is—without handing a vendor your family's movements." />
+    <meta property="og:title" content="OpenFamily — self-hosted family location tracker" />
+    <meta property="og:description" content="A self-hosted Life360 alternative. Live GPS maps, safety alerts, places, and history on a server you control—not a family organizer." />
     <meta property="og:image" content="https://openfamily.app/assets/brand/openfamily-social-card.png" />
     <meta property="og:url" content="https://openfamily.app/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="OpenFamily" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="OpenFamily — your family, your server" />
-    <meta name="twitter:description" content="A private, self-hosted family location tracker with live maps, safety alerts, places, and history." />
+    <meta name="twitter:title" content="OpenFamily — self-hosted family location tracker" />
+    <meta name="twitter:description" content="A private, self-hosted family GPS locator and Life360 alternative. Live maps, SOS, places, and history on your server." />
     <meta name="twitter:image" content="https://openfamily.app/assets/brand/openfamily-social-card.png" />
     <link rel="canonical" href="https://openfamily.app/" />
     <link rel="icon" type="image/svg+xml" href="assets/brand/openfamily-icon.svg" />
     <link rel="apple-touch-icon" href="assets/brand/openfamily-app-icon.png" />
     <script src="script.js"></script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": ["SoftwareApplication", "SoftwareSourceCode"],
+      "name": "OpenFamily",
+      "url": "https://openfamily.app/",
+      "codeRepository": "https://github.com/wheresfrank/openfamily",
+      "description": "Self-hosted family location tracker and Life360 alternative. Live GPS maps, SOS alerts, places, and 90-day history on a server you control. Not a family calendar or shopping app.",
+      "applicationCategory": "LifestyleApplication",
+      "applicationSubCategory": "Family GPS location tracking",
+      "operatingSystem": "Android, iOS, Linux, Docker",
+      "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Do I need to build a different app for my server?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The generic Android APK asks for your server address on first launch, then stores that origin on the device."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can Android work without Google Play Services?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. OpenFamily uses UnifiedPush through ntfy for Android notifications and does not require a Google account."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Who can see a person's location?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Members of the same family can see the family map. A configured platform administrator can also access locations through the web panel."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is this a fleet or public tracking tool?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. OpenFamily is deliberately designed for a handful of people who share a home—not vehicles, assets, or public location broadcasting."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What happens to old location data?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Detailed location history is retained for 90 days. The last known point remains so inactive family members still appear on the map."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is this the same OpenFamily as the family organizer (calendar and shopping)?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. This OpenFamily is a self-hosted family GPS location tracker—a Life360 alternative. It is not NexaFlowFrance/OpenFamily, which is a self-hosted family organizer for calendars, shopping, and chores."
+          }
+        }
+      ]
+    }
+    </script>
     <link rel="stylesheet" href="styles.css" />
-    <title>OpenFamily — your family, your server</title>
+    <title>OpenFamily — self-hosted family location tracker</title>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -37,7 +113,8 @@
           <span></span><span></span><span></span>
         </button>
         <nav id="primary-nav" aria-label="Primary navigation" data-nav>
-          <a href="#privacy">Privacy</a>
+          <a href="privacy/">Privacy</a>
+          <a href="compare/">Compare</a>
           <a href="#features">Features</a>
           <a href="#self-host">Self-host</a>
           <a href="#faq">FAQ</a>
@@ -55,9 +132,10 @@
         <div class="hero-glow" aria-hidden="true"></div>
         <div class="shell hero-grid">
           <div class="hero-copy reveal is-visible">
-            <div class="eyebrow"><span></span> Self-hosted · Open source · Built for families</div>
+            <div class="eyebrow"><span></span> Self-hosted family GPS locator · Life360 alternative</div>
             <h1>Know where your family is—<em>privately.</em></h1>
-            <p class="hero-lede">Run the live map, safety alerts, places, and 90-day history on a server you choose. No vendor location cloud. No analytics SDK. No Google services required on Android.</p>
+            <p class="hero-lede">OpenFamily is a self-hosted family location tracker — a Life360 alternative you run on a server you choose. Live GPS map, safety alerts, places, and 90-day history. No vendor location cloud. No analytics SDK. No Google services required on Android.</p>
+            <p class="hero-note">Not the NexaFlow family organizer (calendar, shopping, chores). This is GPS location sharing for a household.</p>
             <div class="hero-actions">
               <a class="button button-primary" href="#self-host">Self-host OpenFamily <span aria-hidden="true">→</span></a>
               <a class="button button-secondary" href="#features">See it in action</a>
@@ -100,6 +178,12 @@
         </div>
       </section>
 
+      <section class="compare-strip" aria-label="How OpenFamily compares">
+        <div class="shell">
+          <p><strong>Family GPS location tracker</strong> — a self-hosted Life360 alternative. Not a calendar or shopping app, and not a fleet tracker like Traccar. See the <a href="compare/">comparison with Life360, OwnTracks, Traccar, and Dawarich</a>.</p>
+        </div>
+      </section>
+
       <section class="section privacy-section" id="privacy">
         <div class="shell">
           <div class="section-intro section-intro-split reveal">
@@ -109,7 +193,7 @@
             </div>
             <div>
               <p>OpenFamily has no company-operated location service to send your movements to. Your accounts, coordinates, saved places, and history live in PostgreSQL on the machine you control.</p>
-              <a class="text-link" href="https://github.com/wheresfrank/openfamily/blob/master/PRIVACY.md">Read the full privacy details <span aria-hidden="true">→</span></a>
+              <a class="text-link" href="privacy/">Read the full privacy details <span aria-hidden="true">→</span></a>
             </div>
           </div>
 
@@ -160,7 +244,7 @@
           <div class="section-intro section-intro-centered reveal">
             <span class="section-kicker">Made for real families</span>
             <h2>Everything you need to stay connected. Nothing that sells you out.</h2>
-            <p>A focused family locator—live context when you need it, quiet privacy controls when you do not.</p>
+            <p>A focused family locator—live GPS context when you need it, quiet privacy controls when you do not.</p>
           </div>
 
           <article class="feature-showcase feature-live reveal">
@@ -231,8 +315,8 @@
               <p>Deploy with Docker Compose on a VPS, Synology NAS, home server, or LAN machine. One stack brings the API, TLS, database, web panel, and Android push together.</p>
               <div class="host-options" aria-label="Hosting options"><span><i></i> VPS</span><span><i></i> Synology</span><span><i></i> Home lab</span><span><i></i> LAN only</span></div>
               <div class="host-actions">
-                <a class="button button-primary" href="https://github.com/wheresfrank/openfamily#quick-start">Read the quick start <span aria-hidden="true">→</span></a>
-                <a class="button button-ghost-dark" href="https://github.com/wheresfrank/openfamily/blob/master/docs/self-hosting.md">Production guide</a>
+                <a class="button button-primary" href="quick-start/">Read the quick start <span aria-hidden="true">→</span></a>
+                <a class="button button-ghost-dark" href="docs/">Production guide</a>
               </div>
             </div>
             <div class="terminal-card">
@@ -273,9 +357,10 @@
           <div class="faq-list reveal">
             <details><summary>Do I need to build a different app for my server?<span aria-hidden="true">+</span></summary><p>No. The generic Android APK asks for your server address on first launch, then stores that origin on the device.</p></details>
             <details><summary>Can Android work without Google Play Services?<span aria-hidden="true">+</span></summary><p>Yes. OpenFamily uses UnifiedPush through ntfy for Android notifications and does not require a Google account.</p></details>
-            <details><summary>Who can see a person’s location?<span aria-hidden="true">+</span></summary><p>Members of the same family can see the family map. A configured platform administrator can also access locations through the web panel.</p></details>
+            <details><summary>Who can see a person's location?<span aria-hidden="true">+</span></summary><p>Members of the same family can see the family map. A configured platform administrator can also access locations through the web panel.</p></details>
             <details><summary>Is this a fleet or public tracking tool?<span aria-hidden="true">+</span></summary><p>No. OpenFamily is deliberately designed for a handful of people who share a home—not vehicles, assets, or public location broadcasting.</p></details>
             <details><summary>What happens to old location data?<span aria-hidden="true">+</span></summary><p>Detailed location history is retained for 90 days. The last known point remains so inactive family members still appear on the map.</p></details>
+            <details><summary>Is this the same OpenFamily as the family organizer (calendar and shopping)?<span aria-hidden="true">+</span></summary><p>No. This OpenFamily is a self-hosted family GPS location tracker—a Life360 alternative. It is not NexaFlowFrance/OpenFamily, which is a self-hosted family organizer for calendars, shopping, and chores.</p></details>
           </div>
         </div>
       </section>
@@ -286,7 +371,7 @@
           <img src="assets/brand/openfamily-icon-on-accent.svg" alt="" /><span class="section-kicker">Open source and ready to run</span>
           <h2>Keep your family close.<br />Keep their location yours.</h2><p>Start on a laptop. Move to a NAS or VPS when the family is ready.</p>
           <div class="final-actions">
-            <a class="button button-ink" href="https://github.com/wheresfrank/openfamily#quick-start">Self-host OpenFamily <span aria-hidden="true">→</span></a>
+            <a class="button button-ink" href="quick-start/">Self-host OpenFamily <span aria-hidden="true">→</span></a>
             <a class="button button-on-accent" href="https://github.com/wheresfrank/openfamily">View the source</a>
           </div>
         </div>
@@ -297,10 +382,10 @@
       <div class="shell footer-grid">
         <div class="footer-brand">
           <img class="footer-icon footer-icon-light" src="assets/brand/openfamily-icon.svg" alt="" /><img class="footer-icon footer-icon-dark" src="assets/brand/openfamily-icon-dark.svg" alt="" />
-          <div><strong>OpenFamily</strong><span>Your family. Your server.</span></div>
+          <div><strong>OpenFamily</strong><span>Self-hosted family location tracker</span></div>
         </div>
         <div class="footer-links">
-          <a href="https://github.com/wheresfrank/openfamily">GitHub</a><a href="https://github.com/wheresfrank/openfamily/blob/master/PRIVACY.md">Privacy</a><a href="https://github.com/wheresfrank/openfamily/blob/master/SECURITY.md">Security</a><a href="https://github.com/wheresfrank/openfamily/blob/master/LICENSE">License</a>
+          <a href="https://github.com/wheresfrank/openfamily">GitHub</a><a href="compare/">Compare</a><a href="privacy/">Privacy</a><a href="quick-start/">Quick start</a><a href="docs/">Docs</a><a href="https://github.com/wheresfrank/openfamily/blob/main/SECURITY.md">Security</a><a href="https://github.com/wheresfrank/openfamily/blob/main/LICENSE">License</a>
         </div>
         <p>© <span data-year></span> OpenFamily. Open source under AGPL-3.0. This website uses Plausible Analytics — cookieless, no personal data; the OpenFamily software itself contains no analytics.</p>
       </div>

@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://openfamily.app/sitemap.xml
+# Machine-readable summary: https://openfamily.app/llms.txt
