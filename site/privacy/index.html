@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+    <meta name="description" content="Privacy details for OpenFamily, the self-hosted family location tracker. What is stored, who can see GPS location, and what can leave your server." />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eef2f6" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c1e22" />
+    <meta property="og:title" content="OpenFamily privacy — family location stays on your server" />
+    <meta property="og:description" content="What the self-hosted family GPS tracker stores, who can see it, and what optional services can leave your machine." />
+    <meta property="og:image" content="https://openfamily.app/assets/brand/openfamily-social-card.png" />
+    <meta property="og:url" content="https://openfamily.app/privacy/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OpenFamily" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="OpenFamily privacy — family location stays on your server" />
+    <meta name="twitter:description" content="Privacy details for the self-hosted family location tracker. No vendor location cloud." />
+    <meta name="twitter:image" content="https://openfamily.app/assets/brand/openfamily-social-card.png" />
+    <link rel="canonical" href="https://openfamily.app/privacy/" />
+    <link rel="icon" type="image/svg+xml" href="../assets/brand/openfamily-icon.svg" />
+    <link rel="apple-touch-icon" href="../assets/brand/openfamily-app-icon.png" />
+    <script src="../script.js"></script>
+    <link rel="stylesheet" href="../styles.css" />
+    <title>Privacy — OpenFamily family location tracker</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header is-scrolled" data-header data-header-solid>
+      <div class="shell header-inner">
+        <a class="brand" href="../" aria-label="OpenFamily home">
+          <img class="brand-logo brand-logo-light" src="../assets/brand/openfamily-logo-horizontal.svg" alt="OpenFamily" />
+          <img class="brand-logo brand-logo-dark" src="../assets/brand/openfamily-logo-horizontal-dark.svg" alt="OpenFamily" />
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu" data-nav-toggle>
+          <span></span><span></span><span></span>
+        </button>
+        <nav id="primary-nav" aria-label="Primary navigation" data-nav>
+          <a href="./" aria-current="page">Privacy</a>
+          <a href="../compare/">Compare</a>
+          <a href="../#features">Features</a>
+          <a href="../quick-start/">Quick start</a>
+          <a href="../docs/">Docs</a>
+          <button class="theme-toggle" type="button" data-theme-toggle>
+            <span class="theme-icon" aria-hidden="true" data-theme-icon>◐</span>
+            <span class="theme-text" data-theme-text>Theme</span>
+          </button>
+          <a class="nav-cta" href="https://github.com/wheresfrank/openfamily"><span class="github-mark" aria-hidden="true">⌘</span> GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="page-hero">
+        <div class="page-hero-glow" aria-hidden="true"></div>
+        <div class="shell">
+          <span class="section-kicker">Privacy</span>
+          <h1>Your family's GPS location stays on your server.</h1>
+          <p class="page-lede">OpenFamily is a self-hosted family location tracker. This page is the same policy as <a href="https://github.com/wheresfrank/openfamily/blob/main/PRIVACY.md">PRIVACY.md</a> in the canonical repository. The operator of each deployment is the data controller for that instance.</p>
+          <p class="notice"><strong>Not a vendor cloud and not the NexaFlow organizer.</strong> There is no company-operated location service. This product does not store calendars or shopping lists — only the family location data listed below.</p>
+        </div>
+      </section>
+
+      <section class="page-section">
+        <div class="shell">
+          <h2>What is stored</h2>
+          <ul>
+            <li><strong>Accounts:</strong> email, display name, optional phone number, password hash (Argon2id), optional avatar bytes.</li>
+            <li><strong>Family membership and roles:</strong> admin, member, or child.</li>
+            <li><strong>Devices:</strong> platform, name, push endpoint, last seen.</li>
+            <li><strong>Live and historical location:</strong> coordinates, time, accuracy, battery, motion. History is kept for <strong>90 days</strong> (TimescaleDB retention). The last known point per person (<code>member_positions</code>) is kept until the account is deleted so inactive members still appear on the map.</li>
+            <li><strong>Places and geofences:</strong> names, points, radii, arrive/leave flags.</li>
+            <li><strong>Safety alerts:</strong> SOS / Help / Check-in notes and short-lived share tokens (24 hours).</li>
+            <li><strong>Emergency contacts:</strong> name and phone (for optional SMS).</li>
+            <li><strong>Audit log:</strong> auth and admin actions. Location ingest logs a device id, not raw coordinates (once that backend change is deployed).</li>
+          </ul>
+          <p>There is <strong>no analytics SDK</strong>, crash reporter, or vendor location pipeline in the app.</p>
+
+          <h2>About this website</h2>
+          <p>This website (openfamily.app) is separate from the software. It uses <a href="https://plausible.io">Plausible Analytics</a> — a cookieless, GDPR-friendly analytics tool hosted by the project author. No cookies are set and no personal data is collected from site visitors. If you fork and deploy this site yourself, no analytics code ships with the repository: the tracking snippet is injected at deploy time only in the official build.</p>
+
+          <h2>Who can see location</h2>
+          <ul>
+            <li>Members of the same family (including the child role, who can view the map but cannot edit places).</li>
+            <li>The platform admin of that server (<code>/admin</code>), if one is configured.</li>
+            <li>Emergency contacts, only when SOS fires and optional Twilio SMS is enabled. The SMS carries a 24-hour share URL on <em>your</em> server when <code>PUBLIC_BASE_URL</code> is HTTPS; otherwise it may fall back to lat/lon.</li>
+          </ul>
+
+          <h2>What leaves your server</h2>
+          <ul>
+            <li><strong>Map tiles:</strong> by default the phone loads public OpenStreetMap (street) and Esri (satellite) images. Those hosts see the map viewport (roughly where you are looking). Set <code>TILE_URL</code> / <code>SATELLITE_TILE_URL</code> on the server to use another provider or your own tiles. A key in that URL is visible to every phone and to anyone who can call <code>GET /config</code>.</li>
+            <li><strong>Android push:</strong> your ntfy server (or another UnifiedPush distributor). Payloads omit the tracked person's name unless <code>VERBOSE_PUSH=true</code>.</li>
+            <li><strong>iOS push:</strong> APNs (platform requirement). Payloads do not include coordinates.</li>
+            <li><strong>Optional SMS:</strong> Twilio sees destination numbers and the share URL.</li>
+          </ul>
+
+          <h2>Your controls</h2>
+          <ul>
+            <li><strong>Location sharing</strong> toggle: this device stops reporting.</li>
+            <li><strong>Change or delete account</strong> in the Android app (delete is blocked if you are the last admin of a family that still has other people).</li>
+            <li><strong>Biometric unlock</strong> covers the UI; it does not encrypt background credentials used to report location.</li>
+          </ul>
+
+          <h2>Operator duties</h2>
+          <p>Encrypt the disk (or Postgres) at rest, keep backups private, set <code>APP_ENV=production</code>, and close open registration with <code>PLATFORM_ADMIN_EMAIL</code>. See the <a href="../docs/">production guide</a>.</p>
+          <p>Canonical source: <a href="https://github.com/wheresfrank/openfamily/blob/main/PRIVACY.md">PRIVACY.md</a>.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-grid">
+        <div class="footer-brand">
+          <img class="footer-icon footer-icon-light" src="../assets/brand/openfamily-icon.svg" alt="" /><img class="footer-icon footer-icon-dark" src="../assets/brand/openfamily-icon-dark.svg" alt="" />
+          <div><strong>OpenFamily</strong><span>Self-hosted family location tracker</span></div>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/wheresfrank/openfamily">GitHub</a><a href="../compare/">Compare</a><a href="./">Privacy</a><a href="../quick-start/">Quick start</a><a href="../docs/">Docs</a><a href="https://github.com/wheresfrank/openfamily/blob/main/SECURITY.md">Security</a><a href="https://github.com/wheresfrank/openfamily/blob/main/LICENSE">License</a>
+        </div>
+        <p>© <span data-year></span> OpenFamily. Open source under AGPL-3.0. This website uses Plausible Analytics — cookieless, no personal data; the OpenFamily software itself contains no analytics.</p>
+      </div>
+    </footer>
+  </body>
+</html>
