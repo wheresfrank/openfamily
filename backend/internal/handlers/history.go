@@ -23,6 +23,21 @@ const (
 	placeMinDuration   = 3 * time.Minute
 	samePlaceMergeGap  = 5 * time.Minute
 	earthRadiusMeters  = 6371000.0
+
+	// Fixes reporting accuracy worse than this many meters (the device's
+	// 68%-confidence radius) are dropped before the trail and visit
+	// computation. Indoor WiFi/cell fixes routinely wander hundreds of
+	// meters while the device is stationary, and drawing / clustering them
+	// verbatim made a member at home all day look like they were moving.
+	// 0 (unknown) is kept so devices that don't report accuracy still work.
+	historyMaxAccuracyMeters = 100.0
+
+	// A stay tolerates jitter: consecutive fixes outside a place radius (or
+	// the stay-point distance) don't break the stay while the excursion
+	// lasts at most this long, so one drifting fix can't split a visit into
+	// place → transit → place. A real departure outlasts the window and
+	// re-anchors at the first missed fix, so trips are not truncated.
+	stayBreakTolerance = 3 * time.Minute
 )
 
 // trailPoint is one downsampled GPS sample on the day's path.
@@ -58,6 +73,9 @@ type historyPoint struct {
 	Lon         float64
 	TS          time.Time
 	MotionState string
+	// Accuracy is the device-reported 68%-confidence radius in meters;
+	// 0 means unknown.
+	Accuracy float64
 }
 
 type historyPlace struct {
@@ -230,14 +248,33 @@ func (s *Server) buildMemberHistory(ctx context.Context, userID, familyID string
 		return out, err
 	}
 
-	out.Trail = downsampleTrail(points, trailBucket, trailPointCap)
-	out.Visits = buildVisits(points, places)
+	usable := filterUsablePoints(points)
+	out.Trail = downsampleTrail(usable, trailBucket, trailPointCap)
+	out.Visits = buildVisits(usable, places)
 	return out, nil
+}
+
+// filterUsablePoints drops fixes too inaccurate to trust for trail/visit
+// reconstruction (see historyMaxAccuracyMeters). Accuracy unknown (0) is
+// kept. If every fix on the day fails the gate, the raw points are returned
+// so a weak-fix device still sees its day rather than an empty one.
+func filterUsablePoints(points []historyPoint) []historyPoint {
+	usable := make([]historyPoint, 0, len(points))
+	for _, p := range points {
+		if p.Accuracy > 0 && p.Accuracy > historyMaxAccuracyMeters {
+			continue
+		}
+		usable = append(usable, p)
+	}
+	if len(usable) == 0 && len(points) > 0 {
+		return points
+	}
+	return usable
 }
 
 func (s *Server) loadHistoryPoints(ctx context.Context, userID string, from, to time.Time) ([]historyPoint, error) {
 	rows, err := s.Pool.Query(ctx, `
-		SELECT ST_Y(l.geom), ST_X(l.geom), l.ts, COALESCE(l.motion_state, '')
+		SELECT ST_Y(l.geom), ST_X(l.geom), l.ts, COALESCE(l.motion_state, ''), COALESCE(l.accuracy_meters, 0)
 		FROM locations l
 		JOIN devices d ON d.id = l.device_id
 		WHERE d.user_id = $1 AND l.ts >= $2 AND l.ts < $3
@@ -250,7 +287,7 @@ func (s *Server) loadHistoryPoints(ctx context.Context, userID string, from, to 
 	points := []historyPoint{}
 	for rows.Next() {
 		var p historyPoint
-		if err := rows.Scan(&p.Lat, &p.Lon, &p.TS, &p.MotionState); err != nil {
+		if err := rows.Scan(&p.Lat, &p.Lon, &p.TS, &p.MotionState, &p.Accuracy); err != nil {
 			return nil, err
 		}
 		points = append(points, p)
@@ -338,7 +375,9 @@ func downsampleTrail(points []historyPoint, bucket time.Duration, capN int) []tr
 
 // buildVisits turns a day's GPS points into named place stays, unnamed dwells,
 // and in-transit gaps. Named places win when a stay centroid is inside a
-// family place radius; everything else uses stay-point clustering.
+// family place radius; everything else uses stay-point clustering. Both paths
+// tolerate brief GPS-jitter excursions (see stayBreakTolerance) so a
+// stationary member isn't split into phantom transit segments.
 func buildVisits(points []historyPoint, places []historyPlace) []historyVisit {
 	if len(points) == 0 {
 		return []historyVisit{}
@@ -352,22 +391,55 @@ func buildVisits(points []historyPoint, places []historyPlace) []historyVisit {
 func detectStays(points []historyPoint, places []historyPlace) []historyVisit {
 	stays := []historyVisit{}
 
-	// Named-place runs: consecutive points inside the same place.
+	// Named-place runs: consecutive points inside the same place. Brief
+	// excursions outside the radius don't end the run while they stay close
+	// in time to the last in-place fix (GPS jitter); a real departure
+	// outlasts stayBreakTolerance and re-anchors a fresh run at the first
+	// missed point.
 	type run struct {
 		start, end int
 		place      *historyPlace
+		missStart  int           // first consecutive point outside the place, -1 if none
+		missPlace  *historyPlace // place (if any) matched at missStart
 	}
 	runs := []run{}
 	for i, p := range points {
 		pl := matchPlace(p.Lat, p.Lon, places)
-		if len(runs) > 0 {
-			last := &runs[len(runs)-1]
-			if placeID(last.place) == placeID(pl) {
-				last.end = i
-				continue
+		for {
+			n := len(runs)
+			if n == 0 {
+				runs = append(runs, run{start: i, end: i, place: pl, missStart: -1})
+				break
 			}
+			last := &runs[n-1]
+			if placeID(last.place) == placeID(pl) {
+				// Still inside (or back inside): absorb tolerated misses.
+				last.end = i
+				last.missStart = -1
+				break
+			}
+			if last.missStart < 0 {
+				last.missStart = i
+				last.missPlace = pl
+			}
+			// Measured from the last in-place fix, not from the first miss:
+			// a lone out-of-radius fix after a long reporting gap is a gap,
+			// not jitter.
+			if points[i].TS.Sub(points[last.end].TS) <= stayBreakTolerance {
+				break // excursion still short; the run may yet resume
+			}
+			// The excursion outlasted the tolerance: the run ended at its
+			// last in-place point. Re-anchor a fresh run at the first missed
+			// point (so a genuine trip isn't truncated by the window) and
+			// re-match the current point against that new run.
+			runs = append(runs, run{start: last.missStart, end: last.missStart, place: last.missPlace, missStart: -1})
 		}
-		runs = append(runs, run{start: i, end: i, place: pl})
+	}
+	// A miss streak still open at the end of the day has no returning fix to
+	// confirm it; every point in it passed the tolerance check, so absorb it
+	// rather than leaking a phantom transit tail.
+	if n := len(runs); n > 0 && runs[n-1].missStart >= 0 {
+		runs[n-1].end = len(points) - 1
 	}
 
 	covered := make([]bool, len(points))
@@ -396,19 +468,43 @@ func detectStays(points []historyPoint, places []historyPlace) []historyVisit {
 		}
 	}
 
-	// Unnamed dwells on the remaining points (classic stay-point scan).
+	// Unnamed dwells on the remaining points (classic stay-point scan,
+	// tolerating brief jitter beyond the stay distance: an excursion that
+	// stays close in time to the last in-range fix is absorbed into the
+	// dwell, one that outlasts stayBreakTolerance ends the dwell there).
 	i := 0
 	for i < len(points) {
 		if covered[i] {
 			i++
 			continue
 		}
+		end := i
+		missAt := -1
 		j := i + 1
-		for j < len(points) && !covered[j] && haversineMeters(points[i].Lat, points[i].Lon, points[j].Lat, points[j].Lon) <= stayDistanceMeters {
+		for j < len(points) && !covered[j] {
+			if haversineMeters(points[i].Lat, points[i].Lon, points[j].Lat, points[j].Lon) <= stayDistanceMeters {
+				end = j
+				missAt = -1
+				j++
+				continue
+			}
+			if missAt < 0 {
+				missAt = j
+			}
+			// Measured from the last in-range fix, not from the first miss:
+			// a far fix after a long gap is a gap, not jitter.
+			if points[j].TS.Sub(points[end].TS) > stayBreakTolerance {
+				break
+			}
 			j++
 		}
-		end := j - 1
-		if end >= i && points[end].TS.Sub(points[i].TS) >= stayMinDuration {
+		// A miss streak still open at the end of the day is trailing jitter
+		// (every point passed the tolerance check): absorb it so the day
+		// doesn't end on a phantom transit tail.
+		if missAt >= 0 && j >= len(points) {
+			end = len(points) - 1
+		}
+		if end > i && points[end].TS.Sub(points[i].TS) >= stayMinDuration {
 			lat, lon := centroid(points[i : end+1])
 			stays = append(stays, historyVisit{
 				ArrivedAt:  points[i].TS,
@@ -418,7 +514,7 @@ func detectStays(points []historyPoint, places []historyPlace) []historyVisit {
 				PlaceName:  "Stopped",
 				Kind:       "stop",
 			})
-			i = j
+			i = end + 1
 			continue
 		}
 		i++

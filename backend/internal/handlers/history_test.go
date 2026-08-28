@@ -240,6 +240,118 @@ func TestHaversineMeters(t *testing.T) {
 	}
 }
 
+func TestFilterUsablePoints(t *testing.T) {
+	start := time.Date(2026, 8, 22, 8, 0, 0, 0, time.UTC)
+	points := []historyPoint{
+		{Lat: 1, Lon: 2, TS: start, Accuracy: 10},
+		{Lat: 1, Lon: 2, TS: start.Add(time.Minute), Accuracy: 0},       // unknown kept
+		{Lat: 1, Lon: 2, TS: start.Add(2 * time.Minute), Accuracy: 100}, // exactly at the gate kept
+		{Lat: 1, Lon: 2, TS: start.Add(3 * time.Minute), Accuracy: 250}, // too weak, dropped
+	}
+	usable := filterUsablePoints(points)
+	if len(usable) != 3 {
+		t.Fatalf("got %d usable points, want 3: %+v", len(usable), usable)
+	}
+	if usable[2].TS != start.Add(2*time.Minute) {
+		t.Fatalf("weak fix should be the one dropped: %+v", usable[2])
+	}
+
+	// A day where every fix is too weak falls back to the raw points rather
+	// than presenting an empty history.
+	allWeak := []historyPoint{
+		{Lat: 1, Lon: 2, TS: start, Accuracy: 500},
+		{Lat: 1, Lon: 2, TS: start.Add(time.Minute), Accuracy: 900},
+	}
+	if got := filterUsablePoints(allWeak); len(got) != 2 {
+		t.Fatalf("all-weak day should fall back to raw points, got %d", len(got))
+	}
+	if got := filterUsablePoints(nil); len(got) != 0 {
+		t.Fatalf("empty day should stay empty, got %d", len(got))
+	}
+}
+
+// TestBuildVisitsJitterDoesNotBreakPlaceStay reproduces the "home all day but
+// history shows transit" bug: a fix every minute alternating just inside and
+// just outside the place radius. Per-fix run matching used to split this into
+// one-minute runs, all below placeMinDuration, so no Home visit survived and
+// the whole day became "In transit".
+func TestBuildVisitsJitterDoesNotBreakPlaceStay(t *testing.T) {
+	start := time.Date(2026, 8, 22, 8, 0, 0, 0, time.UTC)
+	home := historyPlace{ID: "home-1", Name: "Home", Type: "home", Lat: 37.77, Lon: -122.42, RadiusMeters: 150}
+	var points []historyPoint
+	for i := 0; i < 20; i++ {
+		lat := 37.77 + 0.00001 // ~1m inside the radius
+		if i%2 == 1 {
+			lat = 37.77 + 0.002 // ~220m outside the radius
+		}
+		points = append(points, historyPoint{Lat: lat, Lon: -122.42, TS: start.Add(time.Duration(i) * time.Minute)})
+	}
+	visits := buildVisits(points, []historyPlace{home})
+	if len(visits) != 1 {
+		t.Fatalf("jitter should collapse into one Home visit, got %d: %+v", len(visits), visits)
+	}
+	if visits[0].Kind != "place" || visits[0].PlaceName != "Home" {
+		t.Fatalf("expected a Home place visit, got %+v", visits[0])
+	}
+	if !visits[0].ArrivedAt.Equal(start) || !visits[0].DepartedAt.Equal(start.Add(19*time.Minute)) {
+		t.Fatalf("visit should span the jitter, got %v..%v", visits[0].ArrivedAt, visits[0].DepartedAt)
+	}
+}
+
+func TestBuildVisitsJitterDoesNotBreakUnnamedDwell(t *testing.T) {
+	start := time.Date(2026, 8, 22, 9, 0, 0, 0, time.UTC)
+	var points []historyPoint
+	for i := 0; i < 16; i++ {
+		lat := 40.0
+		if i%3 == 2 {
+			lat = 40.002 // ~220m away: a jittering fix
+		}
+		points = append(points, historyPoint{Lat: lat, Lon: -74.0, TS: start.Add(time.Duration(i) * time.Minute)})
+	}
+	visits := buildVisits(points, nil)
+	stops := 0
+	for _, v := range visits {
+		if v.Kind == "stop" {
+			stops++
+		}
+	}
+	if stops != 1 {
+		t.Fatalf("jitter should not split the dwell, got %d stops: %+v", stops, visits)
+	}
+}
+
+// TestBuildVisitsRealDepartureStillSplits guards the hysteresis: an excursion
+// that outlasts stayBreakTolerance is a real departure and must still produce
+// stay → transit → stay.
+func TestBuildVisitsRealDepartureStillSplits(t *testing.T) {
+	start := time.Date(2026, 8, 22, 8, 0, 0, 0, time.UTC)
+	home := historyPlace{ID: "home-1", Name: "Home", Type: "home", Lat: 37.77, Lon: -122.42, RadiusMeters: 150}
+	var points []historyPoint
+	points = append(points, stayPoints(start, 37.77, -122.42, 5, time.Minute)...)
+	// Leave for 7 minutes (longer than the tolerance), moving so the away
+	// stretch can't cluster into a stop.
+	for i := 0; i < 7; i++ {
+		points = append(points, historyPoint{
+			Lat: 37.90 + float64(i)*0.01, Lon: -122.42, TS: start.Add(time.Duration(5+i) * time.Minute),
+		})
+	}
+	points = append(points, stayPoints(start.Add(12*time.Minute), 37.77, -122.42, 5, time.Minute)...)
+
+	visits := buildVisits(points, []historyPlace{home})
+	if len(visits) != 3 {
+		t.Fatalf("want home/transit/home, got %d visits: %+v", len(visits), visits)
+	}
+	if visits[0].Kind != "place" || visits[0].PlaceName != "Home" {
+		t.Fatalf("first visit should be Home: %+v", visits[0])
+	}
+	if visits[1].Kind != "transit" {
+		t.Fatalf("middle visit should be transit: %+v", visits[1])
+	}
+	if visits[2].Kind != "place" || visits[2].PlaceName != "Home" {
+		t.Fatalf("last visit should be Home: %+v", visits[2])
+	}
+}
+
 func stayPoints(start time.Time, lat, lon float64, n int, step time.Duration) []historyPoint {
 	out := make([]historyPoint, n)
 	for i := 0; i < n; i++ {
