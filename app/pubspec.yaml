@@ -49,6 +49,11 @@ dependencies:
   # WebSocket client for the live location stream (/ws/stream). Web-safe
   # (no dart:io) and carries the access token as the subprotocol.
   web_socket_channel: ^3.0.0
+  # OS connectivity events, so offline→online transitions recover
+  # event-driven: the service reconnects the WebSocket immediately and a
+  # failed initial map load retries itself instead of waiting on backoff
+  # timers or a manual Retry tap.
+  connectivity_plus: ^6.1.0
   flutter_local_notifications: ^22.3.0
   unifiedpush: ^6.2.0
 

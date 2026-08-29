@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 
 import 'api_client.dart';
 import 'device_service.dart';
+import 'location_outbox.dart';
 
 /// Periodically reports the device's foreground GPS position to the backend
 /// (`POST /locations`) so the family can see where the user is.
@@ -266,6 +267,16 @@ class LocationReporter {
 
     _posting = true;
     _lastPostTime = DateTime.now().toUtc();
+    // Declared outside the try so the failure paths below can park it in the
+    // offline outbox verbatim.
+    Map<String, dynamic> body = <String, dynamic>{
+      'device_id': _deviceId,
+      'ts': ts.toIso8601String(),
+      'lat': position.latitude,
+      'lon': position.longitude,
+      'motion_state': '',
+      'source': 'foreground',
+    };
     try {
       int? batteryPct;
       try {
@@ -276,14 +287,6 @@ class LocationReporter {
         batteryPct = null;
       }
 
-      final Map<String, dynamic> body = <String, dynamic>{
-        'device_id': _deviceId,
-        'ts': ts.toIso8601String(),
-        'lat': position.latitude,
-        'lon': position.longitude,
-        'motion_state': '',
-        'source': 'foreground',
-      };
       if (batteryPct != null) body['battery_pct'] = batteryPct;
       if (position.accuracy > 0) body['accuracy_meters'] = position.accuracy;
       // Altitude is valid below sea level (negative), so send any finite value.
@@ -298,8 +301,13 @@ class LocationReporter {
 
       await ApiClient.post('/locations', body: body);
       _lastSentTs = ts;
+      // Connectivity works — opportunistically deliver anything the device
+      // queued while it was offline, starting with the freshest points.
+      unawaited(LocationOutbox.drain(send: sendOutboxBatchViaApi));
     } on SessionExpiredException {
       // The app root handles the redirect; stop reporting for this session.
+      // The report is not queued: no session, no device identity to ingest
+      // under until re-login.
       stop();
     } on ApiException catch (e) {
       // A non-zero status is a genuine backend rejection (e.g. 400 for stale
@@ -310,9 +318,17 @@ class LocationReporter {
       if (e.status != 0) {
         _lastSentTs = ts;
       }
+      // Either way, park the report for offline backfill: a network failure
+      // re-sends it verbatim; a rejection (e.g. a non-monotonic race with the
+      // background reporter) is healed by the batch endpoint's relaxed
+      // freshness rules. Permanently invalid points are dropped by the
+      // backend's batch validation, so nothing loops forever.
+      await LocationOutbox.enqueue(body);
     } catch (_) {
       // Unexpected error (e.g. malformed body). Intentionally swallowed so the
-      // reporter never crashes the app; the next update will retry.
+      // reporter never crashes the app; queue the report for backfill the
+      // same way.
+      await LocationOutbox.enqueue(body);
     } finally {
       _posting = false;
     }
