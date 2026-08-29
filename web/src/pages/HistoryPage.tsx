@@ -24,6 +24,17 @@ import type { AdminMember, Family, HistoryVisit, Member, MemberHistory, MyFamily
 import './pages.css'
 import './HistoryPage.css'
 
+/**
+ * History trail + place-visit markers. Deliberately NOT the brand lime: the
+ * accent disappears over the OSM basemap's vegetation greens (#ADD19E/#CDEBB0),
+ * which made the trail invisible over parks (Rio de Janeiro regression). Deep
+ * violet reads on every basemap surface — greens, land #F2EFE9, water
+ * #AAD3DF, white roads — rendered over a white casing for busy urban tiles.
+ * Matches AppColors.historyTrail (#7C3AED) in the Flutter app so the day
+ * trail looks identical in both UIs.
+ */
+const TRAIL_COLOR = '#7c3aed'
+
 function todayISO(): string {
   const d = new Date()
   const y = d.getFullYear()
@@ -323,10 +334,19 @@ function HistoryMap({ history }: { history: MemberHistory }) {
     >
       <TileLayer url={DEFAULT_TILE_URL} attribution="© OpenStreetMap" />
       {trail.length >= 2 && (
-        <Polyline
-          positions={trail}
-          pathOptions={{ color: '#8fd400', weight: 4, opacity: 0.85 }}
-        />
+        <>
+          {/* White casing drawn under the colored stroke (Leaflet stacks
+              later children on top) keeps the trail readable over road
+              labels and dense urban tiles. */}
+          <Polyline
+            positions={trail}
+            pathOptions={{ color: '#fff', weight: 7, opacity: 0.9 }}
+          />
+          <Polyline
+            positions={trail}
+            pathOptions={{ color: TRAIL_COLOR, weight: 4, opacity: 1 }}
+          />
+        </>
       )}
       {visits.map((v, i) => (
         <CircleMarker
@@ -336,7 +356,7 @@ function HistoryMap({ history }: { history: MemberHistory }) {
           pathOptions={{
             color: '#fff',
             weight: 2,
-            fillColor: v.kind === 'place' ? '#8fd400' : '#af52de',
+            fillColor: v.kind === 'place' ? TRAIL_COLOR : '#af52de',
             fillOpacity: 1,
           }}
         />
