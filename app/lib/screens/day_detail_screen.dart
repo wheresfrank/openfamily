@@ -344,8 +344,13 @@ class _TrailMap extends StatelessWidget {
               polylines: <Polyline>[
                 Polyline(
                   points: trail,
-                  color: AppColors.purple,
+                  color: AppColors.historyTrail,
                   strokeWidth: 3.5,
+                  // White casing under the stroke keeps the trail readable on
+                  // busy urban tiles (roads/place labels) regardless of the
+                  // fill color — same trick Strava/Google trails use.
+                  borderColor: Colors.white,
+                  borderStrokeWidth: 3,
                 ),
               ],
             ),
@@ -362,12 +367,15 @@ class _TrailMap extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white,
-                        border: Border.all(color: AppColors.purple, width: 2),
+                        border: Border.all(
+                          color: AppColors.historyTrail,
+                          width: 2,
+                        ),
                       ),
                       child: Icon(
                         _visitIcon(visit),
                         size: 14,
-                        color: AppColors.purple,
+                        color: AppColors.historyTrail,
                       ),
                     ),
                   ),

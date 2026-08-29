@@ -42,6 +42,14 @@ abstract final class AppColors {
   static const Color sosIntenseRed = Color(0xFFD50000);
   static const Color starYellow = Color(0xFFFFC107);
 
+  /// History trail + visit markers on the map. Deliberately NOT the brand
+  /// lime: the accent sits on top of the OSM basemap's vegetation greens
+  /// (#ADD19E/#CDEBB0), which made the day-detail trail invisible over parks
+  /// (Rio de Janeiro regression). Deep violet holds on every basemap surface
+  /// — greens, land #F2EFE9, water #AAD3DF, white roads — and is rendered
+  /// over a white casing for busy urban tiles.
+  static const Color historyTrail = Color(0xFF7C3AED);
+
   static const Color icePaper = Color(0xFFEEF2F6);
   static const Color iceSurface = Color(0xFFF8FAFC);
   static const Color iceInk = Color(0xFF111827);
