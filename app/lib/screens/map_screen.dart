@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Circle;
@@ -12,6 +13,7 @@ import '../services/battery_optimization_service.dart';
 import '../services/device_service.dart';
 import '../services/family_service.dart';
 import '../services/location_reporter.dart';
+import '../services/location_outbox.dart';
 import '../services/location_service.dart';
 import '../services/location_sharing_service.dart';
 import '../services/permission_service.dart';
@@ -81,6 +83,10 @@ class _MapScreenState extends State<MapScreen>
   final ValueNotifier<List<Member>> _membersListenable =
       ValueNotifier<List<Member>>(const <Member>[]);
 
+  /// OS connectivity watcher for this screen: coming back online must recover
+  /// the map on its own (see [_onConnectivityChanged]).
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+
   // Foreground location reporter: POSTs the device's GPS position to the
   // backend while this screen (the base of the nav stack) is alive.
   final LocationReporter _reporter = LocationReporter();
@@ -114,6 +120,8 @@ class _MapScreenState extends State<MapScreen>
     WidgetsBinding.instance.addObserver(this);
     _familyService.onMembersChanged = _onMembersChanged;
     _familyService.onUserId = _onUserId;
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
     _load();
     _checkLocation();
     _initLocationSharing();
@@ -140,6 +148,23 @@ class _MapScreenState extends State<MapScreen>
   void _onUserId(String userId) {
     if (!mounted) return;
     setState(() => _userId = userId);
+  }
+
+  /// Retries the initial family load automatically when the network returns
+  /// after the app was opened (or left) offline. Without this, a failed
+  /// `_load` leaves the full-screen error card up until the user taps Retry
+  /// or kills the app — there is no other automatic retry in the screen.
+  /// When the map data is fine, the FamilyService's own connectivity watcher
+  /// manages the socket; nothing to do here.
+  void _onConnectivityChanged(List<ConnectivityResult> results) {
+    final bool connected = results
+        .any((ConnectivityResult result) => result != ConnectivityResult.none);
+    if (!connected || !mounted) return;
+    // Delivery may work again: flush whatever location reports the device
+    // queued while it was offline. Independent of the initial-load retry
+    // below — both matter after offline use.
+    if (_error != null) _load();
+    unawaited(LocationOutbox.drain(send: sendOutboxBatchViaApi));
   }
 
   /// Fetches the family name + members, then opens the live WebSocket.
@@ -266,6 +291,7 @@ class _MapScreenState extends State<MapScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _connectivitySub?.cancel();
     LocationSharingService.enabled.removeListener(_onSharingChanged);
     _reporter.stop();
     _familyService.dispose();
@@ -287,7 +313,8 @@ class _MapScreenState extends State<MapScreen>
   }
 
   /// Reconciles tokens the background isolate may have rotated while we were
-  /// backgrounded, then restarts the foreground reporter.
+  /// backgrounded, then restarts the foreground reporter and refreshes family
+  /// data.
   Future<void> _onResumed() async {
     // Pick up any tokens the background isolate rotated (and wrote only to
     // shared_preferences) so the foreground reporter uses the current,
@@ -300,6 +327,12 @@ class _MapScreenState extends State<MapScreen>
     if (LocationSharingService.enabled.value) {
       _reporter.start();
     }
+    // Refresh member positions right away: the app may have sat in the
+    // background for hours, and the WebSocket (or its repair cycle) may not
+    // have pushed a fresh snapshot yet. One REST round-trip bounds the
+    // staleness; it also rotates an expired access token before the reporter
+    // needs it.
+    await _familyService.refreshMembers();
     await _refreshServerFeatures();
   }
 

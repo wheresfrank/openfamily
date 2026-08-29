@@ -2,6 +2,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'background_credential_store.dart';
 import 'biometric_service.dart';
+import 'location_outbox.dart';
 import 'server_config.dart';
 
 /// Stores auth tokens in the platform secure store:
@@ -87,6 +88,11 @@ class TokenStorage {
     await attempt(() => _storage.delete(key: _deviceIdKey));
     await attempt(removeLegacyProfilePhotoPath);
     await attempt(BackgroundCredentialStore.clear);
+    // The offline backfill queue holds points reported under THIS device
+    // identity; after teardown they would reference a dead device id and
+    // pin the queue (mixed-device batches are rejected server-side), so the
+    // cache lifecycle is tied to the session it was created in.
+    await attempt(LocationOutbox.clear);
 
     try {
       final List<String?> remaining = <String?>[

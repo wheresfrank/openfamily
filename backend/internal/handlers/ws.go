@@ -177,12 +177,40 @@ func (s *Server) Stream(w http.ResponseWriter, r *http.Request) {
 	// buffered and drained once the writer starts.
 	go c.writeLoop(ctx)
 
-	// Read loop: discard inbound frames but keep the connection alive. The
-	// coder/websocket library answers ping/pong automatically. On disconnect
+	// Read loop: answer the client's app-level ping frames ("pongs") and
+	// discard everything else, while keeping the connection alive. The client
+	// pings on a fixed cadence both as a liveness probe and to feed its
+	// inbound-activity watchdog — without a pong that watchdog tears down a
+	// silently dead (half-open) socket and reconnects. Protocol-level pings
+	// (including the ones writeLoop originates every 30s) are answered
+	// automatically by coder/websocket and never surface here. On disconnect
 	// or error the deferred cleanup unregisters the client and closes it.
 	for {
-		if _, _, err := conn.Read(ctx); err != nil {
+		msgType, data, err := conn.Read(ctx)
+		if err != nil {
 			return
+		}
+		if msgType != websocket.MessageText {
+			continue
+		}
+		var frame struct {
+			Type string `json:"type"`
+		}
+		if err := json.Unmarshal(data, &frame); err != nil || frame.Type != "ping" {
+			continue
+		}
+		pong, err := json.Marshal(map[string]string{"type": "pong"})
+		if err != nil {
+			continue
+		}
+		// Queue through the single-writer send channel (coder/websocket
+		// allows only one concurrent writer, and writeLoop owns the socket
+		// writes). Never block: a full buffer already marks this client as a
+		// slow consumer, and the client's watchdog interprets any silent gap
+		// as a dead connection on its own.
+		select {
+		case c.send <- pong:
+		default:
 		}
 	}
 }

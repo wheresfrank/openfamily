@@ -11,6 +11,7 @@ import 'package:geolocator/geolocator.dart'
 import 'package:http/http.dart' as http;
 
 import 'background_credential_store.dart';
+import 'location_outbox.dart';
 import 'token_storage.dart';
 
 /// Background location reporting: keeps the device's GPS position flowing to
@@ -24,12 +25,13 @@ import 'token_storage.dart';
 ///
 /// Authentication — preferred path is the **device ingest key**
 /// (`X-Device-Key: <device_id>.<key>` header): a write-only, device-scoped
-/// credential issued at registration and accepted by `POST /locations` and
-/// `POST /devices/heartbeat`. It never expires, so background reporting no
-/// longer depends on the Keystore-backed secure store being reachable from a
-/// headless isolate — that dependency (reading the refresh token there on a
-/// 401, WB-002) was production-proven to silently stop reporting at the first
-/// access-token expiry (~15 minutes after the app was last open).
+/// credential issued at registration and accepted by `POST /locations`,
+/// `POST /locations/batch`, and `POST /devices/heartbeat`. It never expires,
+/// so background reporting no longer depends on the Keystore-backed secure
+/// store being reachable from a headless isolate — that dependency (reading
+/// the refresh token there on a 401, WB-002) was production-proven to
+/// silently stop reporting at the first access-token expiry (~15 minutes
+/// after the app was last open).
 ///
 /// The legacy path — short-lived access JWT with refresh-on-401 — is kept as
 /// a fallback for devices whose server predates ingest keys, or whose ingest
@@ -37,10 +39,13 @@ import 'token_storage.dart';
 /// mirrored into shared_preferences (WB-002): it is read straight from
 /// [TokenStorage] only on that fallback path.
 ///
-/// The callbacks are deliberately non-throwing: any failure (missing
-/// credentials, network error, stale `ts`, non-monotonic ordering) is skipped
-/// silently and the next update retries. The foreground app handles re-login
-/// when the refresh token itself is dead.
+/// Offline behavior: a fix that cannot be delivered is **queued** in the
+/// [LocationOutbox] (store-and-forward) and delivered via `POST
+/// /locations/batch` when a later report succeeds — hours later the family's
+/// history shows the track through the dead zone instead of a hole. The
+/// callbacks are deliberately non-throwing: any failure (missing credentials,
+/// network error, stale `ts`, non-monotonic ordering) is captured or skipped
+/// without ever surfacing an exception.
 
 /// How long to wait for a single HTTP request before giving up.
 const Duration _httpTimeout = Duration(seconds: 15);
@@ -84,7 +89,21 @@ Future<void> onLocationUpdate(LocationDto location) async {
     final Map<String, dynamic> body =
         _buildBody(location, credentials.deviceId, batteryPct);
 
-    await _report(credentials, '/locations', body);
+    final bool sent = await _report(credentials, '/locations', body);
+    if (sent) {
+      // Connectivity is alive: opportunistically deliver anything the device
+      // queued while it was offline. Bounded so one tick does not flood the
+      // radio; subsequent successful reports keep draining.
+      await LocationOutbox.drain(
+        send: (List<Map<String, dynamic>> batch) =>
+            _sendLocationBatch(credentials, batch),
+      );
+    } else {
+      // Offline (or auth hiccup): park the fix for backfill instead of
+      // dropping it — the batch endpoint accepts points older than the live
+      // feed's 15-minute freshness rule.
+      await LocationOutbox.enqueue(body);
+    }
   } catch (_) {
     // Never throw from the background callback.
   }
@@ -133,10 +152,11 @@ Future<_BackgroundCredentials?> _readCredentials() async {
 /// Delivers one report (location or heartbeat), trying the ingest key first
 /// and falling back to the access-token + refresh path.
 ///
-/// Only a definitive rejection of BOTH credentials ends the report; transient
-/// failures are left for the next update. This function never throws to the
-/// caller's catch block for "expected" statuses — it simply returns.
-Future<void> _report(
+/// Returns true only when the backend accepted the report (2xx). Any other
+/// outcome — network failure, stale `ts` 400, auth dead end — returns false
+/// so [onLocationUpdate] can queue the fix for backfill. This function never
+/// throws to the caller's catch block for "expected" statuses.
+Future<bool> _report(
   _BackgroundCredentials credentials,
   String path,
   Map<String, dynamic> body,
@@ -157,11 +177,11 @@ Future<void> _report(
     if (response.statusCode == 201 ||
         response.statusCode == 200 ||
         response.statusCode == 204) {
-      return;
+      return true;
     }
     if (response.statusCode != 401 && response.statusCode != 403) {
       // 400 (stale ts / non-monotonic), 5xx, ...: terminal for this update.
-      return;
+      return false;
     }
     // 401/403: key rejected (rotated or the device was re-registered
     // elsewhere). Fall through to the legacy token path when available.
@@ -169,7 +189,7 @@ Future<void> _report(
 
   // Legacy path: the 15-minute access JWT, with a one-shot refresh on 401.
   final String? accessToken = credentials.accessToken;
-  if (accessToken == null) return;
+  if (accessToken == null) return false;
   http.Response response = await _post(
     credentials.apiBaseUrl,
     <String, String>{
@@ -182,7 +202,7 @@ Future<void> _report(
   if (response.statusCode == 201 ||
       response.statusCode == 200 ||
       response.statusCode == 204) {
-    return;
+    return true;
   }
   if (response.statusCode == 401) {
     // Access token expired. Refresh and retry once, reading the refresh token
@@ -190,11 +210,11 @@ Future<void> _report(
     // shared_preferences (WB-002), so this fails gracefully when secure
     // storage is unavailable in the background isolate.
     final String? refreshToken = await _readRefreshToken();
-    if (refreshToken == null || refreshToken.isEmpty) return;
+    if (refreshToken == null || refreshToken.isEmpty) return false;
     final String? newAccess =
         await _refresh(credentials.apiBaseUrl, refreshToken);
-    if (newAccess == null) return; // Refresh failed; foreground re-logs in.
-    await _post(
+    if (newAccess == null) return false; // Refresh failed; foreground re-logs in.
+    final http.Response retry = await _post(
       credentials.apiBaseUrl,
       <String, String>{
         'Authorization': 'Bearer $newAccess',
@@ -203,9 +223,55 @@ Future<void> _report(
       path,
       body,
     );
-    // 201 / 400 / anything else: done for this update.
+    return retry.statusCode == 201 ||
+        retry.statusCode == 200 ||
+        retry.statusCode == 204;
   }
-  // All other statuses: skip silently; the next update retries.
+  // All other statuses: not delivered.
+  return false;
+}
+
+/// Sends one drained outbox batch to `POST /locations/batch`, ingest key
+/// first, with the same Bearer-token fallback as [_report]. Returns true only
+/// on 2xx (the endpoint answers with a stored/skipped/rejected summary and is
+/// idempotent for retried batches).
+Future<bool> _sendLocationBatch(
+  _BackgroundCredentials credentials,
+  List<Map<String, dynamic>> points,
+) async {
+  if (points.isEmpty) return true; // Nothing to send.
+  final Map<String, dynamic> body = LocationOutbox.batchBody(points);
+  final String? ingestKey = credentials.ingestKey;
+  if (ingestKey != null) {
+    final http.Response response = await _post(
+      credentials.apiBaseUrl,
+      <String, String>{
+        'X-Device-Key': '${credentials.deviceId}.$ingestKey',
+        'Content-Type': 'application/json',
+      },
+      '/locations/batch',
+      body,
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return true;
+    }
+    if (response.statusCode != 401 && response.statusCode != 403) {
+      return false;
+    }
+    // 401/403: fall through to the legacy token path.
+  }
+  final String? accessToken = credentials.accessToken;
+  if (accessToken == null) return false;
+  final http.Response response = await _post(
+    credentials.apiBaseUrl,
+    <String, String>{
+      'Authorization': 'Bearer $accessToken',
+      'Content-Type': 'application/json',
+    },
+    '/locations/batch',
+    body,
+  );
+  return response.statusCode >= 200 && response.statusCode < 300;
 }
 
 /// Reads the battery level, or null if unavailable (e.g. web, or the method

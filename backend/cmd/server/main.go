@@ -205,6 +205,10 @@ func main() {
 
 		r.Post("/devices/heartbeat", srv.HeartbeatDevice)
 		r.Post("/locations", srv.IngestLocation)
+		// Offline backfill: points queued while the device had no data,
+		// delivered newest-first once connectivity returns. Relaxed freshness
+		// rules, no geofence/broadcast side effects (see location_batch.go).
+		r.Post("/locations/batch", srv.IngestLocationBatch)
 	})
 
 	// Platform admin API, namespaced under /api/admin/* so it never collides
