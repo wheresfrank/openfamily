@@ -3,7 +3,11 @@ import UIKit
 import UserNotifications
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, UNUserNotificationCenterDelegate {
+@objc class AppDelegate: FlutterAppDelegate {
+  // FlutterAppDelegate already conforms to UNUserNotificationCenterDelegate
+  // and forwards to plugins, so we override its methods instead of
+  // re-declaring conformance; we install ourselves as the center delegate in
+  // didFinishLaunchingWithOptions below.
   private var apnsChannel: FlutterMethodChannel?
 
   override func application(
@@ -60,7 +64,11 @@ import UserNotifications
   // the app in the background for content-available pushes (the
   // remote-notification background mode is declared in Info.plist).
   // Alert payloads fall through to the system (iOS shows the banner itself).
-  override func application(
+  //
+  // NOTE: deliberately NOT an `override` — FlutterAppDelegate does not
+  // implement this UIApplicationDelegate protocol callback, so this method is
+  // what iOS dispatches to.
+  func application(
     _ application: UIApplication,
     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
@@ -75,8 +83,11 @@ import UserNotifications
   }
 
   // Foreground presentation for alert payloads. Silent commands are never
-  // surfaced as banners (the command is executed silently by Dart).
-  func userNotificationCenter(
+  // surfaced as banners (the command is executed silently by Dart). Unlike the
+  // base class's plugin-forwarding behavior this presents the banner for
+  // everything that is not one of our silent commands, matching Android's
+  // local-notification behavior while the app is open.
+  override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
