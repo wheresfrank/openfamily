@@ -30,7 +30,9 @@ jobs:
       - name: Dependencies
         run: flutter pub get
       - name: Build web (under /app/ for the device-frame preview server)
-        run: flutter build web --release --base-href /app/
+        # The frame rehearses iOS; make platform copy read as iOS even though
+        # the rendering engine is the web.
+        run: flutter build web --release --base-href /app/ --dart-define=OPENFAMILY_PLATFORM_OVERRIDE=ios
       - name: Upload web build
         uses: actions/upload-artifact@v4
         with:

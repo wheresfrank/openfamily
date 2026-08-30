@@ -43,5 +43,36 @@ void main() {
 
       expect(subtitle, isNotEmpty);
     });
+
+    test('the device-preview override renders iOS copy for a web build', () {
+      final String subtitle = pushNotificationsSubtitle(
+        isWeb: true,
+        previewPlatform: 'ios',
+      );
+
+      expect(subtitle, contains('APNs'));
+      expect(subtitle, isNot(contains('browser')));
+      expect(subtitle, isNot(contains('ntfy')));
+    });
+
+    test('the device-preview override renders Android copy for a web build',
+        () {
+      final String subtitle = pushNotificationsSubtitle(
+        isWeb: true,
+        previewPlatform: 'android',
+      );
+
+      expect(subtitle, contains('ntfy'));
+      expect(subtitle, isNot(contains('browser')));
+    });
+
+    test('an unknown override falls through to honest engine copy', () {
+      final String subtitle = pushNotificationsSubtitle(
+        isWeb: true,
+        previewPlatform: 'whatchamacallit',
+      );
+
+      expect(subtitle, contains('browser'));
+    });
   });
 }
