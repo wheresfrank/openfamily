@@ -1,6 +1,7 @@
-import 'dart:io' show Platform;
-
 import 'keys.dart';
+// dart:io does not exist on the web (the app imports this file when built
+// for the browser); use the web-compatible platform shim instead.
+import 'utils/platform_is.dart';
 
 class LocationDto {
   final double latitude;
@@ -35,7 +36,7 @@ class LocationDto {
 
   factory LocationDto.fromJson(Map<dynamic, dynamic> json) {
     bool isLocationMocked =
-        Platform.isAndroid ? json[Keys.ARG_IS_MOCKED] : false;
+        isAndroid ? json[Keys.ARG_IS_MOCKED] : false;
     return LocationDto._(
       json[Keys.ARG_LATITUDE],
       json[Keys.ARG_LONGITUDE],
