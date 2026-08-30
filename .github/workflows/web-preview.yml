@@ -1,11 +1,16 @@
 name: Build Web Preview
 
 # Builds the Flutter app for the web engine (used for the browser-based
-# device preview / emulator substitute). Manual dispatch; upload as an
-# artifact so the host does not need a local Flutter SDK.
+# device preview / emulator substitute) and uploads it as an artifact so the
+# host does not need a local Flutter SDK. Runs manually or on any PR that
+# touches the app.
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'app/**'
+      - '.github/workflows/web-preview.yml'
 
 jobs:
   web:
