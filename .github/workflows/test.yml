@@ -93,7 +93,7 @@ jobs:
           udid=$(xcrun simctl list devices available \
             | awk -F'[()]' '/iPhone/ && /Shutdown/ {print $2; exit}')
           xcodebuild test \
-            -workspace Runner.xcworkspace \
+            -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -destination "platform=iOS Simulator,id=$udid" \
             CODE_SIGNING_ALLOWED=NO
