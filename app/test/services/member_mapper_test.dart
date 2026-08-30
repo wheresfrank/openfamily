@@ -307,4 +307,93 @@ void main() {
       expect(isStaleAddress(refreshed.address), isTrue);
     });
   });
+
+  group('movement inference from speed (motion_state absent, iOS)', () {
+    test('infers driving when speed is unambiguously vehicle speed', () {
+      final member = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'speed_mps': 12, // ~27 mph.
+      });
+
+      expect(member.movement, MovementType.car);
+      expect(member.speedMph, isNotNull);
+    });
+
+    test('does not infer movement below the confident threshold', () {
+      final member = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'speed_mps': 2.4, // ~5 mph — could be GPS drift or a jog.
+      });
+
+      expect(member.movement, MovementType.none);
+    });
+
+    test('keeps the frame silent when speed is omitted', () {
+      final member = memberFromJson(<String, dynamic>{'id': 'member-1'});
+
+      expect(member.movement, MovementType.none);
+      expect(member.speedMph, isNull);
+    });
+
+    test('motion_state wins over speed inference when both are present', () {
+      final member = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'motion_state': 'cycling',
+        'speed_mps': 12,
+      });
+
+      expect(member.movement, MovementType.bike);
+    });
+
+    test(
+        'WebSocket frames upgrade to driving from speed but keep a known '
+        'badge when speed is low', () {
+      final Member driving = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'motion_state': 'driving',
+        'speed_mps': 20,
+      });
+
+      // Red-light speed dip: no downgrade to "none".
+      final Member atLight =
+          memberFromLocationUpdate(driving, <String, dynamic>{
+        'lat': 37.0,
+        'lon': -122.0,
+        'speed_mps': 0.4,
+      });
+      expect(atLight.movement, MovementType.car);
+
+      // A fast iOS fix (no motion_state on iOS) is classified as driving.
+      final Member fromSpeed = memberFromLocationUpdate(
+        memberFromJson(<String, dynamic>{'id': 'member-1'}),
+        <String, dynamic>{'lat': 37.0, 'lon': -122.0, 'speed_mps': 31},
+      );
+      expect(fromSpeed.movement, MovementType.car);
+    });
+
+    test('refreshStaleness clears a stale movement badge', () {
+      final Member driving = memberFromJson(<String, dynamic>{
+        'id': 'member-1',
+        'lat': 37.0,
+        'lon': -122.0,
+        'motion_state': 'driving',
+        'speed_mps': 20,
+        'ts': DateTime.now().toUtc().toIso8601String(),
+      });
+      expect(driving.movement, MovementType.car);
+
+      // The device parks and stops reporting; the staleness timer fires.
+      final DateTime eightHoursAgo =
+          DateTime.now().toUtc().subtract(const Duration(hours: 8));
+      final Member refreshed =
+          refreshStaleness(driving.copyWith(lastSeen: eightHoursAgo));
+
+      expect(refreshed.status, MemberStatus.stopped);
+      expect(refreshed.movement, MovementType.none);
+
+      // Re-run: the cleared state is stable (no spurious onMembersChanged).
+      final Member again = refreshStaleness(refreshed);
+      expect(identical(again, refreshed), isTrue);
+    });
+  });
 }

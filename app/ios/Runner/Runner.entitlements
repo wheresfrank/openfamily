@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Remote notifications (APNs) drive the family alert + location-refresh
+	     push channel on iOS (AppDelegate's app.openfamily/apns channel).
+	     Registering for remote notifications fails at runtime without this
+	     entitlement. Automatic signing swaps "development" for "production"
+	     on App Store/TestFlight distributions automatically. -->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

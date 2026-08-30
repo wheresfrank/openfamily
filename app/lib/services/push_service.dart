@@ -147,13 +147,28 @@ class PushService {
   }
 
   static Future<void> _onApnsCall(MethodCall call) async {
-    if (call.method != 'onToken') return;
-    final Object? args = call.arguments;
-    if (args is! String || args.isEmpty) return;
-    try {
-      final String deviceId = await DeviceService.ensureRegistered();
-      await ApiClient.updateDevicePush(deviceId: deviceId, pushToken: args);
-    } catch (_) {}
+    if (call.method == 'onToken') {
+      final Object? args = call.arguments;
+      if (args is! String || args.isEmpty) return;
+      try {
+        final String deviceId = await DeviceService.ensureRegistered();
+        await ApiClient.updateDevicePush(deviceId: deviceId, pushToken: args);
+      } catch (_) {}
+      return;
+    }
+    if (call.method == 'onCommand') {
+      // Native forwarded a silent APNs command (the backend sends
+      // location-refresh requests as content-available payloads with the
+      // command JSON under "of"). Handle it exactly like the Android
+      // UnifiedPush message path. Alert payloads are not forwarded here —
+      // iOS shows those banners itself (AppDelegate's willPresent), so the
+      // Android foreground-notification fallback must not double-post.
+      final Object? args = call.arguments;
+      if (args is! String || args.isEmpty) return;
+      try {
+        await LocationRefreshService.handlePush(args);
+      } catch (_) {}
+    }
   }
 
   static Future<void> _onUnifiedPushEndpoint(String endpoint) async {

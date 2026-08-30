@@ -99,7 +99,8 @@ type locationRequestCommand struct {
 	ExpiresAt   time.Time `json:"expires_at"`
 }
 
-// RequestMemberLocation asks a family member's Android app for one fresh fix.
+// RequestMemberLocation asks a family member's device (Android via UnifiedPush,
+// iOS via a silent APNs command) for one fresh fix.
 // The command contains no location or requester information and expires after
 // 30 seconds. The app still enforces its own sharing and permission settings.
 func (s *Server) RequestMemberLocation(w http.ResponseWriter, r *http.Request) {
@@ -138,8 +139,13 @@ func (s *Server) RequestMemberLocation(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to load member devices")
 		return
 	}
-	if len(endpoints) == 0 || s.Push == nil {
-		writeError(w, http.StatusConflict, "member has no reachable Android device")
+	iosTokens, err := s.iosPushTokens(r.Context(), targetID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load member devices")
+		return
+	}
+	if (len(endpoints) == 0 && len(iosTokens) == 0) || s.Push == nil {
+		writeError(w, http.StatusConflict, "member has no reachable device")
 		return
 	}
 	now := time.Now().UTC()
@@ -170,21 +176,7 @@ func (s *Server) RequestMemberLocation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	delivered := 0
-	for _, endpoint := range endpoints {
-		dispatchCtx, cancel := context.WithTimeout(r.Context(), 12*time.Second)
-		err := s.Push.Dispatch(dispatchCtx, push.Notification{
-			Title:               "OpenFamily location refresh",
-			Body:                string(body),
-			Platform:            "android",
-			UnifiedPushEndpoint: endpoint,
-		})
-		cancel()
-		if err == nil {
-			delivered++
-		}
-	}
-	if delivered == 0 {
+	if !s.dispatchLocationRequest(r.Context(), body, targetID) {
 		gate.release(targetID, requestID)
 		writeError(w, http.StatusBadGateway, "could not reach member device")
 		return
@@ -241,6 +233,77 @@ func (s *Server) androidPushEndpoints(ctx context.Context, userID string) ([]str
 		endpoints = append(endpoints, endpoint)
 	}
 	return endpoints, rows.Err()
+}
+
+// iosPushTokens lists the registered APNs device tokens for a member's iOS
+// devices (mirrors [androidPushEndpoints]).
+func (s *Server) iosPushTokens(ctx context.Context, userID string) ([]string, error) {
+	rows, err := s.Pool.Query(ctx, `
+		SELECT push_token
+		FROM devices
+		WHERE user_id = $1
+		  AND platform = 'ios'
+		  AND push_token IS NOT NULL
+		  AND push_token <> ''
+		ORDER BY last_seen DESC NULLS LAST, created_at DESC
+		LIMIT 1`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var tokens []string
+	for rows.Next() {
+		var token string
+		if err := rows.Scan(&token); err != nil {
+			return nil, err
+		}
+		tokens = append(tokens, token)
+	}
+	return tokens, rows.Err()
+}
+
+// dispatchLocationRequest delivers one location-refresh command to a member's
+// devices: Android (UnifiedPush, message body = command JSON, unchanged wire
+// shape) first, then iOS (silent content-available APNs payload that is
+// executed in the background — never shown as an alert). Returns true when at
+// least one transport accepted the request.
+func (s *Server) dispatchLocationRequest(parent context.Context, body []byte, userID string) bool {
+	endpoints, err := s.androidPushEndpoints(parent, userID)
+	if err != nil {
+		slog.Warn("location request: load android endpoints", "err", err)
+	}
+	for _, endpoint := range endpoints {
+		dispatchCtx, cancel := context.WithTimeout(parent, 12*time.Second)
+		err := s.Push.Dispatch(dispatchCtx, push.Notification{
+			Title:               "OpenFamily location refresh",
+			Body:                string(body),
+			Platform:            "android",
+			UnifiedPushEndpoint: endpoint,
+		})
+		cancel()
+		if err == nil {
+			return true
+		}
+	}
+	tokens, err := s.iosPushTokens(parent, userID)
+	if err != nil {
+		slog.Warn("location request: load ios tokens", "err", err)
+	}
+	for _, token := range tokens {
+		dispatchCtx, cancel := context.WithTimeout(parent, 12*time.Second)
+		err := s.Push.Dispatch(dispatchCtx, push.Notification{
+			Title:     "OpenFamily location refresh",
+			Body:      string(body),
+			Silent:    true,
+			Platform:  "ios",
+			PushToken: token,
+		})
+		cancel()
+		if err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 // staleRequestGate rate-limits automatic refresh attempts per member. Unlike
@@ -311,10 +374,6 @@ func (s *Server) MaybeRequestStaleLocations(familyID string, members []wsMember)
 		go func(target string) {
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()
-			endpoints, err := s.androidPushEndpoints(ctx, target)
-			if err != nil || len(endpoints) == 0 {
-				return
-			}
 			requestID, err := newLocationRequestID()
 			if err != nil {
 				return
@@ -323,20 +382,10 @@ func (s *Server) MaybeRequestStaleLocations(familyID string, members []wsMember)
 			if err != nil {
 				return
 			}
-			for _, endpoint := range endpoints {
-				dispatchCtx, cancel := context.WithTimeout(ctx, 12*time.Second)
-				err := s.Push.Dispatch(dispatchCtx, push.Notification{
-					Title:               "OpenFamily location refresh",
-					Body:                string(body),
-					Platform:            "android",
-					UnifiedPushEndpoint: endpoint,
-				})
-				cancel()
-				if err == nil {
-					slog.Info("stale-member refresh requested",
-						"family_id", familyID, "user_id", target)
-					return
-				}
+			if s.dispatchLocationRequest(ctx, body, target) {
+				slog.Info("stale-member refresh requested",
+					"family_id", familyID, "user_id", target)
+				return
 			}
 			slog.Warn("stale-member refresh could not be delivered", "user_id", target)
 		}(target)
