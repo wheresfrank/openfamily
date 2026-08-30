@@ -16,6 +16,35 @@ import 'families_screen.dart';
 import 'server_config_screen.dart';
 import 'welcome_screen.dart';
 
+/// One-line push-notification guidance for the Settings screen.
+///
+/// Platform-aware on purpose: Android's UnifiedPush guidance ("install the
+/// ntfy app") must not leak into iOS (whose delivery rides APNs, nothing to
+/// install) or the browser preview (where no push transport exists at all).
+/// [isWeb] is passed explicitly because `kIsWeb` is a compile-time constant.
+String pushNotificationsSubtitle({
+  required bool isWeb,
+  TargetPlatform? platform,
+}) {
+  if (isWeb) {
+    return 'Push delivery is not available in the browser preview. This '
+        'preference is remembered for the installed apps.';
+  }
+  switch (platform ?? defaultTargetPlatform) {
+    case TargetPlatform.android:
+      return 'Android needs the ntfy app (UnifiedPush) so alerts arrive when '
+          'OpenFamily is closed. Off unregisters this device.';
+    case TargetPlatform.iOS:
+      return 'Delivered through your server via APNs. Off unregisters this '
+          'device.';
+    case TargetPlatform.fuchsia:
+    case TargetPlatform.linux:
+    case TargetPlatform.macOS:
+    case TargetPlatform.windows:
+      return 'Off unregisters this device from push notifications.';
+  }
+}
+
 /// The Settings screen. Account profile is server-backed; the remaining
 /// location and notification values are local toggles for now.
 class SettingsScreen extends StatefulWidget {
@@ -475,10 +504,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             secondary: const Icon(Icons.notifications_outlined,
                 color: AppColors.purple),
             title: const Text('Push notifications'),
-            subtitle: const Text(
-              'Android needs the ntfy app (UnifiedPush) so alerts arrive when '
-              'OpenFamily is closed. Off unregisters this device.',
-            ),
+            subtitle: Text(pushNotificationsSubtitle(isWeb: kIsWeb)),
             value: _notifications,
             onChanged: _notificationsLoading ? null : _setPushNotifications,
           ),
