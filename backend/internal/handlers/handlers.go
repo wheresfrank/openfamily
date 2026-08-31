@@ -78,9 +78,9 @@ type Server struct {
 	RequireInvite bool
 
 	// APKDir is the directory served by GET /api/admin/apk and where the latest
-	// GitHub Release APK is cached (config: APK_DIR). Empty disables APK features.
+	// v* GitHub Release APK is cached (config: APK_DIR). Empty disables APK features.
 	APKDir string
-	// APKGitHubRepo is "owner/name" for the GitHub Release that holds the APK
+	// APKGitHubRepo is "owner/name" for the v* GitHub Release that holds the APK
 	// (config: APK_GITHUB_REPO). Empty skips GitHub and serves APKDir as-is.
 	APKGitHubRepo string
 	// APKGitHubToken optionally authenticates GitHub API calls (config:
