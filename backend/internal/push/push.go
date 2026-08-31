@@ -34,6 +34,14 @@ type Notification struct {
 	Title string
 	Body  string
 
+	// Silent marks a machine-to-machine message (e.g. a location-refresh
+	// request): instead of an alert, iOS devices receive a content-available
+	// payload that wakes the app in the background to execute the command
+	// silently. The command JSON travels in Body. Android keeps the exact
+	// same wire shape as before — UnifiedPush delivers Body as the message
+	// text either way.
+	Silent bool
+
 	// Platform is "ios" or "android".
 	Platform string
 
@@ -287,6 +295,9 @@ func (d *DispatcherImpl) dispatchAPNs(ctx context.Context, n Notification) error
 	if n.PushToken == "" {
 		return errors.New("push: empty apns device token")
 	}
+	if n.Silent {
+		return d.apns.sendSilent(ctx, n.PushToken, n.Body)
+	}
 	return d.apns.send(ctx, n.PushToken, n.Title, n.Body)
 }
 
@@ -402,6 +413,66 @@ func (c *apnsClient) send(ctx context.Context, deviceToken, title, body string) 
 	req.Header.Set("apns-push-type", "alert")
 	req.Header.Set("apns-priority", "10")
 	req.Header.Set("apns-expiration", strconv.FormatInt(time.Now().Add(time.Hour).Unix(), 10))
+	req.Header.Set("content-type", "application/json")
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		err := fmt.Errorf("push: apns status %d: %s", resp.StatusCode, string(b))
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+			return &PermanentError{Err: err}
+		}
+		return err
+	}
+	return nil
+}
+
+// sendSilent delivers a background (machine-to-machine) message: no alert is
+// shown, iOS wakes the app in the background and hands it the payload. The
+// command JSON travels under the custom "of" key (the client's
+// AppDelegate forwards it over the app.openfamily/apns channel).
+//
+// Per Apple's APNs contract, content-available pushes use the "background"
+// push type and priority 5 (background requests should not starve user alerts,
+// and sending them at priority 10 is an error). Expiration is short on purpose:
+// a location-refresh command that is minutes old is worthless, and the client
+// ignores stale requests on execution anyway.
+func (c *apnsClient) sendSilent(ctx context.Context, deviceToken, command string) error {
+	host := "https://api.push.apple.com"
+	if !c.cfg.Production {
+		host = "https://api.sandbox.push.apple.com"
+	}
+	url := host + "/3/device/" + deviceToken
+
+	payload := map[string]any{
+		"aps": map[string]any{
+			"content-available": 1,
+		},
+		"of": command,
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	tok, err := c.token()
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("authorization", "bearer "+tok)
+	req.Header.Set("apns-topic", c.cfg.Topic)
+	req.Header.Set("apns-push-type", "background")
+	req.Header.Set("apns-priority", "5")
+	req.Header.Set("apns-expiration", strconv.FormatInt(time.Now().Add(5*time.Minute).Unix(), 10))
 	req.Header.Set("content-type", "application/json")
 
 	resp, err := c.http.Do(req)

@@ -33,7 +33,9 @@ Member memberFromJson(Map<String, dynamic> json) {
   // reporting phone does not flip to grey "stopped".
   final DateTime? lastSeenAt = _parseTs(json['last_seen_at']);
   final DateTime? effectiveLastSeen = _newer(timestamp, lastSeenAt);
-  final MovementType movement = _movementFrom(motion);
+  final MovementType movement = _movementFrom(motion) ??
+      _movementFromSpeed(speedMps) ??
+      MovementType.none;
 
   return Member(
     id: (json['id'] as String?) ?? '',
@@ -108,12 +110,14 @@ Member memberFromLocationUpdate(Member existing, Map<String, dynamic> json) {
     existing.lastSeen,
     _newer(fixTimestamp, _parseTs(json['last_seen_at'])),
   );
-  // A `location` frame may omit `motion_state` (the backend emits null when the
-  // value is empty); keep the existing movement rather than dropping a driving
-  // member back to "none".
-  final MovementType movement = (motion == null || motion.isEmpty)
-      ? existing.movement
-      : _movementFrom(motion);
+  // A `location` frame may carry no motion classification: the backend emits
+  // null when `motion_state` is empty (every iOS device), and the frame itself
+  // can omit the field. Prefer the authoritative Android motion state, then a
+  // confident speed inference, then keep the existing badge rather than
+  // dropping a driving member back to "none".
+  final MovementType movement = _movementFrom(motion) ??
+      _movementFromSpeed(speedMps) ??
+      existing.movement;
 
   // For status derivation, fall back to the member's last-known battery when
   // the frame omits it, so a member at 10% does not flip to "normal" (the
@@ -279,23 +283,40 @@ DateTime? _newer(DateTime? a, DateTime? b) {
 }
 
 /// Maps the backend's free-form `motion_state` string to a [MovementType].
-MovementType _movementFrom(String? motion) {
+///
+/// Returns null when the frame carries no motion classification (null/empty or
+/// the server omits the field) so callers can fall back to a weaker signal —
+/// see [_movementFromSpeed]. Explicitly-quiet states ("still", "walking",
+/// ...) map to [MovementType.none], matching the Android activity classes'
+/// presentation (there is no walking badge in the UI).
+MovementType? _movementFrom(String? motion) {
+  if (motion == null || motion.isEmpty) return null;
   switch (motion) {
     case 'driving':
       return MovementType.car;
     case 'cycling':
       return MovementType.bike;
-    case 'still':
-    case 'stationary':
-    case 'walking':
-    case 'running':
-    case 'on_foot':
-    case 'unknown':
-    case null:
-      return MovementType.none;
     default:
       return MovementType.none;
   }
+}
+
+/// Speed-based movement fallback for devices that report `speed_mps` but no
+/// `motion_state` — currently every iOS device: the vendored
+/// background_locator_2 fills `motion_state` only from Android's activity
+/// recognition, so without this fallback iOS members would never show a
+/// movement badge at all.
+///
+/// Only *confident upgrades* are inferred: ≥5 m/s (18 km/h) is unambiguously
+/// vehicle speed. Lower speeds return null (keep the previous badge) — GPS
+/// jitter around walking pace must not invent a moving badge, and a red-light
+/// speed dip must not clear a mid-drive one. The badge clears for real when
+/// [refreshStaleness] greys the member out after [kStaleAfter] without a
+/// report (a parked iOS device stops emitting fixes entirely at its 50 m
+/// distance filter).
+MovementType? _movementFromSpeed(num? speedMps) {
+  if (speedMps == null || speedMps < 5.0) return null;
+  return MovementType.car;
 }
 
 /// Parses the backend `ts` field, which may be an ISO-8601 string or a Unix
@@ -350,14 +371,22 @@ Member refreshStaleness(Member member) {
   final Duration age = DateTime.now().toUtc().difference(lastSeen);
   if (age <= kStaleAfter) return member;
   final String label = 'Position from ${_formatAgo(age)} ago';
-  // Already stopped with the current label — no change, so the staleness timer
-  // does not fire a spurious `onMembersChanged`. The label still advances
-  // ("10m" → "1h" → "1d") on later ticks because it is recomputed each time.
-  if (member.status == MemberStatus.stopped && member.address == label) {
+  // Already stopped with the current label and no movement badge — no change,
+  // so the staleness timer does not fire a spurious `onMembersChanged`. The
+  // label still advances ("10m" → "1h" → "1d") on later ticks because it is
+  // recomputed each time.
+  if (member.status == MemberStatus.stopped &&
+      member.address == label &&
+      member.movement == MovementType.none) {
     return member;
   }
+  // Clear the movement badge along with the liveness: a stale "driving" badge
+  // reads as still-on-the-road. Matters most on iOS, whose location stream
+  // carries speed but no motion state — a parked device stops emitting fixes
+  // at its distance filter, so only this transition retires the last badge.
   return member.copyWith(
     status: MemberStatus.stopped,
     address: label,
+    movement: MovementType.none,
   );
 }

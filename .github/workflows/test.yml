@@ -53,3 +53,47 @@ jobs:
         run: flutter analyze --no-fatal-infos
       - name: Test
         run: flutter test
+
+  # iOS parity gate. Runs the app on an iOS Simulator in CI — no Apple
+  # Developer account and no signing (simulator builds need none). Keeps the
+  # iOS shell honest so Android-side changes that break the iOS build
+  # (Info.plist keys, plugin registration, Swift compile errors, CocoaPods
+  # integration for the vendored background_locator_2) fail at review time.
+  ios:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.0'
+          cache: true
+      - name: Dependencies
+        run: flutter pub get
+      - name: Build for the iOS Simulator (unsigned)
+        run: flutter build ios --simulator --no-codesign --debug
+      - name: Boot a simulator, install, and launch the app
+        run: |
+          set -euo pipefail
+          udid=$(xcrun simctl list devices available \
+            | awk -F'[()]' '/iPhone/ && /Shutdown/ {print $2; exit}')
+          if [ -z "$udid" ]; then
+            echo "No available iPhone simulator found"; exit 1
+          fi
+          echo "Booting simulator $udid"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl install "$udid" build/ios/iphonesimulator/Runner.app
+          xcrun simctl launch "$udid" app.openfamily
+      - name: RunnerTests (xcodebuild)
+        run: |
+          udid=$(xcrun simctl list devices available \
+            | awk -F'[()]' '/iPhone/ && /Shutdown/ {print $2; exit}')
+          xcodebuild test \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -destination "platform=iOS Simulator,id=$udid" \
+            CODE_SIGNING_ALLOWED=NO

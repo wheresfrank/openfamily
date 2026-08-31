@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart' show BiometricType;
 
@@ -15,6 +16,58 @@ import 'profile_screen.dart';
 import 'families_screen.dart';
 import 'server_config_screen.dart';
 import 'welcome_screen.dart';
+
+/// Build-time device-preview override. The device-frame preview is served by
+/// the web engine but exists to rehearse mobile builds we cannot run (e.g.
+/// iOS without a Mac); build it with
+/// `--dart-define=OPENFAMILY_PLATFORM_OVERRIDE=ios` (or `android`) so
+/// platform-copy reads as that platform. Empty by default, so platform
+/// builds and genuine web builds are unaffected.
+const String kPreviewPlatformOverride = String.fromEnvironment(
+  'OPENFAMILY_PLATFORM_OVERRIDE',
+);
+
+/// One-line push-notification guidance for the Settings screen.
+///
+/// Platform-aware on purpose: Android's UnifiedPush guidance ("install the
+/// ntfy app") must not leak into iOS (whose delivery rides APNs, nothing to
+/// install) or the browser preview (where no push transport exists at all).
+/// [isWeb] is passed explicitly because `kIsWeb` is a compile-time constant;
+/// [previewPlatform] defaults to the build-time override so tests can pass
+/// values explicitly.
+String pushNotificationsSubtitle({
+  required bool isWeb,
+  TargetPlatform? platform,
+  String previewPlatform = kPreviewPlatformOverride,
+}) {
+  // Device-preview override: present copy as the rehearsed platform even
+  // though the rendering engine is the web.
+  if (previewPlatform == 'android') {
+    return 'Android needs the ntfy app (UnifiedPush) so alerts arrive when '
+        'OpenFamily is closed. Off unregisters this device.';
+  }
+  if (previewPlatform == 'ios') {
+    return 'Delivered through your server via APNs. Off unregisters this '
+        'device.';
+  }
+  if (isWeb) {
+    return 'Push delivery is not available in the browser preview. This '
+        'preference is remembered for the installed apps.';
+  }
+  switch (platform ?? defaultTargetPlatform) {
+    case TargetPlatform.android:
+      return 'Android needs the ntfy app (UnifiedPush) so alerts arrive when '
+          'OpenFamily is closed. Off unregisters this device.';
+    case TargetPlatform.iOS:
+      return 'Delivered through your server via APNs. Off unregisters this '
+          'device.';
+    case TargetPlatform.fuchsia:
+    case TargetPlatform.linux:
+    case TargetPlatform.macOS:
+    case TargetPlatform.windows:
+      return 'Off unregisters this device from push notifications.';
+  }
+}
 
 /// The Settings screen. Account profile is server-backed; the remaining
 /// location and notification values are local toggles for now.
@@ -475,10 +528,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             secondary: const Icon(Icons.notifications_outlined,
                 color: AppColors.purple),
             title: const Text('Push notifications'),
-            subtitle: const Text(
-              'Android needs the ntfy app (UnifiedPush) so alerts arrive when '
-              'OpenFamily is closed. Off unregisters this device.',
-            ),
+            subtitle: Text(pushNotificationsSubtitle(isWeb: kIsWeb)),
             value: _notifications,
             onChanged: _notificationsLoading ? null : _setPushNotifications,
           ),

@@ -1,10 +1,12 @@
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:background_locator_2/keys.dart';
 import 'package:background_locator_2/location_dto.dart';
 import 'package:background_locator_2/settings/android_settings.dart';
 import 'package:background_locator_2/settings/ios_settings.dart';
+// dart:io does not exist on the web; use the web-compatible platform shim
+// (resolves to the real dart:io checks on Android/iOS builds).
+import 'platform_is.dart';
 
 class SettingsUtil {
   static Map<String, dynamic> getArgumentsMap(
@@ -21,9 +23,9 @@ class SettingsUtil {
         disposeCallback: disposeCallback,
         heartbeatCallback: heartbeatCallback);
 
-    if (Platform.isAndroid) {
+    if (isAndroid) {
       args.addAll(_getAndroidArgumentsMap(androidSettings));
-    } else if (Platform.isIOS) {
+    } else if (isIOS) {
       args.addAll(_getIOSArgumentsMap(iosSettings));
     }
 
