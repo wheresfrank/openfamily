@@ -124,10 +124,11 @@ func (s *Server) AdminAPKStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 // AdminDownloadAPK serves the latest Android APK. When APK_GITHUB_REPO is set,
-// it syncs the latest GitHub Release asset into APKDir (skipping the download
-// when the cached file already matches) and then serves that file. If GitHub
-// is unreachable, a previously cached APK is served. It returns 404 when
-// APK_DIR is unset or no APK can be obtained.
+// it syncs the latest published v* semver GitHub Release asset into APKDir
+// (skipping the download when the cached file already matches) and then serves
+// that file. CI apk-* tags are not used. If GitHub is unreachable, a previously
+// cached APK is served. It returns 404 when APK_DIR is unset or no APK can be
+// obtained.
 func (s *Server) AdminDownloadAPK(w http.ResponseWriter, r *http.Request) {
 	if middleware.ClaimsFromContext(r.Context()) == nil {
 		writeError(w, http.StatusUnauthorized, "unauthenticated")
@@ -147,8 +148,9 @@ func (s *Server) AdminDownloadAPK(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, path)
 }
 
-// resolveAPK returns a local path to the APK to serve. GitHub is the source of
-// truth when configured; APKDir is only a cache (and a fallback if GitHub fails).
+// resolveAPK returns a local path to the APK to serve. The latest v* GitHub
+// Release is the source of truth when configured; APKDir is only a cache
+// (and a fallback if GitHub fails).
 func (s *Server) resolveAPK(ctx context.Context) (string, error) {
 	if s.APKGitHubRepo == "" {
 		path, err := latestAPK(s.APKDir)

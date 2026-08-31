@@ -70,9 +70,9 @@ services:
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
       TWILIO_FROM: ${TWILIO_FROM:-}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
-      # Directory the admin panel caches the GitHub Release APK into. The APK
-      # is built in CI and published as a release asset; the server fetches it
-      # on download (it does not build APKs).
+      # Directory the admin panel caches the v* GitHub Release APK into.
+      # Families/admin follow the latest semver release (not CI apk-* tags).
+      # The server fetches that asset on download; it does not build APKs.
       APK_DIR: ${APK_DIR:-/data/apk}
       APK_GITHUB_REPO: ${APK_GITHUB_REPO:-wheresfrank/openfamily}
       APK_GITHUB_TOKEN: ${APK_GITHUB_TOKEN:-}

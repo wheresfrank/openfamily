@@ -1,7 +1,8 @@
-// Package apkrelease fetches the latest Android APK from a GitHub Release and
-// caches it on disk. CI publishes the APK as a release asset; the admin
-// download endpoint syncs that asset into APK_DIR so the server never needs
-// the Flutter toolchain or a git pull of a binary.
+// Package apkrelease fetches the Android APK from the latest user-facing
+// semver GitHub Release (tag vMAJOR.MINOR.PATCH) and caches it on disk.
+// CI also publishes tester APKs as apk-* tags; those are ignored here.
+// The admin download endpoint syncs the v* asset into APK_DIR so the
+// server never needs the Flutter toolchain or a git pull of a binary.
 package apkrelease
 
 import (
@@ -13,22 +14,30 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
 
 const (
-	defaultAPI   = "https://api.github.com"
-	cachedName   = "openfamily-release.apk"
-	metaName     = ".apk-release.json"
-	userAgent    = "openfamily-apk-sync"
-	metaTimeout  = 15 * time.Second
-	fetchTimeout = 5 * time.Minute
+	defaultAPI      = "https://api.github.com"
+	cachedName      = "openfamily-release.apk"
+	metaName        = ".apk-release.json"
+	userAgent       = "openfamily-apk-sync"
+	metaTimeout     = 15 * time.Second
+	fetchTimeout    = 5 * time.Minute
+	releasesPerPage = 100
+	maxReleasePages = 20
+	maxReleaseBody  = 8 << 20
 )
 
-// ErrNotFound means GitHub has no latest release, or the latest release has
-// no APK asset.
-var ErrNotFound = errors.New("no APK on the latest GitHub Release")
+// ErrNotFound means GitHub has no published v* semver release with an APK
+// asset. CI apk-* tags are not a fallback.
+var ErrNotFound = errors.New("no APK on the latest v* GitHub Release")
+
+// semverTagRE matches a leading-v semver tag such as v0.1.0 or v1.2.3-rc.1.
+var semverTagRE = regexp.MustCompile(`^v(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$`)
 
 // Options configure a sync against GitHub Releases.
 type Options struct {
@@ -51,7 +60,14 @@ type release struct {
 	Body        string    `json:"body"`
 	HTMLURL     string    `json:"html_url"`
 	PublishedAt time.Time `json:"published_at"`
+	Draft       bool      `json:"draft"`
+	Prerelease  bool      `json:"prerelease"`
 	Assets      []asset   `json:"assets"`
+}
+
+type semver struct {
+	major, minor, patch int
+	pre                 string
 }
 
 type asset struct {
@@ -81,7 +97,9 @@ type ReleaseInfo struct {
 }
 
 // LatestInfo returns metadata for the APK attached to the repository's latest
-// GitHub Release without downloading the asset.
+// published v* semver GitHub Release without downloading the asset. It does
+// not use GitHub's /releases/latest endpoint, which may point at an apk-*
+// CI tag.
 func LatestInfo(ctx context.Context, opts Options) (ReleaseInfo, error) {
 	owner, name, err := parseRepo(opts.Repo)
 	if err != nil {
@@ -117,9 +135,9 @@ func LatestInfo(ctx context.Context, opts Options) (ReleaseInfo, error) {
 	}, nil
 }
 
-// Sync ensures DestDir contains the APK from the repo's latest GitHub Release.
-// If the cached file already matches that asset, it is reused. The returned
-// path is the local APK.
+// Sync ensures DestDir contains the APK from the repo's latest published v*
+// semver GitHub Release. If the cached file already matches that asset, it is
+// reused. The returned path is the local APK. CI apk-* tags are ignored.
 func Sync(ctx context.Context, opts Options) (string, error) {
 	if opts.DestDir == "" {
 		return "", errors.New("APK_DIR is not configured")
@@ -200,33 +218,148 @@ func cacheFresh(dir, dest string, assetID int64) bool {
 }
 
 func fetchLatest(ctx context.Context, client *http.Client, api, owner, name, token string) (*release, error) {
-	url := fmt.Sprintf("%s/repos/%s/%s/releases/latest", api, owner, name)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	rels, err := listReleases(ctx, client, api, owner, name, token)
 	if err != nil {
 		return nil, err
 	}
-	setGitHubHeaders(req, token, "application/vnd.github+json")
-
-	res, err := client.Do(req)
+	rel, err := pickLatestSemverRelease(rels)
 	if err != nil {
-		return nil, fmt.Errorf("github releases/latest: %w", err)
+		return nil, err
 	}
-	defer res.Body.Close()
-	body, _ := io.ReadAll(io.LimitReader(res.Body, 1<<20))
-	if res.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("%w: GitHub returned 404", ErrNotFound)
+	return rel, nil
+}
+
+func listReleases(ctx context.Context, client *http.Client, api, owner, name, token string) ([]release, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/releases?per_page=%d", api, owner, name, releasesPerPage)
+	var all []release
+	for page := 0; page < maxReleasePages; page++ {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, err
+		}
+		setGitHubHeaders(req, token, "application/vnd.github+json")
+
+		res, err := client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("github releases: %w", err)
+		}
+		body, _ := io.ReadAll(io.LimitReader(res.Body, maxReleaseBody))
+		res.Body.Close()
+		if res.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("%w: GitHub returned 404", ErrNotFound)
+		}
+		if res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden {
+			return nil, fmt.Errorf("GitHub API request was rejected (%d)", res.StatusCode)
+		}
+		if res.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("github releases: HTTP %d", res.StatusCode)
+		}
+		var batch []release
+		if err := json.Unmarshal(body, &batch); err != nil {
+			return nil, fmt.Errorf("decode github releases: %w", err)
+		}
+		all = append(all, batch...)
+		next := nextLink(res.Header.Get("Link"))
+		if next == "" {
+			break
+		}
+		url = next
 	}
-	if res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden {
-		return nil, fmt.Errorf("GitHub API request was rejected (%d)", res.StatusCode)
+	return all, nil
+}
+
+func nextLink(header string) string {
+	for _, part := range strings.Split(header, ",") {
+		part = strings.TrimSpace(part)
+		if !strings.Contains(part, `rel="next"`) && !strings.Contains(part, "rel=next") {
+			continue
+		}
+		start := strings.Index(part, "<")
+		end := strings.Index(part, ">")
+		if start >= 0 && end > start {
+			return part[start+1 : end]
+		}
 	}
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("github releases/latest: HTTP %d", res.StatusCode)
+	return ""
+}
+
+func parseSemverTag(tag string) (semver, bool) {
+	m := semverTagRE.FindStringSubmatch(strings.TrimSpace(tag))
+	if m == nil {
+		return semver{}, false
 	}
-	var rel release
-	if err := json.Unmarshal(body, &rel); err != nil {
-		return nil, fmt.Errorf("decode github release: %w", err)
+	major, err1 := strconv.Atoi(m[1])
+	minor, err2 := strconv.Atoi(m[2])
+	patch, err3 := strconv.Atoi(m[3])
+	if err1 != nil || err2 != nil || err3 != nil {
+		return semver{}, false
 	}
-	return &rel, nil
+	return semver{major: major, minor: minor, patch: patch, pre: m[4]}, true
+}
+
+func (a semver) less(b semver) bool {
+	if a.major != b.major {
+		return a.major < b.major
+	}
+	if a.minor != b.minor {
+		return a.minor < b.minor
+	}
+	if a.patch != b.patch {
+		return a.patch < b.patch
+	}
+	if a.pre == b.pre {
+		return false
+	}
+	if a.pre == "" {
+		return false
+	}
+	if b.pre == "" {
+		return true
+	}
+	return a.pre < b.pre
+}
+
+func (v semver) prerelease() bool {
+	return v.pre != ""
+}
+
+// pickLatestSemverRelease selects the highest published v* semver release that
+// has an APK asset. Drafts and apk-* CI tags are ignored. A GitHub or semver
+// prerelease is used only when no stable v* APK exists.
+func pickLatestSemverRelease(rels []release) (*release, error) {
+	var bestStable, bestPre *release
+	var bestStableVer, bestPreVer semver
+	for i := range rels {
+		rel := &rels[i]
+		if rel.Draft {
+			continue
+		}
+		ver, ok := parseSemverTag(rel.TagName)
+		if !ok {
+			continue
+		}
+		if _, err := pickAPKAsset(rel.Assets); err != nil {
+			continue
+		}
+		if rel.Prerelease || ver.prerelease() {
+			if bestPre == nil || bestPreVer.less(ver) {
+				bestPre = rel
+				bestPreVer = ver
+			}
+			continue
+		}
+		if bestStable == nil || bestStableVer.less(ver) {
+			bestStable = rel
+			bestStableVer = ver
+		}
+	}
+	if bestStable != nil {
+		return bestStable, nil
+	}
+	if bestPre != nil {
+		return bestPre, nil
+	}
+	return nil, ErrNotFound
 }
 
 func downloadAsset(ctx context.Context, client *http.Client, assetURL, token, dest string) error {

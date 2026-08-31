@@ -360,10 +360,14 @@ spaces and dashes (`ab12-cd34` matches `AB12CD34`).
 ### APK builds
 
 The server does **not** build APKs. CI
-([`.github/workflows/apk.yml`](.github/workflows/apk.yml)) builds a release
-APK on merge to `main` (when `app/` changes) and publishes it as a GitHub
-Release. The admin **Download** button fetches that latest asset and caches
-it in `APK_DIR`.
+([`.github/workflows/apk.yml`](.github/workflows/apk.yml)) builds a signed
+release APK on merge to `main` (when `app/` changes) and publishes it as a
+GitHub Release tagged `apk-<run_number>` for testers. Those CI tags are not
+GitHub Latest.
+
+The admin **Download** button follows the latest user-facing `v*` semver
+GitHub Release that has an `.apk` asset (for example `v0.1.0`) and caches
+it in `APK_DIR`. It does not use the `apk-*` firehose.
 
 Public GitHub Releases do not need a token. Set `APK_GITHUB_TOKEN` in
 `.env` only if you fetch from a private fork or hit GitHub's
@@ -516,7 +520,7 @@ For a fully private map, host your own tiles. The simplest option is
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM` | *(empty)* | Optional SMS; empty keeps alerts in-app |
 | `PUBLIC_BASE_URL` | *(empty)* | HTTPS origin for SMS share links |
 | `APK_DIR` | `/data/apk` | Directory that caches the GitHub Release APK |
-| `APK_GITHUB_REPO` | *(empty)* | GitHub `owner/name` whose latest Release holds the APK |
+| `APK_GITHUB_REPO` | *(empty)* | GitHub `owner/name` whose latest v* semver Release holds the APK |
 | `APK_GITHUB_TOKEN` | *(empty)* | Optional PAT to fetch the APK (needed for a private fork; Contents: Read) |
 
 ### Flutter app (`--dart-define`)

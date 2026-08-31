@@ -1,16 +1,20 @@
 name: Build Android APK
 
-# Builds the release APK on merges that touch the Flutter app (and on manual
-# dispatch) and publishes it as a GitHub Release. The admin panel's Download
-# button fetches the latest release asset and caches it in APK_DIR. The APK is
-# not committed to the repository.
+# Builds a signed release APK on merges that touch the Flutter app (and on
+# manual dispatch) and publishes it as a GitHub Release tagged apk-<run_number>
+# for testers. Those CI tags are never GitHub Latest (make_latest: false).
+#
+# Families and the admin Download button follow the latest user-facing v*
+# semver GitHub Release (for example v0.1.0), not this apk-* firehose. The
+# APK is not committed to the repository.
 #
 # Signing (required — debug-signed APKs cannot update each other across CI runs):
 #   ANDROID_KEYSTORE_BASE64    base64-encoded upload-keystore.jks
 #   ANDROID_KEYSTORE_PASSWORD  keystore and key password
 #   ANDROID_KEY_ALIAS          key alias (upload)
 #
-# versionCode is github.run_number so each published APK is newer than the last.
+# versionCode is github.run_number so each published tester APK is newer than
+# the last.
 
 on:
   push:
@@ -83,8 +87,9 @@ jobs:
           files: openfamily-release.apk
           fail_on_unmatched_files: true
           overwrite_files: true
-          make_latest: true
+          make_latest: false
           body: |
-            Release APK built from ${{ github.sha }}.
+            Tester APK built from ${{ github.sha }}.
             versionCode ${{ github.run_number }}.
-            The admin APK page fetches this asset automatically.
+            CI apk-* tags are not GitHub Latest. Families and the admin
+            Download button follow the latest v* semver release.

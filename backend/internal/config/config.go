@@ -111,9 +111,10 @@ type Config struct {
 	// resolvable from the server's working directory.
 	APKDir string
 
-	// APKGitHubRepo is the "owner/name" repository whose latest GitHub Release
-	// holds the Android APK. Empty disables GitHub fetch and serves whatever
-	// is already in APKDir (used by the optional on-server build).
+	// APKGitHubRepo is the "owner/name" repository whose latest published v*
+	// semver GitHub Release holds the Android APK. Empty disables GitHub
+	// fetch and serves whatever is already in APKDir (used by the optional
+	// on-server build).
 	APKGitHubRepo string
 
 	// APKGitHubToken is a GitHub PAT used to fetch release assets. Required
