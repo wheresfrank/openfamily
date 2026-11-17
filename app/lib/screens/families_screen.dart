@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../services/api_client.dart';
 import '../services/family_service.dart';
 import '../theme/app_theme.dart';
@@ -63,7 +64,7 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
           members.add(
             _FamilyMember(
               id: row['id'] as String? ?? '',
-              name: row['name'] as String? ?? 'Member',
+              name: row['name'] as String? ?? CurrentL10n.value.defaultMemberName,
               role: row['role'] as String? ?? 'member',
             ),
           );
@@ -87,7 +88,7 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Could not load your family.';
+        _error = context.l10n.loadFamilyFailed;
       });
     }
   }
@@ -101,25 +102,25 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
     final String? name = await showDialog<String>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: const Text('Rename family'),
+        title: Text(context.l10n.renameFamilyTitle),
         content: TextFormField(
           initialValue: family.name,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
           onChanged: (String value) => draft = value,
-          decoration: const InputDecoration(
-            labelText: 'Family name',
+          decoration: InputDecoration(
+            labelText: context.l10n.familyNameLabel,
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.actionCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(draft.trim()),
-            child: const Text('Save'),
+            child: Text(context.l10n.actionSave),
           ),
         ],
       ),
@@ -141,7 +142,7 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _busy = false);
-      _snack('Could not rename the family.');
+      _snack(context.l10n.renameFamilyFailed);
     }
   }
 
@@ -168,31 +169,30 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _busy = false);
-      _snack('Could not change that role.');
+      _snack(context.l10n.changeRoleFailed);
     }
   }
 
   Future<void> _leave() async {
     if (_isLastAdmin) {
-      _snack('Promote another admin before you leave.');
+      _snack(context.l10n.promoteAdminBeforeLeaving);
       return;
     }
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: const Text('Leave this family?'),
-        content: const Text(
-          'You will stop sharing location with this family. You can join '
-          'another family with an invite code, or create a new one.',
+        title: Text(context.l10n.leaveFamilyQuestion),
+        content: Text(
+          context.l10n.leaveFamilyBody,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.actionCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Leave'),
+            child: Text(context.l10n.actionLeave),
           ),
         ],
       ),
@@ -213,7 +213,7 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _busy = false);
-      _snack('Could not leave the family.');
+      _snack(context.l10n.leaveFamilyFailed);
     }
   }
 
@@ -235,7 +235,7 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Family')),
+      appBar: AppBar(title: Text(context.l10n.familyLabel)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -247,7 +247,7 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
                       children: [
                         Text(_error!, textAlign: TextAlign.center),
                         const SizedBox(height: 16),
-                        FilledButton(onPressed: _load, child: const Text('Retry')),
+                        FilledButton(onPressed: _load, child: Text(context.l10n.actionRetry)),
                       ],
                     ),
                   ),
@@ -257,15 +257,15 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
                   : ListView(
                       children: [
                         ListTile(
-                          leading: const Icon(
+                          leading: Icon(
                             Icons.group_outlined,
-                            color: AppColors.purple,
+                            color: BrandTheme.of(context).accentInk,
                           ),
                           title: Text(_family!.name),
                           subtitle: Text(_roleLabel(_family!.role)),
                           trailing: _isAdmin
                               ? IconButton(
-                                  tooltip: 'Rename',
+                                  tooltip: context.l10n.actionRename,
                                   onPressed: _busy ? null : _rename,
                                   icon: const Icon(Icons.edit_outlined),
                                 )
@@ -273,11 +273,11 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
                         ),
                         if (_isAdmin)
                           ListTile(
-                            leading: const Icon(
+                            leading: Icon(
                               Icons.person_add_alt_1,
-                              color: AppColors.purple,
+                              color: BrandTheme.of(context).accentInk,
                             ),
-                            title: const Text('Invite someone'),
+                            title: Text(context.l10n.inviteSomeone),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
@@ -291,7 +291,7 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
                         Padding(
                           padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
                           child: Text(
-                            'MEMBERS',
+                            context.l10n.membersHeader,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -306,7 +306,7 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
                           ListTile(
                             title: Text(member.name),
                             subtitle: member.id == _family!.userId
-                                ? const Text('You')
+                                ? Text(context.l10n.youLabel)
                                 : null,
                             trailing: _isAdmin
                                 ? DropdownButton<String>(
@@ -319,18 +319,18 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
                                               _setRole(member, role);
                                             }
                                           },
-                                    items: const [
+                                    items: [
                                       DropdownMenuItem(
                                         value: 'admin',
-                                        child: Text('Admin'),
+                                        child: Text(context.l10n.roleAdmin),
                                       ),
                                       DropdownMenuItem(
                                         value: 'member',
-                                        child: Text('Member'),
+                                        child: Text(context.l10n.roleMember),
                                       ),
                                       DropdownMenuItem(
                                         value: 'child',
-                                        child: Text('Child'),
+                                        child: Text(context.l10n.roleChild),
                                       ),
                                     ],
                                   )
@@ -343,7 +343,7 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
                             color: AppColors.sosRed,
                           ),
                           title: Text(
-                            'Leave family',
+                            context.l10n.leaveFamily,
                             style: TextStyle(
                               color: _isLastAdmin
                                   ? Theme.of(context)
@@ -353,8 +353,7 @@ class _FamiliesScreenState extends State<FamiliesScreen> {
                             ),
                           ),
                           subtitle: _isLastAdmin
-                              ? const Text(
-                                  'Promote another admin before you leave.',
+                              ? Text(context.l10n.promoteAdminBeforeLeaving,
                                 )
                               : null,
                           enabled: !_busy && !_isLastAdmin,
@@ -378,16 +377,16 @@ class _NoFamily extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.group_outlined, size: 64, color: AppColors.purple),
+          Icon(Icons.group_outlined, size: 64, color: BrandTheme.of(context).accentInk),
           const SizedBox(height: 16),
-          const Text(
-            'You are not in a family yet',
+          Text(
+            context.l10n.noFamilyTitle,
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'Create a family to invite people, or join one with a code.',
+            context.l10n.noFamilyBody,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -401,26 +400,26 @@ class _NoFamily extends StatelessWidget {
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    title: const Text('Create a family'),
+                    title: Text(context.l10n.createAFamily),
                     content: TextFormField(
                       autofocus: true,
                       textCapitalization: TextCapitalization.words,
                       onChanged: (String value) => draft = value,
-                      decoration: const InputDecoration(
-                        labelText: 'Family name (optional)',
-                        hintText: 'My Family',
+                      decoration: InputDecoration(
+                        labelText: context.l10n.familyNameOptional,
+                        hintText: context.l10n.defaultFamilyName,
                         border: OutlineInputBorder(),
                       ),
                     ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Cancel'),
+                        child: Text(context.l10n.actionCancel),
                       ),
                       FilledButton(
                         onPressed: () =>
                             Navigator.of(context).pop(draft.trim()),
-                        child: const Text('Create'),
+                        child: Text(context.l10n.actionCreate),
                       ),
                     ],
                   );
@@ -440,7 +439,7 @@ class _NoFamily extends StatelessWidget {
                 }
               }
             },
-            child: const Text('Create a family'),
+            child: Text(context.l10n.createAFamily),
           ),
           const SizedBox(height: 12),
           OutlinedButton(
@@ -452,7 +451,7 @@ class _NoFamily extends StatelessWidget {
               );
               if (joined == true) onChanged();
             },
-            child: const Text('Join with a code'),
+            child: Text(context.l10n.joinWithCode),
           ),
         ],
       ),

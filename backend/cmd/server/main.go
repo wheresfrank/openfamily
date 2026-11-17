@@ -67,6 +67,15 @@ func main() {
 	srv := handlers.New(pool, tm, dispatcher)
 	srv.VerbosePush = cfg.VerbosePush
 	srv.NtfyBaseURL = cfg.NtfyBaseURL
+	if lang, ok := handlers.NormalizeLanguage(cfg.DefaultLanguage); ok {
+		srv.DefaultLanguageEnv = lang
+	} else {
+		slog.Warn("ignoring unsupported DEFAULT_LANGUAGE", "value", cfg.DefaultLanguage)
+	}
+	if err := srv.LoadLanguageSettings(ctx); err != nil {
+		slog.Error("language settings", "err", err)
+		os.Exit(1)
+	}
 	srv.TileURL = cfg.TileURL
 	srv.SatelliteTileURL = cfg.SatelliteTileURL
 	srv.APNsConfigured = cfg.APNsKeyFile != ""
@@ -124,6 +133,8 @@ func main() {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 	r.Get("/config", srv.GetConfig)
+	// Per-device notification channel; authenticates with the ingest key.
+	r.Get("/ws/device", srv.DeviceStream)
 	r.Get("/alerts/share/{token}", srv.ShareAlert)
 
 	// Auth (unauthenticated).
@@ -167,6 +178,7 @@ func main() {
 		r.Get("/family/members", srv.ListMembers)
 		r.Get("/family/members/{id}/avatar", srv.GetFamilyMemberAvatar)
 		r.Get("/family/members/{id}/history", srv.GetMemberHistory)
+		r.Get("/family/members/{id}/history/export", srv.ExportMemberHistory)
 		r.Post("/family/members/{id}/location-request", srv.RequestMemberLocation)
 		r.Patch("/family/members/{id}/role", srv.UpdateMemberRole)
 		r.Post("/family/invites", srv.CreateFamilyInvite)
@@ -229,6 +241,7 @@ func main() {
 		r.Get("/api/admin/members", srv.AdminListMembers)
 		r.Get("/api/admin/members/{id}/avatar", srv.GetAdminMemberAvatar)
 		r.Get("/api/admin/members/{id}/history", srv.AdminGetMemberHistory)
+		r.Get("/api/admin/members/{id}/history/export", srv.AdminExportMemberHistory)
 		r.Patch("/api/admin/members/{id}/family", srv.AdminMoveMember)
 		r.Get("/api/admin/users", srv.AdminListUsers)
 		r.Post("/api/admin/users", srv.AdminCreateUser)
@@ -246,6 +259,8 @@ func main() {
 		r.Get("/api/admin/settings/sms", srv.AdminGetSMSSettings)
 		r.Put("/api/admin/settings/sms", srv.AdminPutSMSSettings)
 		r.Delete("/api/admin/settings/sms", srv.AdminDeleteSMSSettings)
+		r.Get("/api/admin/settings/language", srv.AdminGetLanguageSettings)
+		r.Put("/api/admin/settings/language", srv.AdminPutLanguageSettings)
 
 		// Domain status: read-only mirror of SITE_ADDRESS plus live DNS and
 		// HTTPS health checks for the admin panel card.

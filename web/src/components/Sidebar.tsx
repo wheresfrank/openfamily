@@ -5,6 +5,7 @@ import React from 'react'
 import { ROUTES, routesFor, type RouteKey } from '../lib/routes'
 import { useMe } from '../lib/me'
 import './nav.css'
+import { t } from '../lib/i18n'
 
 interface SidebarProps {
   active: RouteKey
@@ -21,7 +22,7 @@ export function Sidebar({ active, onNavigate, footer }: SidebarProps) {
   )
 
   return (
-    <aside className="wb-sidebar" aria-label="Main navigation">
+    <aside className="wb-sidebar" aria-label={t("Main navigation")}>
       <div className="wb-brand">
         <span className="wb-brand-mark" aria-hidden="true">
           <img
@@ -36,7 +37,7 @@ export function Sidebar({ active, onNavigate, footer }: SidebarProps) {
           />
         </span>
         <span className="wb-brand-name">OpenFamily</span>
-        {isPlatformAdmin && <span className="wb-brand-sub">Admin</span>}
+        {isPlatformAdmin && <span className="wb-brand-sub">{t("Admin")}</span>}
       </div>
 
       <nav className="wb-nav">

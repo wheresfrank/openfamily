@@ -13,7 +13,7 @@ const Member _driver = Member(
   batteryPercent: 88,
   address: 'The Gym',
   movement: MovementType.car,
-  speedMph: 74, // >= kSpeedingMph => speeding amber chip
+  speedMps: 33.1, // >= kSpeedingMps => speeding amber chip
   eta: '12m',
 );
 

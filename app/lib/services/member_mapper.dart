@@ -1,5 +1,7 @@
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:latlong2/latlong.dart';
 
+import '../l10n/l10n.dart';
 import '../models/member.dart';
 import '../models/place.dart';
 
@@ -8,7 +10,7 @@ import '../models/place.dart';
 ///
 /// The backend's location fields are all nullable: a member who has never
 /// reported a location has null `lat`/`lon`/`ts`. `speed_mps` is meters/second
-/// and is converted to mph for display. `motion_state` is a free string.
+/// and is kept as-is; display conversion lives in `Units`. `motion_state` is a free string.
 Member memberFromJson(Map<String, dynamic> json) {
   final num? lat = json['lat'] as num?;
   final num? lon = json['lon'] as num?;
@@ -39,7 +41,7 @@ Member memberFromJson(Map<String, dynamic> json) {
 
   return Member(
     id: (json['id'] as String?) ?? '',
-    name: (json['name'] as String?) ?? 'Member',
+    name: (json['name'] as String?) ?? CurrentL10n.value.defaultMemberName,
     position: position,
     status: _statusFrom(
       position: position,
@@ -57,7 +59,7 @@ Member memberFromJson(Map<String, dynamic> json) {
     avatarUpdatedAt: avatarUpdatedAt,
     avatarVersion: avatarVersion,
     movement: movement,
-    speedMph: speedMps != null ? (speedMps * 2.23694).round() : null,
+    speedMps: speedMps?.toDouble(),
     lastSeen: effectiveLastSeen,
     accuracyMeters: accuracy?.toDouble(),
   );
@@ -142,8 +144,7 @@ Member memberFromLocationUpdate(Member existing, Map<String, dynamic> json) {
       movement: movement,
     ),
     movement: movement,
-    speedMph:
-        speedMps != null ? (speedMps * 2.23694).round() : existing.speedMph,
+    speedMps: speedMps?.toDouble() ?? existing.speedMps,
     lastSeen: timestamp,
     accuracyMeters: accuracy?.toDouble() ?? existing.accuracyMeters,
   );
@@ -225,13 +226,15 @@ String _addressFrom({
   required DateTime? lastSeen,
   required MovementType movement,
 }) {
-  if (position == null) return 'No location yet';
-  if (movement == MovementType.car) return 'Driving';
-  if (movement == MovementType.bike) return 'Biking';
-  if (lastSeen == null) return 'No location yet';
+  if (position == null) return CurrentL10n.value.addressNoLocation;
+  if (movement == MovementType.car) return CurrentL10n.value.movementDriving;
+  if (movement == MovementType.bike) return CurrentL10n.value.movementBiking;
+  if (lastSeen == null) return CurrentL10n.value.addressNoLocation;
   final Duration age = DateTime.now().toUtc().difference(lastSeen);
-  if (age > kStaleAfter) return 'Position from ${_formatAgo(age)} ago';
-  return 'Stationary';
+  if (age > kStaleAfter) {
+    return CurrentL10n.value.positionFromAgo(_formatAgo(age));
+  }
+  return CurrentL10n.value.addressStationary;
 }
 
 /// The saved place (if any) whose radius contains [position]. When several
@@ -272,7 +275,17 @@ Member applyPlaceAddress(Member member, List<Place> places) {
 /// 8h ago" pin-age label) rather than a real place or activity. Mirrors the
 /// guard in [applyPlaceAddress] so callers can skip place overlays for stale
 /// members without duplicating the prefix knowledge.
-bool isStaleAddress(String address) => address.startsWith('Position from');
+bool isStaleAddress(String address) {
+  // The address text was produced in whatever language was active at the time,
+  // so compare against the "Position from ..." prefix of every language.
+  for (final Locale locale in AppLocalizations.supportedLocales) {
+    final String marked = lookupAppLocalizations(locale).positionFromAgo('\u0000');
+    if (address.startsWith(marked.substring(0, marked.indexOf('\u0000')))) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /// Returns the later of two timestamps, treating null as "unknown" (the other
 /// value wins; both null → null).
@@ -350,7 +363,7 @@ int? _parseAvatarVersion(dynamic value) {
 
 /// Compact "Xm ago" / "Xh ago" / "Xd ago" label for a stale location.
 String _formatAgo(Duration d) {
-  if (d.inMinutes < 1) return 'just now';
+  if (d.inMinutes < 1) return CurrentL10n.value.justNow;
   if (d.inMinutes < 60) return '${d.inMinutes}m';
   if (d.inHours < 24) return '${d.inHours}h';
   return '${d.inDays}d';
@@ -370,7 +383,7 @@ Member refreshStaleness(Member member) {
   if (member.position == null || lastSeen == null) return member;
   final Duration age = DateTime.now().toUtc().difference(lastSeen);
   if (age <= kStaleAfter) return member;
-  final String label = 'Position from ${_formatAgo(age)} ago';
+  final String label = CurrentL10n.value.positionFromAgo(_formatAgo(age));
   // Already stopped with the current label and no movement badge — no change,
   // so the staleness timer does not fire a spurious `onMembersChanged`. The
   // label still advances ("10m" → "1h" → "1d") on later ticks because it is

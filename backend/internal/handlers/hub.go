@@ -35,6 +35,19 @@ func (c *wsClient) close() {
 	})
 }
 
+// closeWith is like close but ends the WebSocket with an application status
+// code and reason, so the peer can tell why it was dropped. The closing
+// handshake can wait on the peer, so it runs in its own goroutine.
+func (c *wsClient) closeWith(code websocket.StatusCode, reason string) {
+	c.once.Do(func() {
+		close(c.done)
+		if c.conn != nil {
+			conn := c.conn
+			go func() { _ = conn.Close(code, reason) }()
+		}
+	})
+}
+
 // writeLoop drains the send channel and writes frames to the connection. It
 // exits when the client is closed or a write fails.
 //

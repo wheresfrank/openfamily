@@ -12,7 +12,7 @@ const Member _driver = Member(
   batteryPercent: 60,
   address: 'Driving',
   movement: MovementType.car,
-  speedMph: 42,
+  speedMps: 18.8,
 );
 
 const Member _speeding = Member(
@@ -23,7 +23,7 @@ const Member _speeding = Member(
   batteryPercent: 55,
   address: 'Driving',
   movement: MovementType.car,
-  speedMph: 78,
+  speedMps: 34.9,
 );
 
 const Member _still = Member(

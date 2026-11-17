@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../models/member.dart';
 import '../theme/app_theme.dart';
 import '../widgets/member_tile.dart';
@@ -40,17 +41,17 @@ class PeopleScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'People',
+        title: Text(
+          context.l10n.peopleTitle,
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
         actions: [
           IconButton(
             onPressed: _invite(context),
-            tooltip: 'Invite someone',
-            icon: const Icon(
+            tooltip: context.l10n.inviteSomeone,
+            icon: Icon(
               Icons.person_add_alt_1,
-              color: AppColors.purple,
+              color: BrandTheme.of(context).accentInk,
             ),
           ),
         ],
@@ -132,7 +133,7 @@ class _RosterHeader extends StatelessWidget {
                 Text(
                   circleName,
                   style:
-                      const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                      TextStyle(fontSize: 13, color: BrandTheme.of(context).muted),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -174,26 +175,26 @@ class _EmptyPeople extends StatelessWidget {
                 color: AppColors.purple.withValues(alpha: 0.10),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.people_alt_outlined,
-                  size: 34, color: AppColors.purple),
+              child: Icon(Icons.people_alt_outlined,
+                  size: 34, color: BrandTheme.of(context).accentInk),
             ),
             const SizedBox(height: 16),
             Text(
-              'No one is in $circleName yet',
+              context.l10n.nooneInFamilyYet(circleName),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Invite family to share their location and see them on your map.',
+            Text(
+              context.l10n.peopleEmptyBody,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+              style: TextStyle(fontSize: 14, color: BrandTheme.of(context).muted),
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: onInvite,
               icon: const Icon(Icons.person_add_alt_1),
-              label: const Text('Invite someone'),
+              label: Text(context.l10n.inviteSomeone),
             ),
           ],
         ),

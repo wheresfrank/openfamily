@@ -9,6 +9,7 @@
 import React from 'react'
 import { CircleMarker, MapContainer, Polyline, TileLayer, useMap } from 'react-leaflet'
 import {
+  exportMemberHistory,
   getFamilyMemberHistory,
   getMemberHistory,
   listAllMembers,
@@ -23,6 +24,7 @@ import { DEFAULT_TILE_URL } from '../map/MapView'
 import type { AdminMember, Family, HistoryVisit, Member, MemberHistory, MyFamily } from '../lib/types'
 import './pages.css'
 import './HistoryPage.css'
+import { t } from '../lib/i18n'
 
 /**
  * History trail + place-visit markers. Deliberately NOT the brand lime: the
@@ -67,6 +69,25 @@ function dayBounds(dateISO: string): { from: string; to: string } {
   return { from: from.toISOString(), to: to.toISOString() }
 }
 
+/** Start/end of an export covering `days` days that end with `dateISO`. */
+function exportBounds(dateISO: string, days: number): { from: string; to: string } {
+  const end = dayBounds(dateISO).to
+  const from = new Date(`${dateISO}T00:00:00`)
+  from.setDate(from.getDate() - (days - 1))
+  return { from: from.toISOString(), to: end }
+}
+
+function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
 function formatTime(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return '—'
@@ -103,6 +124,9 @@ export function HistoryPage() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [reload, setReload] = React.useState(0)
+  const [exportDays, setExportDays] = React.useState(1)
+  const [exporting, setExporting] = React.useState(false)
+  const [exportError, setExportError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     const onHash = () => {
@@ -160,7 +184,7 @@ export function HistoryPage() {
       .catch((e) => {
         if (cancelled) return
         setHistory(null)
-        setError(e instanceof Error ? e.message : 'Couldn’t load history')
+        setError(e instanceof Error ? e.message : t("Couldn’t load history"))
         setLoading(false)
       })
     return () => {
@@ -172,7 +196,7 @@ export function HistoryPage() {
     return (
       <div className="wb-page">
         <div className="wb-page-loading">
-          <Spinner /> Loading history…
+          <Spinner /> {t("Loading history…")}
         </div>
       </div>
     )
@@ -182,8 +206,8 @@ export function HistoryPage() {
     return (
       <div className="wb-page">
         <ErrorState
-          title="Couldn’t load members"
-          description={families.error?.message ?? members.error?.message ?? 'Request failed'}
+          title={t("Couldn’t load members")}
+          description={families.error?.message ?? members.error?.message ?? t("Request failed")}
           onRetry={() => {
             families.refetch()
             members.refetch()
@@ -194,6 +218,22 @@ export function HistoryPage() {
   }
 
   const selected = memberList.find((m) => m.id === memberId) ?? null
+
+  const runExport = async (format: 'gpx' | 'geojson') => {
+    if (!memberId) return
+    setExporting(true)
+    setExportError(null)
+    try {
+      const { from, to } = exportBounds(date, exportDays)
+      const blob = await exportMemberHistory(memberId, from, to, format, isPlatformAdmin)
+      const ext = format === 'gpx' ? 'gpx' : 'geojson'
+      saveBlob(blob, `openfamily-track-${date}${exportDays > 1 ? `-${exportDays}d` : ''}.${ext}`)
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : t("Couldn’t export the track"))
+    } finally {
+      setExporting(false)
+    }
+  }
   const empty = !loading && !error && history && history.trail.length === 0 && history.visits.length === 0
 
   return (
@@ -201,7 +241,7 @@ export function HistoryPage() {
       <div className="wb-history-toolbar">
         {isPlatformAdmin ? (
           <label className="wb-field" htmlFor="history-family">
-            <span className="wb-label">Family</span>
+            <span className="wb-label">{t("Family")}</span>
             <select
               id="history-family"
               className="wb-select"
@@ -211,7 +251,7 @@ export function HistoryPage() {
                 setMemberId('')
               }}
             >
-              <option value="">All families</option>
+              <option value="">{t("All families")}</option>
               {familyList.map((f: Family) => (
                 <option key={f.id} value={f.id}>
                   {f.name}
@@ -222,21 +262,21 @@ export function HistoryPage() {
         ) : (
           // App parity: a regular user only ever sees their own circle.
           <div className="wb-field">
-            <span className="wb-label">Family</span>
+            <span className="wb-label">{t("Family")}</span>
             <p className="wb-history-family-name">
-              <Badge tone="purple">{familyList[0]?.name ?? 'Your family'}</Badge>
+              <Badge tone="purple">{familyList[0]?.name ?? t("Your family")}</Badge>
             </p>
           </div>
         )}
         <label className="wb-field" htmlFor="history-member">
-          <span className="wb-label">Member</span>
+          <span className="wb-label">{t("Member")}</span>
           <select
             id="history-member"
             className="wb-select"
             value={memberId}
             onChange={(e) => setMemberId(e.target.value)}
           >
-            <option value="">Select a member</option>
+            <option value="">{t("Select a member")}</option>
             {visibleMembers.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
@@ -245,7 +285,7 @@ export function HistoryPage() {
           </select>
         </label>
         <label className="wb-field" htmlFor="history-date">
-          <span className="wb-label">Day</span>
+          <span className="wb-label">{t("Day")}</span>
           <input
             id="history-date"
             className="wb-input"
@@ -255,46 +295,78 @@ export function HistoryPage() {
             onChange={(e) => setDate(e.target.value || todayISO())}
           />
         </label>
+        <div className="wb-field">
+          <span className="wb-label">{t("Export track")}</span>
+          <div className="wb-history-export">
+            <select
+              aria-label={t("Export range")}
+              className="wb-select"
+              value={exportDays}
+              onChange={(e) => setExportDays(Number(e.target.value))}
+            >
+              <option value={1}>{t("This day")}</option>
+              <option value={7}>{t("Last 7 days")}</option>
+              <option value={31}>{t("Last 31 days")}</option>
+            </select>
+            <button
+              type="button"
+              className="wb-btn"
+              disabled={!memberId || exporting}
+              onClick={() => runExport('gpx')}
+            >
+              GPX
+            </button>
+            <button
+              type="button"
+              className="wb-btn"
+              disabled={!memberId || exporting}
+              onClick={() => runExport('geojson')}
+            >
+              GeoJSON
+            </button>
+          </div>
+          {exportError ? <p className="wb-history-muted">{exportError}</p> : null}
+        </div>
       </div>
 
       <div className="wb-history-body">
-        <div className="wb-history-map" aria-label="Location trail">
+        <div className="wb-history-map" aria-label={t("Location trail")}>
           {!memberId ? (
             <EmptyState
-              title="Pick a member"
-              description="Choose a family member to see where they went and the path they took."
+              title={t("Pick a member")}
+              description={t("Choose a family member to see where they went and the path they took.")}
             />
           ) : loading ? (
             <div className="wb-history-loading">
-              <Spinner /> Loading trail…
+              <Spinner /> {t("Loading trail…")}
             </div>
           ) : error ? (
             <ErrorState
-              title="Couldn’t load history"
+              title={t("Couldn’t load history")}
               description={error}
               onRetry={() => setReload((n) => n + 1)}
             />
           ) : empty ? (
             <EmptyState
-              title="No history for this day"
-              description={`${selected?.name ?? 'This member'} didn’t report any locations on this date.`}
+              title={t("No history for this day")}
+              description={t("{name} didn’t report any locations on this date.", { name: selected?.name ?? t("This member") })}
             />
           ) : history ? (
             <HistoryMap key={`${history.user_id}-${history.from}`} history={history} />
           ) : null}
         </div>
-        <aside className="wb-history-timeline" aria-label="Visit timeline">
+        <aside className="wb-history-timeline" aria-label={t("Visit timeline")}>
           <h2 className="wb-history-timeline-title">
-            {selected ? selected.name : 'Timeline'}
+            {selected ? selected.name : t("Timeline")}
           </h2>
           {!memberId || loading ? (
             <p className="wb-history-muted">
-              {loading ? 'Loading…' : 'Select a member to see visits.'}
+              {loading ? t("Loading…") : t("Select a member to see visits.")}
             </p>
           ) : error ? (
             <p className="wb-history-muted">{error}</p>
           ) : !history || history.visits.length === 0 ? (
-            <p className="wb-history-muted">No visits recorded.</p>
+            <p className="wb-history-muted">{t("No visits recorded.")}</p>
           ) : (
             <ol className="wb-history-list">
               {history.visits.map((visit, i) => (

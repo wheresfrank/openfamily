@@ -5,11 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Circle;
 
+import '../l10n/l10n.dart';
 import '../models/member.dart';
+import '../models/place.dart';
 import '../services/api_client.dart';
 import '../services/app_config.dart';
 import '../services/background_location_service.dart';
 import '../services/battery_optimization_service.dart';
+import '../services/device_channel_host.dart';
 import '../services/device_service.dart';
 import '../services/family_service.dart';
 import '../services/location_reporter.dart';
@@ -26,6 +29,7 @@ import '../utils/member_clustering.dart';
 import '../widgets/circle_switcher.dart';
 import '../widgets/map_bottom_bar.dart';
 import '../widgets/member_avatar_bubble.dart';
+import '../widgets/place_marker.dart';
 import 'check_in_screen.dart';
 import 'help_alert_screen.dart';
 import 'invite_screen.dart';
@@ -78,6 +82,9 @@ class _MapScreenState extends State<MapScreen>
   final FamilyService _familyService = FamilyService();
   List<Member> _members = <Member>[];
 
+  /// Saved places drawn on the map (icon, name and arrive/leave radius).
+  List<Place> _places = <Place>[];
+
   /// Live roster exposed to the pushed People screen so its status chips stay
   /// live off the map's single WebSocket subscription (no second connection).
   final ValueNotifier<List<Member>> _membersListenable =
@@ -126,6 +133,7 @@ class _MapScreenState extends State<MapScreen>
     _checkLocation();
     _initLocationSharing();
     PushService.sync();
+    DeviceChannelHost.ensureRunning();
     unawaited(_refreshServerFeatures());
     // One-time Android battery-optimization guidance (keeps background
     // updates alive when the app is closed). No-op elsewhere. Runs after the
@@ -180,6 +188,7 @@ class _MapScreenState extends State<MapScreen>
       setState(() {
         _familyName = name;
         _members = members;
+        _places = _familyService.places;
         _membersListenable.value = members;
         _hasFamily = true;
         _loading = false;
@@ -214,7 +223,7 @@ class _MapScreenState extends State<MapScreen>
 
   String _friendlyError(Object e) {
     if (e is ApiException) return e.message;
-    return 'Could not load your family. Check your connection and try again.';
+    return context.l10n.loadFamilyConnectionFailed;
   }
 
   /// Detects whether location sharing is off (e.g. the user skipped it during
@@ -251,20 +260,18 @@ class _MapScreenState extends State<MapScreen>
     final bool? open = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: const Text('Keep background updates reliable'),
-        content: const Text(
-          'To keep your location fresh when OpenFamily is closed, Android '
-          'may need OpenFamily exempted from battery optimization. Otherwise '
-          'the system can pause background location to save battery.',
+        title: Text(context.l10n.backgroundUpdatesTitle),
+        content: Text(
+          context.l10n.batteryOptimizationBody,
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Not now'),
+            child: Text(context.l10n.actionNotNow),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Open settings'),
+            child: Text(context.l10n.openSettingsLower),
           ),
         ],
       ),
@@ -316,6 +323,9 @@ class _MapScreenState extends State<MapScreen>
   /// backgrounded, then restarts the foreground reporter and refreshes family
   /// data.
   Future<void> _onResumed() async {
+    // Make sure the notification channel is up (no-op while it already is, or
+    // while the background service holds it).
+    DeviceChannelHost.ensureRunning();
     // Pick up any tokens the background isolate rotated (and wrote only to
     // shared_preferences) so the foreground reporter uses the current,
     // non-revoked refresh token instead of racing the background isolate.
@@ -521,9 +531,110 @@ class _MapScreenState extends State<MapScreen>
         .push(MaterialPageRoute<void>(builder: (_) => const SosScreen()));
   }
 
-  void _openPlaces() {
-    Navigator.of(context)
+  /// Details for a tapped place, with a shortcut to edit it.
+  Future<void> _openPlace(Place place) async {
+    final bool? edit = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (BuildContext sheetContext) {
+        final BrandTheme brand = BrandTheme.of(sheetContext);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.accent,
+                      ),
+                      child: Icon(
+                        place.icon,
+                        color: AppColors.onAccent,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        place.name,
+                        style: Theme.of(sheetContext).textTheme.titleLarge,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (place.address.isNotEmpty)
+                  Text(
+                    place.address,
+                    style: TextStyle(color: brand.muted),
+                  ),
+                const SizedBox(height: 4),
+                Text(
+                  sheetContext.l10n.placeRadiusLabel(place.radiusLabel),
+                  style: TextStyle(color: brand.muted),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(false),
+                        child: Text(sheetContext.l10n.closeAction),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.of(sheetContext).pop(true),
+                        icon: const Icon(Icons.edit_outlined),
+                        label: Text(sheetContext.l10n.placeEditAction),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (edit != true || !mounted) return;
+    try {
+      final Place? saved = await editPlace(context, place);
+      if (saved == null) return;
+      final List<Member> members = await _familyService.refreshPlaces();
+      if (!mounted) return;
+      setState(() {
+        _places = _familyService.places;
+        _members = members;
+        _membersListenable.value = members;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_friendlyError(e))),
+      );
+    }
+  }
+
+  Future<void> _openPlaces() async {
+    await Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => const PlacesScreen()));
+    // Places may have been added, edited or removed while the screen was open.
+    final List<Member> members = await _familyService.refreshPlaces();
+    if (!mounted) return;
+    setState(() {
+      _places = _familyService.places;
+      _members = members;
+      _membersListenable.value = members;
+    });
   }
 
   Future<void> _refreshServerFeatures() async {
@@ -583,8 +694,8 @@ class _MapScreenState extends State<MapScreen>
               children: [
                 _AddActionTile(
                   icon: Icons.check_circle_outline,
-                  title: 'Check In',
-                  subtitle: 'Share your location with your family',
+                  title: context.l10n.checkInTitle,
+                  subtitle: context.l10n.checkInSubtitle,
                   onTap: () {
                     Navigator.of(context).pop();
                     _openCheckIn();
@@ -592,8 +703,8 @@ class _MapScreenState extends State<MapScreen>
                 ),
                 _AddActionTile(
                   icon: Icons.campaign_outlined,
-                  title: 'Help Alert',
-                  subtitle: 'Ask your family for help',
+                  title: context.l10n.helpAlertTitle,
+                  subtitle: context.l10n.helpAlertSubtitle,
                   onTap: () {
                     Navigator.of(context).pop();
                     _openHelpAlert();
@@ -601,8 +712,8 @@ class _MapScreenState extends State<MapScreen>
                 ),
                 _AddActionTile(
                   icon: Icons.person_add_alt_1,
-                  title: 'Invite',
-                  subtitle: 'Send a code to invite someone to your family',
+                  title: context.l10n.actionInvite,
+                  subtitle: context.l10n.inviteTooltip,
                   onTap: () {
                     Navigator.of(context).pop();
                     _openAddPerson();
@@ -657,6 +768,34 @@ class _MapScreenState extends State<MapScreen>
               TileLayer(
                 urlTemplate: _satellite ? kSatelliteTileUrl : kTileUrl,
                 userAgentPackageName: 'app.openfamily',
+              ),
+              // Saved places: the arrive/leave radius and an icon with the name.
+              CircleLayer(
+                circles: [
+                  for (final Place p in _places)
+                    CircleMarker(
+                      point: p.position,
+                      radius: p.radiusMeters,
+                      useRadiusInMeter: true,
+                      color: AppColors.purple.withValues(alpha: 0.08),
+                      borderColor: AppColors.purple.withValues(alpha: 0.45),
+                      borderStrokeWidth: 1.5,
+                    ),
+                ],
+              ),
+              MarkerLayer(
+                markers: [
+                  for (final Place p in _places)
+                    Marker(
+                      point: p.position,
+                      width: PlaceMarker.width,
+                      height: PlaceMarker.height,
+                      child: PlaceMarker(
+                        place: p,
+                        onTap: () => _openPlace(p),
+                      ),
+                    ),
+                ],
               ),
               // Blue "range" circle for members whose location accuracy is
               // known (or who are in the approximate GPS-accuracy state).
@@ -772,7 +911,7 @@ class _MapScreenState extends State<MapScreen>
             child: Center(
               child: FloatingActionButton(
                 onPressed: _showAddActions,
-                tooltip: 'Add — Check In / Help Alert / Invite',
+                tooltip: context.l10n.addMenuLabel,
                 child: const Icon(Icons.add),
               ),
             ),
@@ -883,7 +1022,7 @@ class _LayerToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: isSatellite ? 'Switch to standard map' : 'Switch to satellite',
+      message: isSatellite ? context.l10n.switchToStandardMap : context.l10n.switchToSatellite,
       child: Material(
         color: BrandTheme.of(context).sheet,
         shape: const CircleBorder(),
@@ -915,7 +1054,7 @@ class _LocateButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: 'Center on my location',
+      message: context.l10n.centerOnMe,
       child: Material(
         color: BrandTheme.of(context).sheet,
         shape: const CircleBorder(),
@@ -1022,8 +1161,7 @@ class _LocationOffBanner extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Location sharing is off, so your family can\'t see where you '
-                'are.',
+                context.l10n.locationSharingOffBanner,
                 style: TextStyle(
                   fontSize: 13,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1031,7 +1169,7 @@ class _LocationOffBanner extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            TextButton(onPressed: onEnable, child: const Text('Enable')),
+            TextButton(onPressed: onEnable, child: Text(context.l10n.actionEnable)),
           ],
         ),
       ),
@@ -1079,7 +1217,7 @@ class _LoadErrorCard extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.purple,
                 ),
-                child: const Text('Retry'),
+                child: Text(context.l10n.actionRetry),
               ),
             ],
           ),

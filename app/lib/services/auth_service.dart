@@ -1,6 +1,7 @@
 import 'api_client.dart';
 import 'background_location_service.dart';
 import 'biometric_service.dart';
+import 'device_channel_host.dart';
 import 'token_storage.dart';
 
 /// Thrown when the backend requires a TOTP code (2FA) to complete login.
@@ -108,6 +109,7 @@ class AuthService {
     // Stop background reporting before clearing credentials, so the background
     // isolate never reports with a dead session.
     await BackgroundLocationService.stop();
+    await DeviceChannelHost.stop();
     await TokenStorage.clear();
   }
 

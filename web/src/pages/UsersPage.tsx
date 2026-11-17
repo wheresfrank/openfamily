@@ -25,6 +25,7 @@ import { formatDate, initialsOf } from '../lib/format'
 import type { AdminUser, Family, Role } from '../lib/types'
 import './pages.css'
 import './UsersPage.css'
+import { t } from '../lib/i18n'
 
 const roles: Role[] = ['admin', 'member', 'child']
 
@@ -49,7 +50,7 @@ export function UsersPage() {
     return (
       <div className="wb-page">
         <div className="wb-page-loading">
-          <Spinner /> Loading users…
+          <Spinner /> {t("Loading users…")}
         </div>
       </div>
     )
@@ -59,8 +60,8 @@ export function UsersPage() {
     return (
       <div className="wb-page">
         <ErrorState
-          title="Couldn’t load users"
-          description={usersQuery.error?.message ?? families.error?.message ?? 'Request failed'}
+          title={t("Couldn’t load users")}
+          description={usersQuery.error?.message ?? families.error?.message ?? t("Request failed")}
           onRetry={() => {
             usersQuery.refetch()
             families.refetch()
@@ -79,9 +80,9 @@ export function UsersPage() {
     <div className="wb-page">
       <div className="wb-page-header">
         <div>
-          <h1 className="wb-page-title">Users</h1>
+          <h1 className="wb-page-title">{t("Users")}</h1>
           <p className="wb-page-subtitle">
-            Create accounts and manage family membership and roles.
+            {t("Create accounts and manage family membership and roles.")}
           </p>
         </div>
         <Button
@@ -92,7 +93,7 @@ export function UsersPage() {
             families.refetch()
           }}
         >
-          Refresh
+          {t("Refresh")}
         </Button>
       </div>
 
@@ -107,8 +108,8 @@ export function UsersPage() {
 
       {users.length === 0 ? (
         <EmptyState
-          title="No users yet"
-          description="Create an account above, or wait for someone to register with an invite code."
+          title={t("No users yet")}
+          description={t("Create an account above, or wait for someone to register with an invite code.")}
         />
       ) : (
         <Card padded={false}>
@@ -116,10 +117,10 @@ export function UsersPage() {
             <table className="wb-table wb-user-table">
               <thead>
                 <tr>
-                  <th>User</th>
-                  <th>Family</th>
-                  <th>Role</th>
-                  <th>Created</th>
+                  <th>{t("User")}</th>
+                  <th>{t("Family")}</th>
+                  <th>{t("Role")}</th>
+                  <th>{t("Created")}</th>
                   <th />
                 </tr>
               </thead>
@@ -175,7 +176,7 @@ function CreateUserCard({
       setRole('member')
       setFamilyId('')
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Could not create user')
+      setError(e instanceof Error ? e.message : t("Could not create user"))
     } finally {
       setSaving(false)
     }
@@ -185,13 +186,13 @@ function CreateUserCard({
     <Card className="wb-create-card">
       <div className="wb-section-heading">
         <div>
-          <h2>Create user</h2>
-          <p>Accounts can be assigned to a family immediately, bypassing invite codes.</p>
+          <h2>{t("Create user")}</h2>
+          <p>{t("Accounts can be assigned to a family immediately, bypassing invite codes.")}</p>
         </div>
       </div>
       <form className="wb-form-grid" onSubmit={submit}>
         <label className="wb-field">
-          <span className="wb-label">Name</span>
+          <span className="wb-label">{t("Name")}</span>
           <input
             className="wb-input"
             value={name}
@@ -201,7 +202,7 @@ function CreateUserCard({
           />
         </label>
         <label className="wb-field">
-          <span className="wb-label">Email</span>
+          <span className="wb-label">{t("Email")}</span>
           <input
             className="wb-input"
             type="email"
@@ -211,7 +212,7 @@ function CreateUserCard({
           />
         </label>
         <label className="wb-field">
-          <span className="wb-label">Password</span>
+          <span className="wb-label">{t("Password")}</span>
           <input
             className="wb-input"
             type="password"
@@ -222,7 +223,7 @@ function CreateUserCard({
           />
         </label>
         <label className="wb-field">
-          <span className="wb-label">Role</span>
+          <span className="wb-label">{t("Role")}</span>
           <select className="wb-select" value={role} onChange={(e) => setRole(e.target.value as Role)}>
             {roles.map((value) => (
               <option key={value} value={value}>
@@ -232,9 +233,9 @@ function CreateUserCard({
           </select>
         </label>
         <label className="wb-field">
-          <span className="wb-label">Family</span>
+          <span className="wb-label">{t("Family")}</span>
           <select className="wb-select" value={familyId} onChange={(e) => setFamilyId(e.target.value)}>
-            <option value="">No family yet</option>
+            <option value="">{t("No family yet")}</option>
             {families.map((family) => (
               <option key={family.id} value={family.id}>
                 {family.name}
@@ -244,7 +245,7 @@ function CreateUserCard({
         </label>
         <div className="wb-form-submit">
           <Button type="submit" loading={saving}>
-            Create user
+            {t("Create user")}
           </Button>
         </div>
       </form>
@@ -286,21 +287,21 @@ function UserRow({
       onUpdated(updated)
       setMessage('Saved')
     } catch (e: unknown) {
-      setMessage(e instanceof Error ? e.message : 'Could not update user')
+      setMessage(e instanceof Error ? e.message : t("Could not update user"))
     } finally {
       setSaving(false)
     }
   }
 
   const resetPassword = async () => {
-    const password = window.prompt(`New password for ${user.email} (minimum 8 characters)`)
+    const password = window.prompt(t("New password for {email} (minimum 8 characters)", { email: user.email }))
     if (!password) return
     setMessage(null)
     try {
       await resetUserPassword(user.id, password)
-      setMessage('Password reset')
+      setMessage(t("Password reset"))
     } catch (e: unknown) {
-      setMessage(e instanceof Error ? e.message : 'Could not reset password')
+      setMessage(e instanceof Error ? e.message : t("Could not reset password"))
     }
   }
 
@@ -313,7 +314,7 @@ function UserRow({
             <div className="wb-member-name">
               {user.name}
               {user.platform_admin && (
-                <Badge tone="pink">Platform admin</Badge>
+                <Badge tone="pink">{t("Platform admin")}</Badge>
               )}
             </div>
             <div className="wb-member-email">{user.email}</div>
@@ -326,7 +327,7 @@ function UserRow({
           value={familyId}
           onChange={(e) => setFamilyId(e.target.value)}
         >
-          <option value="">No family</option>
+          <option value="">{t("No family")}</option>
           {families.map((family) => (
             <option key={family.id} value={family.id}>
               {family.name}
@@ -351,10 +352,10 @@ function UserRow({
       <td>
         <div className="wb-row-actions">
           <Button size="sm" onClick={save} loading={saving}>
-            Save
+            {t("Save")}
           </Button>
           <Button size="sm" variant="ghost" onClick={resetPassword}>
-            Reset password
+            {t("Reset password")}
           </Button>
           {message && <span className="wb-row-message">{message}</span>}
         </div>

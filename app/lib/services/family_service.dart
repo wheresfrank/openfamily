@@ -154,6 +154,16 @@ class FamilyService {
     return _replaceMembers(mapped);
   }
 
+  /// The family's saved places, as last loaded.
+  List<Place> get places => List<Place>.unmodifiable(_places);
+
+  /// Reloads the saved places and re-labels members that stand inside one.
+  Future<List<Member>> refreshPlaces() async {
+    await _refreshPlaces();
+    _members = _members.map((Member m) => applyPlaceAddress(m, _places)).toList();
+    return _members;
+  }
+
   /// Reloads saved places so a member standing still at Home/Work is labeled
   /// with that place instead of a generic "Stationary". Failures keep the
   /// last known list — members still render without place names.

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../utils/units.dart';
+
 /// Minimum place radius (250 feet) in meters.
 const double kMinPlaceRadiusMeters = 76.2;
 
@@ -32,7 +34,7 @@ class Place {
   final LatLng position;
   final double radiusMeters;
 
-  /// Backend place type: "home", "work", "school", "gym", or "custom".
+  /// Backend place type, one of [types].
   final String type;
   final bool alertsOn;
 
@@ -43,9 +45,40 @@ class Place {
   /// Sentinel passed to [copyWith] to explicitly clear [geofenceId].
   static const Object clearGeofence = Object();
 
+  /// Every place type the backend accepts, in the order the icon picker
+  /// shows them.
+  static const List<String> types = <String>[
+    'home',
+    'work',
+    'school',
+    'gym',
+    'family',
+    'friend',
+    'store',
+    'health',
+    'park',
+    'food',
+    'worship',
+    'custom',
+  ];
+
   /// Maps a backend place [type] to its Material icon.
   static IconData iconForType(String type) {
     switch (type) {
+      case 'family':
+        return Icons.family_restroom;
+      case 'friend':
+        return Icons.people_outline;
+      case 'store':
+        return Icons.storefront_outlined;
+      case 'health':
+        return Icons.local_hospital_outlined;
+      case 'park':
+        return Icons.park_outlined;
+      case 'food':
+        return Icons.restaurant_outlined;
+      case 'worship':
+        return Icons.church_outlined;
       case 'home':
         return Icons.home;
       case 'work':
@@ -60,23 +93,9 @@ class Place {
     }
   }
 
-  /// Radius in feet (the display unit), 1 m ≈ 3.28084 ft.
-  int get radiusFeet => (radiusMeters * 3.28084).round();
-
-  /// Radius in miles (display unit for large radii).
-  double get radiusMiles => radiusMeters / 1609.344;
-
-  /// Human-readable radius, e.g. "500 ft" or "1.5 mi".
-  String get radiusLabel {
-    if (radiusMeters >= 1609.344) {
-      final double miles = radiusMiles;
-      final String text = miles == miles.roundToDouble()
-          ? miles.round().toString()
-          : miles.toStringAsFixed(1);
-      return '$text mi';
-    }
-    return '$radiusFeet ft';
-  }
+  /// Human-readable radius in the user's units, e.g. "500 ft", "1.5 mi",
+  /// "150 m" or "2 km".
+  String get radiusLabel => Units.distance(radiusMeters, metric: Units.current);
 
   Place copyWith({
     String? name,

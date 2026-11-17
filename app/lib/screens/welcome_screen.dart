@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../l10n/l10n.dart';
 import '../services/app_config.dart';
 import '../theme/app_theme.dart';
 import '../widgets/openfamily_brand.dart';
@@ -77,14 +78,14 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Know where your family is — privately.',
+                  Text(
+                    context.l10n.welcomeTagline,
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 16, color: AppColors.iceMuted),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Self-hosted. No ads. Your location stays in your family.',
+                  Text(
+                    context.l10n.welcomeSubtitle,
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 13, color: AppColors.iceMuted),
                   ),
@@ -95,10 +96,10 @@ class WelcomeScreen extends StatelessWidget {
                         builder: (_) => const SignUpScreen(),
                       ),
                     ),
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 14),
                       child:
-                          Text('Get Started', style: TextStyle(fontSize: 16)),
+                          Text(context.l10n.getStarted, style: TextStyle(fontSize: 16)),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -111,7 +112,7 @@ class WelcomeScreen extends StatelessWidget {
                         builder: (_) => const LoginScreen(),
                       ),
                     ),
-                    child: const Text('Log In'),
+                    child: Text(context.l10n.actionLogIn),
                   ),
                 ],
               ),

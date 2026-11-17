@@ -36,7 +36,7 @@
   /* Soft badge roles — one semantic system derived from the status family.
      Each status color has a readable foreground + soft background pair used by
      badges, pills, and status chips. The vivid --status-* stays for accents. */
-  --status-green-fg: #15824a;
+  --status-green-fg: #12703f;
   --status-green-bg: #e6f8ee;
   --status-green-border: #c7ecd6;
   --status-orange-fg: #9a5800;
@@ -48,7 +48,7 @@
   --status-purple-fg: #5b1da8;
   --status-purple-bg: #ede3fb;
   --status-purple-border: #ddc9f7;
-  --status-grey-fg: #6e6e73;
+  --status-grey-fg: #5f5f64;
   --status-grey-bg: #f1f1f4;
   --status-grey-border: #e4e4e8;
   --status-pink-fg: #b01670;
@@ -73,7 +73,7 @@
   /* Text */
   --text: #111827;
   --text-muted: #54707c;
-  --text-faint: #7b8d97;
+  --text-faint: #5b6f79;
 
   /* Lines */
   --border: #c9d4df;
@@ -168,7 +168,7 @@
 
   --text: #f4f5f7;
   --text-muted: #9ca3af;
-  --text-faint: #7b8190;
+  --text-faint: #9aa3b2;
   --border: #3f444c;
   --border-strong: #545b66;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);

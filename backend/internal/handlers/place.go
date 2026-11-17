@@ -59,7 +59,8 @@ func floatPtrsEqual(a, b *float64) bool {
 // validPlaceType reports whether t is a known place type.
 func validPlaceType(t string) bool {
 	switch t {
-	case "home", "school", "work", "gym", "custom":
+	case "home", "school", "work", "gym", "family", "friend",
+		"store", "health", "park", "food", "worship", "custom":
 		return true
 	}
 	return false

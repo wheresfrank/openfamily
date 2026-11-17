@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../l10n/l10n.dart';
+import '../utils/units.dart';
 import '../models/place.dart';
 import '../services/app_config.dart';
 import '../services/geocoding_service.dart';
@@ -12,7 +14,7 @@ import '../theme/app_theme.dart';
 
 /// A map-first place picker: a full-bleed map with a drop-pin fixed at the
 /// center (drag the map to move the pin), an optional address label, and a
-/// radius control (250 ft – 2 mi).
+/// radius control (250 ft – 2 mi, or 76 m – 3.2 km).
 ///
 /// The map defaults to the user's CURRENT location (via [LocationService]),
 /// falling back to a neutral world view when location is unavailable. Address
@@ -53,6 +55,7 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
   late final TextEditingController _name;
   late final TextEditingController _address;
   late double _radiusMeters;
+  late String _type;
 
   /// Neutral fallback (0,0) shown at world zoom when the user's location can't
   /// be obtained — never a hardcoded city.
@@ -62,13 +65,24 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
   bool _searching = false;
   Timer? _reverseTimer;
 
-  /// Radius presets in meters (250 ft, 500 ft, 1000 ft, 1 mi, 2 mi).
-  static const List<double> _radiusPresets = <double>[
+  /// Radius presets in meters for imperial users (250 ft, 500 ft, 1000 ft,
+  /// 1 mi, 2 mi).
+  static const List<double> _imperialRadiusPresets = <double>[
     76.2,
     152.4,
     304.8,
     1609.344,
     3218.69,
+  ];
+
+  /// Radius presets in meters for metric users (100 m, 250 m, 500 m, 1 km,
+  /// 2 km).
+  static const List<double> _metricRadiusPresets = <double>[
+    100,
+    250,
+    500,
+    1000,
+    2000,
   ];
 
   @override
@@ -78,6 +92,7 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
     _name = TextEditingController(text: widget.placeName);
     _address = TextEditingController(text: widget.initial?.address ?? '');
     _radiusMeters = widget.initial?.radiusMeters ?? 152.4; // ~500 ft
+    _type = widget.initial?.type ?? widget.type;
     // Only auto-locate for a brand-new place; editing keeps the saved pin.
     if (widget.initial == null) {
       _locateUser();
@@ -120,8 +135,8 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
     setState(() => _searching = false);
     if (result == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Couldn\'t find that address. Try a nearby landmark.'),
+        SnackBar(
+          content: Text(context.l10n.addressNotFound),
         ),
       );
       return;
@@ -162,16 +177,8 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
         '${position.longitude.toStringAsFixed(5)}';
   }
 
-  String _formatRadius(double meters) {
-    if (meters >= 1609.344) {
-      final double miles = meters / 1609.344;
-      final String text = miles == miles.roundToDouble()
-          ? miles.round().toString()
-          : miles.toStringAsFixed(1);
-      return '$text mi';
-    }
-    return '${(meters * 3.28084).round()} ft';
-  }
+  String _formatRadius(double meters) =>
+      Units.distance(meters, metric: Units.current);
 
   void _save() {
     final String name = _name.text.trim();
@@ -179,7 +186,7 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
       // The backend rejects places without a name, so require one here
       // instead of silently saving a blank label.
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a name for this place first.')),
+        SnackBar(content: Text(context.l10n.addNameFirst)),
       );
       return;
     }
@@ -189,11 +196,11 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
           '${name.toLowerCase()}-'
               '${DateTime.now().millisecondsSinceEpoch}',
       name: name,
-      icon: widget.icon,
-      address: address.isEmpty ? 'Pinned location' : address,
+      icon: Place.iconForType(_type),
+      address: address.isEmpty ? context.l10n.pinnedLocation : address,
       position: _position,
       radiusMeters: _radiusMeters,
-      type: widget.initial?.type ?? widget.type,
+      type: _type,
       alertsOn: widget.initial?.alertsOn ?? false,
     );
     Navigator.of(context).pop(place);
@@ -204,12 +211,12 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.placeName.isEmpty ? 'Add a place' : 'Set ${widget.placeName} location',
+          widget.placeName.isEmpty ? context.l10n.addAPlaceTitle : context.l10n.setPlaceLocationTitle(widget.placeName),
         ),
         actions: [
           TextButton(
             onPressed: _save,
-            child: const Text('Save'),
+            child: Text(context.l10n.actionSave),
           ),
         ],
       ),
@@ -259,10 +266,10 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                   child: Center(
                     child: Transform.translate(
                       offset: const Offset(0, -24),
-                      child: const Icon(
+                      child: Icon(
                         Icons.location_pin,
                         size: 48,
-                        color: AppColors.purple,
+                        color: BrandTheme.of(context).accentInk,
                       ),
                     ),
                   ),
@@ -302,14 +309,14 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                   child: FloatingActionButton.small(
                     heroTag: 'place-picker-locate',
                     onPressed: _locating ? null : _locateUser,
-                    tooltip: 'Use my location',
+                    tooltip: context.l10n.useMyLocation,
                     child: _locating
                         ? const SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: AppColors.onAccent,
                             ),
                           )
                         : const Icon(Icons.my_location),
@@ -330,12 +337,17 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                     controller: _name,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Name',
-                      hintText: 'e.g. Grandma',
+                    decoration: InputDecoration(
+                      labelText: context.l10n.nameLabel,
+                      hintText: context.l10n.nameExampleGrandma,
                       prefixIcon: const Icon(Icons.label_outline),
                       border: const OutlineInputBorder(),
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  _PlaceTypePicker(
+                    selected: _type,
+                    onChanged: (String type) => setState(() => _type = type),
                   ),
                   const SizedBox(height: 8),
                   TextField(
@@ -349,9 +361,9 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                         : null,
                     decoration: InputDecoration(
                       labelText: GeocodingService.isEnabled
-                          ? 'Address'
-                          : 'Address (optional)',
-                      hintText: 'e.g. 123 Maple St',
+                          ? context.l10n.addressLabel
+                          : context.l10n.addressOptional,
+                      hintText: context.l10n.addressExample,
                       prefixIcon: const Icon(Icons.place_outlined),
                       border: const OutlineInputBorder(),
                       suffixIcon: !GeocodingService.isEnabled
@@ -369,7 +381,7 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                                 )
                               : IconButton(
                                   icon: const Icon(Icons.search),
-                                  tooltip: 'Search address',
+                                  tooltip: context.l10n.searchAddress,
                                   onPressed: () =>
                                       _searchAddress(_address.text),
                                 ),
@@ -378,21 +390,18 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                   const SizedBox(height: 4),
                   Text(
                     GeocodingService.isEnabled
-                        ? 'Type an address to move the pin, or drag the map — '
-                            'the address fills in automatically.'
-                        : 'Drag the map to drop a pin, then save. Address '
-                            'search needs a geocoding add-on — you can still '
-                            'save the pin, and type a label here if you want.',
-                    style: const TextStyle(
+                        ? context.l10n.pickerHintWithSearch
+                        : context.l10n.pickerHintNoSearch,
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textMuted,
+                      color: BrandTheme.of(context).muted,
                     ),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      const Text(
-                        'Radius',
+                      Text(
+                        context.l10n.radiusLabelTitle,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -401,10 +410,10 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                       const Spacer(),
                       Text(
                         _formatRadius(_radiusMeters),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.purple,
+                          color: BrandTheme.of(context).accentInk,
                         ),
                       ),
                     ],
@@ -418,7 +427,9 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                   Wrap(
                     spacing: 8,
                     children: [
-                      for (final double preset in _radiusPresets)
+                      for (final double preset in Units.current
+                          ? _metricRadiusPresets
+                          : _imperialRadiusPresets)
                         ChoiceChip(
                           label: Text(_formatRadius(preset)),
                           selected: (_radiusMeters - preset).abs() < 1,
@@ -430,9 +441,9 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                   const SizedBox(height: 16),
                   FilledButton(
                     onPressed: _save,
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Text('Save place'),
+                      child: Text(context.l10n.savePlace),
                     ),
                   ),
                 ],
@@ -440,6 +451,67 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A horizontally scrolling row of icon chips for choosing a place's type.
+class _PlaceTypePicker extends StatelessWidget {
+  const _PlaceTypePicker({required this.selected, required this.onChanged});
+
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  static String label(BuildContext context, String type) {
+    switch (type) {
+      case 'home':
+        return context.l10n.placeHomeName;
+      case 'work':
+        return context.l10n.placeWorkName;
+      case 'school':
+        return context.l10n.placeSchoolName;
+      case 'gym':
+        return context.l10n.placeGymName;
+      case 'family':
+        return context.l10n.placeTypeFamily;
+      case 'friend':
+        return context.l10n.placeTypeFriend;
+      case 'store':
+        return context.l10n.placeTypeStore;
+      case 'health':
+        return context.l10n.placeTypeHealth;
+      case 'park':
+        return context.l10n.placeTypePark;
+      case 'food':
+        return context.l10n.placeTypeFood;
+      case 'worship':
+        return context.l10n.placeTypeWorship;
+      default:
+        return context.l10n.placeTypeOther;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: context.l10n.placeIconLabel,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final String type in Place.types)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  avatar: Icon(Place.iconForType(type), size: 18),
+                  label: Text(label(context, type)),
+                  selected: selected == type,
+                  onSelected: (_) => onChanged(type),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

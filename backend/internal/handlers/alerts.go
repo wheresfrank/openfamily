@@ -292,12 +292,13 @@ func (s *Server) broadcastAlert(a alertRow) {
 
 func (s *Server) pushFamilyAlert(ctx context.Context, familyID, senderID, title, body string) {
 	rows, err := s.Pool.Query(ctx, `
-		SELECT d.platform, d.push_token, d.unifiedpush_endpoint
+		SELECT d.id, d.platform, d.push_token, d.unifiedpush_endpoint
 		FROM devices d
 		JOIN users u ON u.id = d.user_id
 		WHERE u.family_id = $1 AND u.id <> $2
 		  AND ((d.platform = 'ios' AND d.push_token IS NOT NULL AND d.push_token <> '')
-		       OR (d.platform = 'android' AND d.unifiedpush_endpoint IS NOT NULL AND d.unifiedpush_endpoint <> ''))`,
+		       OR (d.platform = 'android' AND d.unifiedpush_endpoint IS NOT NULL AND d.unifiedpush_endpoint <> '')
+		       OR d.last_ws_at IS NOT NULL)`,
 		familyID, senderID)
 	if err != nil {
 		slog.Error("alert: list devices", "err", err)
@@ -305,12 +306,13 @@ func (s *Server) pushFamilyAlert(ctx context.Context, familyID, senderID, title,
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var platform string
+		var deviceID, platform string
 		var token, endpoint *string
-		if err := rows.Scan(&platform, &token, &endpoint); err != nil {
+		if err := rows.Scan(&deviceID, &platform, &token, &endpoint); err != nil {
 			continue
 		}
 		n := push.Notification{
+			DeviceID:            deviceID,
 			Title:               title,
 			Body:                body,
 			Platform:            platform,

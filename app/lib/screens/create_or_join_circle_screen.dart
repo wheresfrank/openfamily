@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 import '../widgets/onboarding_step_indicator.dart';
 import 'create_circle_screen.dart';
@@ -15,7 +16,7 @@ class CreateOrJoinCircleScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create or join a family'),
+        title: Text(context.l10n.createOrJoinTitle),
         automaticallyImplyLeading: false,
         bottom: const OnboardingStepIndicator(currentStep: 3),
       ),
@@ -25,15 +26,15 @@ class CreateOrJoinCircleScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'A family is the group of people you share your location with.',
-                style: TextStyle(fontSize: 15, color: AppColors.textMuted),
+              Text(
+                context.l10n.familyExplainer,
+                style: TextStyle(fontSize: 15, color: BrandTheme.of(context).muted),
               ),
               const SizedBox(height: 24),
               _OptionCard(
                 icon: Icons.add_circle_outline,
-                title: 'Create a new family',
-                subtitle: 'Start a new family to share locations.',
+                title: context.l10n.createNewFamily,
+                subtitle: context.l10n.startNewFamilyHint,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const CreateCircleScreen(),
@@ -43,8 +44,8 @@ class CreateOrJoinCircleScreen extends StatelessWidget {
               const SizedBox(height: 16),
               _OptionCard(
                 icon: Icons.group_add_outlined,
-                title: 'Join a family',
-                subtitle: 'Enter an invite code from a family member.',
+                title: context.l10n.joinFamilyTitle,
+                subtitle: context.l10n.joinFamilyHint,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => JoinCircleScreen(
@@ -84,7 +85,7 @@ class _OptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surfaceTint,
+      color: BrandTheme.of(context).paper,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -100,7 +101,7 @@ class _OptionCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: AppColors.purple.withValues(alpha: 0.12),
                 ),
-                child: Icon(icon, color: AppColors.purple, size: 26),
+                child: Icon(icon, color: BrandTheme.of(context).accentInk, size: 26),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -117,15 +118,15 @@ class _OptionCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textMuted,
+                        color: BrandTheme.of(context).muted,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppColors.textMuted),
+              Icon(Icons.chevron_right, color: BrandTheme.of(context).muted),
             ],
           ),
         ),

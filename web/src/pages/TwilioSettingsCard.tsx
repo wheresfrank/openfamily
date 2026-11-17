@@ -2,6 +2,7 @@ import React from 'react'
 import { ApiError, clearSmsSettings, getSmsSettings, updateSmsSettings } from '../lib/api'
 import type { SmsSettings } from '../lib/types'
 import { Badge, Button, Card } from '../components/primitives'
+import { t } from '../lib/i18n'
 
 type FormMessage = { tone: 'success' | 'error'; text: string } | null
 
@@ -34,14 +35,14 @@ function clientFieldErrors(input: {
   tokenAlreadySet: boolean
 }): FieldErrors {
   const errors: FieldErrors = {}
-  if (!input.accountSid.trim()) errors.account_sid = 'Enter your Twilio Account SID.'
-  if (!input.from.trim()) errors.from = 'Enter the Twilio number SMS should come from.'
+  if (!input.accountSid.trim()) errors.account_sid = t("Enter your Twilio Account SID.")
+  if (!input.from.trim()) errors.from = t("Enter the Twilio number SMS should come from.")
   if (!input.authToken.trim() && !input.tokenAlreadySet) {
-    errors.auth_token = 'Enter the Twilio Auth Token.'
+    errors.auth_token = t("Enter the Twilio Auth Token.")
   }
   const base = input.publicBaseUrl.trim()
   if (base && !/^https:\/\/[^/\s]+/i.test(base)) {
-    errors.public_base_url = 'Use an https address, for example https://openfamily.example.com.'
+    errors.public_base_url = t("Use an https address, for example https://openfamily.example.com.")
   }
   return errors
 }
@@ -88,7 +89,7 @@ export function TwilioSettingsCard() {
     try {
       hydrate(await getSmsSettings())
     } catch (error) {
-      setLoadError(messageFromError(error, 'Could not load Twilio settings.'))
+      setLoadError(messageFromError(error, t("Could not load Twilio settings.")))
     } finally {
       setLoading(false)
     }
@@ -161,11 +162,11 @@ export function TwilioSettingsCard() {
       setMessage({
         tone: 'success',
         text: updated.configured
-          ? 'SMS is on. Emergency contacts will appear in the app.'
-          : 'Settings saved.',
+          ? t("SMS is on. Emergency contacts will appear in the app.")
+          : t("Settings saved."),
       })
     } catch (error) {
-      setMessage({ tone: 'error', text: messageFromError(error, 'Could not save Twilio settings.') })
+      setMessage({ tone: 'error', text: messageFromError(error, t("Could not save Twilio settings.")) })
     } finally {
       setSaving(false)
     }
@@ -181,11 +182,11 @@ export function TwilioSettingsCard() {
       setMessage({
         tone: 'success',
         text: updated.configured
-          ? 'Cleared saved settings. Environment values are in use.'
-          : 'SMS is off. Emergency contacts are hidden in the app.',
+          ? t("Cleared saved settings. Environment values are in use.")
+          : t("SMS is off. Emergency contacts are hidden in the app."),
       })
     } catch (error) {
-      setMessage({ tone: 'error', text: messageFromError(error, 'Could not clear Twilio settings.') })
+      setMessage({ tone: 'error', text: messageFromError(error, t("Could not clear Twilio settings.")) })
     } finally {
       setClearing(false)
     }
@@ -196,27 +197,27 @@ export function TwilioSettingsCard() {
   return (
     <Card>
       <div className="wb-settings-title-row">
-        <h3 className="wb-settings-title">Twilio SMS</h3>
+        <h3 className="wb-settings-title">{t("Twilio SMS")}</h3>
         <Badge tone={configured ? 'green' : 'grey'} dot>
-          {loading && !settings ? 'Checking…' : configured ? 'SMS on' : 'SMS off'}
+          {loading && !settings ? t("Checking…") : configured ? t("SMS on") : t("SMS off")}
         </Badge>
       </div>
       <p className="wb-settings-section-help">
-        Text SOS alerts to people who are not in your family and do not have the app.
+        {t("Text SOS alerts to people who are not in your family and do not have the app.")}
       </p>
 
       {loadError && (
         <div className="wb-profile-load-error" role="alert">
           <span>{loadError}</span>
           <Button type="button" variant="secondary" size="sm" onClick={() => void refresh()}>
-            Try again
+            {t("Try again")}
           </Button>
         </div>
       )}
 
       <form className="wb-settings-section wb-settings-section-flush" onSubmit={(event) => void save(event)}>
         <label className="wb-field" htmlFor="wb-twilio-sid">
-          <span className="wb-label">Account SID</span>
+          <span className="wb-label">{t("Account SID")}</span>
           <input
             ref={accountSidRef}
             id="wb-twilio-sid"
@@ -238,7 +239,7 @@ export function TwilioSettingsCard() {
         </label>
 
         <label className="wb-field" htmlFor="wb-twilio-token">
-          <span className="wb-label">Auth token</span>
+          <span className="wb-label">{t("Auth token")}</span>
           <input
             ref={authTokenRef}
             id="wb-twilio-token"
@@ -246,7 +247,7 @@ export function TwilioSettingsCard() {
             type="password"
             value={authToken}
             onChange={(event) => setAuthToken(event.target.value)}
-            placeholder={settings?.auth_token_set ? 'Leave blank to keep the current token' : 'Twilio auth token'}
+            placeholder={settings?.auth_token_set ? t("Leave blank to keep the current token") : t("Twilio auth token")}
             autoComplete="off"
             spellCheck={false}
             disabled={saving || clearing}
@@ -261,7 +262,7 @@ export function TwilioSettingsCard() {
         </label>
 
         <label className="wb-field" htmlFor="wb-twilio-from">
-          <span className="wb-label">From number</span>
+          <span className="wb-label">{t("From number")}</span>
           <input
             ref={fromRef}
             id="wb-twilio-from"
@@ -284,7 +285,7 @@ export function TwilioSettingsCard() {
         </label>
 
         <label className="wb-field" htmlFor="wb-twilio-base-url">
-          <span className="wb-label">Public server address</span>
+          <span className="wb-label">{t("Public server address")}</span>
           <input
             ref={publicBaseUrlRef}
             id="wb-twilio-base-url"
@@ -303,7 +304,7 @@ export function TwilioSettingsCard() {
             }
           />
           <span id="wb-twilio-base-url-help" className="wb-help">
-            Used for SOS links. Leave empty to send coordinates instead.
+            {t("Used for SOS links. Leave empty to send coordinates instead.")}
           </span>
           {fieldErrors.public_base_url && (
             <span id="wb-twilio-base-url-error" className="wb-error-text" role="alert">
@@ -314,7 +315,7 @@ export function TwilioSettingsCard() {
 
         <div className="wb-settings-form-actions">
           <Button type="submit" loading={saving} disabled={saving || clearing}>
-            Save SMS settings
+            {t("Save SMS settings")}
           </Button>
           {settings?.source === 'settings' && (
             <Button
@@ -324,7 +325,7 @@ export function TwilioSettingsCard() {
               disabled={saving || clearing}
               onClick={() => void clearSaved()}
             >
-              Clear saved settings
+              {t("Clear saved settings")}
             </Button>
           )}
         </div>

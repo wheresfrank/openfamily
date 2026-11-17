@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/device_service.dart';
@@ -47,15 +48,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final String inviteCode = _inviteCode.text.trim();
 
     if (name.isEmpty) {
-      setState(() => _error = 'Enter your name.');
+      setState(() => _error = context.l10n.enterYourName);
       return;
     }
     if (!_emailPattern.hasMatch(email)) {
-      setState(() => _error = 'Enter a valid email address.');
+      setState(() => _error = context.l10n.enterValidEmail);
       return;
     }
     if (password.length < 8) {
-      setState(() => _error = 'Password must be at least 8 characters.');
+      setState(() => _error = context.l10n.passwordMin8Signup);
       return;
     }
 
@@ -80,7 +81,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (!mounted) return;
       if (e.status == 409) {
         // Email already registered — offer to log in instead.
-        _redirectToLogin('This email is already registered. Please log in.');
+        _redirectToLogin(context.l10n.emailAlreadyRegistered);
         return;
       }
       setState(() {
@@ -92,7 +93,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (!mounted) return;
       setState(() {
         _submitting = false;
-        _error = 'Something went wrong. Please try again.';
+        _error = context.l10n.somethingWentWrong;
       });
       return;
     }
@@ -134,7 +135,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create your account'),
+        title: Text(context.l10n.createYourAccount),
         bottom: const OnboardingStepIndicator(currentStep: 1, totalSteps: 6),
       ),
       body: SafeArea(
@@ -146,8 +147,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
               TextField(
                 controller: _name,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Your name',
+                decoration: InputDecoration(
+                  labelText: context.l10n.yourNameLabel,
                   hintText: 'Alex Rivera',
                   prefixIcon: Icon(Icons.person_outline),
                   border: OutlineInputBorder(),
@@ -157,8 +158,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
               TextField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email address',
+                decoration: InputDecoration(
+                  labelText: context.l10n.emailAddressLabel,
                   prefixIcon: Icon(Icons.mail_outline),
                   border: OutlineInputBorder(),
                 ),
@@ -168,7 +169,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 controller: _password,
                 obscureText: _obscure,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: context.l10n.passwordLabel,
                   prefixIcon: const Icon(Icons.lock_outline),
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
@@ -184,9 +185,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 controller: _inviteCode,
                 keyboardType: TextInputType.text,
                 textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: 'Invite code',
-                  hintText: 'e.g. AB12CD34',
+                decoration: InputDecoration(
+                  labelText: context.l10n.inviteCodeLabel,
+                  hintText: context.l10n.inviteCodeExample,
                   prefixIcon: Icon(Icons.key_outlined),
                   border: OutlineInputBorder(),
                 ),
@@ -212,26 +213,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: AppColors.onAccent,
                           ),
                         )
-                      : const Text('Continue', style: TextStyle(fontSize: 16)),
+                      : Text(context.l10n.actionContinue, style: TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Your email is used to sign you in. Your data stays on your '
-                'own server — not ours, not anyone\'s.',
+              Text(
+                context.l10n.signUpPrivacyNote,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 12, color: BrandTheme.of(context).muted),
               ),
               const SizedBox(height: 4),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Already have an account?',
-                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  Text(
+                    context.l10n.alreadyHaveAccount,
+                    style: TextStyle(fontSize: 13, color: BrandTheme.of(context).muted),
                   ),
                   TextButton(
                     onPressed: () => Navigator.of(context).push(
@@ -239,7 +239,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         builder: (_) => const LoginScreen(),
                       ),
                     ),
-                    child: const Text('Log In'),
+                    child: Text(context.l10n.actionLogIn),
                   ),
                 ],
               ),

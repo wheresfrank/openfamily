@@ -9,6 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Localized strings (English and Spanish; see lib/l10n).
+  flutter_localizations:
+    sdk: flutter
+  intl: any
   # Secure token storage backed by iOS Keychain / Android Keystore.
   flutter_secure_storage: ^9.2.2
   # Face ID / Touch ID / Android biometric authentication for app unlock.
@@ -72,5 +76,6 @@ dependency_overrides:
 
 flutter:
   uses-material-design: true
+  generate: true
   assets:
     - assets/branding/
