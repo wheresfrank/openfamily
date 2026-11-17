@@ -81,6 +81,7 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
     required this.accentInk,
     required this.onAccent,
     required this.spark,
+    required this.muted,
   });
 
   static const BrandTheme ice = BrandTheme(
@@ -91,6 +92,7 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
     accentInk: AppColors.accentInk,
     onAccent: AppColors.onAccent,
     spark: AppColors.spark,
+    muted: AppColors.iceMuted,
   );
 
   static const BrandTheme night = BrandTheme(
@@ -101,6 +103,7 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
     accentInk: AppColors.accentBright,
     onAccent: AppColors.onAccent,
     spark: Color(0xFFD9F99D),
+    muted: AppColors.nightMuted,
   );
 
   final Color paper;
@@ -111,6 +114,9 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
   final Color accentInk;
   final Color onAccent;
   final Color spark;
+
+  /// Secondary text: readable on [paper] and [sheet] in both themes.
+  final Color muted;
 
   static BrandTheme of(BuildContext context) {
     return Theme.of(context).extension<BrandTheme>() ?? BrandTheme.ice;
@@ -125,6 +131,7 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
     Color? accentInk,
     Color? onAccent,
     Color? spark,
+    Color? muted,
   }) {
     return BrandTheme(
       paper: paper ?? this.paper,
@@ -134,6 +141,7 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
       accentInk: accentInk ?? this.accentInk,
       onAccent: onAccent ?? this.onAccent,
       spark: spark ?? this.spark,
+      muted: muted ?? this.muted,
     );
   }
 
@@ -148,6 +156,7 @@ class BrandTheme extends ThemeExtension<BrandTheme> {
       accentInk: Color.lerp(accentInk, other.accentInk, t) ?? accentInk,
       onAccent: Color.lerp(onAccent, other.onAccent, t) ?? onAccent,
       spark: Color.lerp(spark, other.spark, t) ?? spark,
+      muted: Color.lerp(muted, other.muted, t) ?? muted,
     );
   }
 }

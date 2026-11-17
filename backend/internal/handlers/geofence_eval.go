@@ -641,7 +641,7 @@ func (s *Server) redispatchFailedPushes(ctx context.Context) {
 	}
 	rows, err := s.Pool.Query(ctx, `
 		SELECT d.event_id, d.device_id, dev.platform, dev.push_token, dev.unifiedpush_endpoint,
-		       e.user_id, e.event_type, COALESCE(p.name, '')
+		       dev.last_ws_at IS NOT NULL, e.user_id, e.event_type, COALESCE(p.name, '')
 		FROM geofence_event_devices d
 		JOIN geofence_events e ON e.id = d.event_id
 		JOIN geofences g ON g.id = e.geofence_id
@@ -665,7 +665,8 @@ func (s *Server) redispatchFailedPushes(ctx context.Context) {
 	for rows.Next() {
 		var eventID, deviceID, platform, userID, eventType, placeName string
 		var pushToken, unifiedPushEndpoint *string
-		if err := rows.Scan(&eventID, &deviceID, &platform, &pushToken, &unifiedPushEndpoint, &userID, &eventType, &placeName); err != nil {
+		var usesChannel bool
+		if err := rows.Scan(&eventID, &deviceID, &platform, &pushToken, &unifiedPushEndpoint, &usesChannel, &userID, &eventType, &placeName); err != nil {
 			slog.Error("geofence: scan failed push", "err", err)
 			continue
 		}
@@ -677,10 +678,11 @@ func (s *Server) redispatchFailedPushes(ctx context.Context) {
 			slog.Error("geofence: increment push attempts", "event_id", eventID, "device_id", deviceID, "err", err)
 			continue
 		}
-		n, ok := s.buildNotification(ctx, userID, placeName, eventType, platform, pushToken, unifiedPushEndpoint)
+		n, ok := s.buildNotification(ctx, userID, placeName, eventType, platform, pushToken, unifiedPushEndpoint, usesChannel)
 		if !ok {
 			continue
 		}
+		n.DeviceID = deviceID
 		s.dispatchToDevice(ctx, eventID, deviceID, n)
 	}
 	if err := rows.Err(); err != nil {
@@ -710,7 +712,8 @@ func (s *Server) dispatchGeofencePush(eventID, trackedUserID, placeName, eventTy
 		ctx := context.Background()
 
 		rows, err := s.Pool.Query(ctx, `
-			SELECT d.device_id, dev.platform, dev.push_token, dev.unifiedpush_endpoint
+			SELECT d.device_id, dev.platform, dev.push_token, dev.unifiedpush_endpoint,
+			       dev.last_ws_at IS NOT NULL
 			FROM geofence_event_devices d
 			JOIN devices dev ON dev.id = d.device_id
 			WHERE d.event_id = $1 AND d.push_sent = FALSE`,
@@ -724,12 +727,14 @@ func (s *Server) dispatchGeofencePush(eventID, trackedUserID, placeName, eventTy
 		for rows.Next() {
 			var deviceID, platform string
 			var pushToken, unifiedPushEndpoint *string
-			if err := rows.Scan(&deviceID, &platform, &pushToken, &unifiedPushEndpoint); err != nil {
+			var usesChannel bool
+			if err := rows.Scan(&deviceID, &platform, &pushToken, &unifiedPushEndpoint, &usesChannel); err != nil {
 				slog.Error("geofence: scan device", "err", err)
 				continue
 			}
 
-			n, ok := s.buildNotification(ctx, trackedUserID, placeName, eventType, platform, pushToken, unifiedPushEndpoint)
+			n, ok := s.buildNotification(ctx, trackedUserID, placeName, eventType, platform, pushToken, unifiedPushEndpoint, usesChannel)
+			n.DeviceID = deviceID
 			if !ok {
 				continue
 			}
@@ -760,7 +765,8 @@ func (s *Server) createEventDeviceRows(ctx context.Context, tx pgx.Tx, eventID, 
 		JOIN users u ON u.id = d.user_id
 		WHERE u.family_id = $1 AND u.id <> $2
 		  AND ((d.platform = 'ios' AND d.push_token IS NOT NULL AND d.push_token <> '')
-		       OR (d.platform = 'android' AND d.unifiedpush_endpoint IS NOT NULL AND d.unifiedpush_endpoint <> ''))`,
+		       OR (d.platform = 'android' AND d.unifiedpush_endpoint IS NOT NULL AND d.unifiedpush_endpoint <> '')
+		       OR d.last_ws_at IS NOT NULL)`,
 		familyID, trackedUserID)
 	if err != nil {
 		return err
@@ -784,10 +790,11 @@ func (s *Server) createEventDeviceRows(ctx context.Context, tx pgx.Tx, eventID, 
 }
 
 // buildNotification builds the push notification for a device, returning false
-// when the device has no usable push target (no token/endpoint). On a verbose
+// when the device has no usable route (no token/endpoint and no WebSocket
+// channel). On a verbose
 // name-lookup failure it falls back to the non-verbose message rather than
 // dropping the alert.
-func (s *Server) buildNotification(ctx context.Context, trackedUserID, placeName, eventType, platform string, pushToken, unifiedPushEndpoint *string) (push.Notification, bool) {
+func (s *Server) buildNotification(ctx context.Context, trackedUserID, placeName, eventType, platform string, pushToken, unifiedPushEndpoint *string, usesChannel bool) (push.Notification, bool) {
 	action := "arrived at"
 	if eventType == "exit" {
 		action = "left"
@@ -813,16 +820,19 @@ func (s *Server) buildNotification(ctx context.Context, trackedUserID, placeName
 	n := push.Notification{Title: title, Body: "", Platform: platform}
 	switch platform {
 	case "ios":
-		if pushToken == nil || *pushToken == "" {
-			return n, false
+		if pushToken != nil {
+			n.PushToken = *pushToken
 		}
-		n.PushToken = *pushToken
 	case "android":
-		if unifiedPushEndpoint == nil || *unifiedPushEndpoint == "" {
-			return n, false
+		if unifiedPushEndpoint != nil {
+			n.UnifiedPushEndpoint = *unifiedPushEndpoint
 		}
-		n.UnifiedPushEndpoint = *unifiedPushEndpoint
 	default:
+		return n, false
+	}
+	// A device with neither a push target nor a WebSocket channel cannot be
+	// notified.
+	if !n.HasPushTarget() && !usesChannel {
 		return n, false
 	}
 	return n, true
@@ -875,7 +885,7 @@ func (s *Server) deadLetterDevice(eventID, deviceID string) {
 func (s *Server) dispatchWithRetry(ctx context.Context, n push.Notification) error {
 	var lastErr error
 	for attempt := 1; attempt <= pushRetryAttempts; attempt++ {
-		if err := s.Push.Dispatch(ctx, n); err == nil {
+		if err := s.deliver(ctx, n); err == nil {
 			return nil
 		} else {
 			lastErr = err

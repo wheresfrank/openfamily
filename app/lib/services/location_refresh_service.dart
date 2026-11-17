@@ -172,8 +172,8 @@ class LocationRefreshService {
     },
     post: (String path, Map<String, dynamic> body) =>
         ApiClient.post(path, body: body),
-    wasProcessed: _wasProcessed,
-    markProcessed: _markProcessed,
+    wasProcessed: wasProcessed,
+    markProcessed: markProcessed,
   );
 
   static Future<LocationRefreshResult> handlePush(String body) =>
@@ -186,13 +186,13 @@ class LocationRefreshService {
     return response as Map<String, dynamic>;
   }
 
-  static Future<bool> _wasProcessed(String requestId) async {
+  static Future<bool> wasProcessed(String requestId) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     return (prefs.getStringList(_processedKey) ?? const <String>[])
         .contains(requestId);
   }
 
-  static Future<void> _markProcessed(String requestId) async {
+  static Future<void> markProcessed(String requestId) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final List<String> ids = <String>[
       requestId,

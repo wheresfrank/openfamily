@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+import 'l10n/l10n.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/map_screen.dart';
@@ -7,12 +10,15 @@ import 'screens/welcome_screen.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/background_location_service.dart';
+import 'services/device_channel_host.dart';
 import 'services/push_service.dart';
 import 'services/server_config.dart';
 import 'services/session_gate.dart';
+import 'services/locale_preference.dart';
 import 'services/theme_preference.dart';
 import 'services/tile_config.dart';
 import 'services/token_storage.dart';
+import 'services/unit_preference.dart';
 import 'theme/app_theme.dart';
 import 'widgets/biometric_app_lock.dart';
 import 'widgets/dot_grid.dart';
@@ -28,6 +34,8 @@ Future<void> main() async {
   // UnifiedPush/APNs token arriving at launch is not dropped.
   PushService.initialize();
   await ThemePreferenceService.load();
+  await UnitPreferenceService.load();
+  await LocalePreferenceService.load();
   runApp(const OpenFamilyApp());
 }
 
@@ -51,6 +59,7 @@ class _OpenFamilyAppState extends State<OpenFamilyApp> {
     // Stop background reporting: the session is dead and the background isolate
     // can no longer authenticate.
     BackgroundLocationService.stop();
+    DeviceChannelHost.stop();
     final NavigatorState? navigator = navigatorKey.currentState;
     if (navigator == null) return;
     navigator.pushAndRemoveUntil(
@@ -75,21 +84,41 @@ class _OpenFamilyAppState extends State<OpenFamilyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemePreference>(
-      valueListenable: ThemePreferenceService.preference,
-      builder: (context, preference, _) {
-        return MaterialApp(
-          title: 'OpenFamily',
-          debugShowCheckedModeBanner: false,
-          navigatorKey: navigatorKey,
-          theme: buildLightTheme(),
-          darkTheme: buildDarkTheme(),
-          themeMode: preference.themeMode,
-          builder: (context, child) => BiometricAppLock(
-            onLogout: _handleBiometricLogout,
-            child: child ?? const SizedBox.shrink(),
-          ),
-          home: const _SessionGate(),
+    return ListenableBuilder(
+      listenable: Listenable.merge(<Listenable>[
+        LocalePreferenceService.preference,
+        LocalePreferenceService.serverDefault,
+      ]),
+      builder: (context, _) {
+        return ValueListenableBuilder<ThemePreference>(
+          valueListenable: ThemePreferenceService.preference,
+          builder: (context, preference, _) {
+            return MaterialApp(
+              title: 'OpenFamily',
+              debugShowCheckedModeBanner: false,
+              navigatorKey: navigatorKey,
+              theme: buildLightTheme(),
+              darkTheme: buildDarkTheme(),
+              themeMode: preference.themeMode,
+              locale: LocalePreferenceService.effectiveLocale,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: AppLocalizations.supportedLocales,
+              builder: (context, child) {
+                final AppLocalizations? l10n = AppLocalizations.of(context);
+                if (l10n != null) CurrentL10n.update(l10n);
+                return BiometricAppLock(
+                  onLogout: _handleBiometricLogout,
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
+              home: const _SessionGate(),
+            );
+          },
         );
       },
     );

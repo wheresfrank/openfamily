@@ -22,6 +22,7 @@ import type {
   DomainStatus,
   UpdateStatus,
 } from './types'
+import { t } from './i18n'
 
 const API_BASE = '/api'
 const AUTH_BASE = '/auth'
@@ -75,6 +76,7 @@ function isRootApiPath(path: string): boolean {
     path.startsWith('/devices') ||
     path.startsWith('/locations') ||
     path.startsWith('/alerts') ||
+    path.startsWith('/traffic') ||
     path.startsWith('/config') ||
     path.startsWith('/healthz')
   )
@@ -145,7 +147,7 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    let message = res.statusText || 'Request failed'
+    let message = res.statusText || t("Request failed")
     try {
       const body = await res.json()
       if (body && typeof body === 'object' && 'message' in body) {
@@ -181,7 +183,7 @@ export async function result<T>(p: Promise<T>): Promise<ApiResult<T>> {
       return { ok: false, status: e.status, message: e.message }
     }
     // Network / unexpected error.
-    return { ok: false, status: 0, message: e instanceof Error ? e.message : 'Network error' }
+    return { ok: false, status: 0, message: e instanceof Error ? e.message : t("Network error") }
   }
 }
 
@@ -272,6 +274,49 @@ export function getFamilyMemberHistory(
   const q = new URLSearchParams({ from, to })
   return request<MemberHistory>(
     `/family/members/${encodeURIComponent(memberId)}/history?${q.toString()}`,
+  )
+}
+
+/** One 512 px live-traffic tile (PNG) from the server's traffic proxy. */
+export function getTrafficTile(z: number, x: number, y: number): Promise<Blob> {
+  return request<Blob>(`/traffic/tiles/${z}/${x}/${y}?size=512`, { binary: true, accept: 'image/png,*/*;q=0.5' })
+}
+
+export interface LanguageSettings {
+  default_language: string
+  source: string
+  supported: string[]
+}
+
+/** Server-wide default language (platform admin). */
+export function getLanguageSettings(): Promise<LanguageSettings> {
+  return request<LanguageSettings>('/api/admin/settings/language')
+}
+
+/** Sets the server-wide default language; empty follows each device. */
+export function putLanguageSettings(defaultLanguage: string): Promise<LanguageSettings> {
+  return request<LanguageSettings>('/api/admin/settings/language', {
+    method: 'PUT',
+    body: { default_language: defaultLanguage },
+  })
+}
+
+/**
+ * Downloads a member's track as a GPX or GeoJSON file. Platform admins use the
+ * server-wide endpoint; everyone else the family-scoped one.
+ */
+export function exportMemberHistory(
+  memberId: string,
+  from: string,
+  to: string,
+  format: 'gpx' | 'geojson',
+  asAdmin: boolean,
+): Promise<Blob> {
+  const q = new URLSearchParams({ from, to, format })
+  const base = asAdmin ? '/api/admin/members' : '/family/members'
+  return request<Blob>(
+    `${base}/${encodeURIComponent(memberId)}/history/export?${q.toString()}`,
+    { binary: true },
   )
 }
 

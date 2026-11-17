@@ -29,6 +29,19 @@ type Server struct {
 	// NtfyBaseURL is the public ntfy origin advertised by GET /config.
 	NtfyBaseURL string
 
+	// TomTomAPIKey enables the optional live-traffic layer (TOMTOM_API_KEY).
+	// It is only ever used server-side; clients fetch tiles through
+	// GET /traffic/tiles/{z}/{x}/{y}.
+	TomTomAPIKey string
+	// trafficBase overrides the upstream tile URL in tests.
+	trafficBase string
+
+	// DefaultLanguageEnv is the DEFAULT_LANGUAGE fallback used when no admin
+	// setting is saved. The effective value is DefaultLanguage().
+	DefaultLanguageEnv string
+	langMu             sync.RWMutex
+	defaultLanguage    string
+
 	// APNsConfigured is true when the operator set an APNs key file. The
 	// client uses this to skip iOS token registration when APNs cannot work.
 	APNsConfigured bool
@@ -111,6 +124,9 @@ type Server struct {
 	// hub fans out live location updates to connected WebSocket clients.
 	hub *hub
 
+	// deviceHub holds each device's WebSocket for GET /ws/device.
+	deviceHub *deviceHub
+
 	// locationRequests coalesces simultaneous on-demand refreshes and prevents
 	// repeated map taps from waking the same phone more than once per cooldown.
 	locationRequests *locationRequestGate
@@ -128,6 +144,7 @@ func New(pool *pgxpool.Pool, tm *auth.TokenManager, push push.Dispatcher) *Serve
 		TM:               tm,
 		Push:             push,
 		hub:              newHub(),
+		deviceHub:        newDeviceHub(),
 		locationRequests: newLocationRequestGate(locationRequestCooldown),
 		staleWatchdog:    newStaleRequestGate(staleRequestCooldown),
 	}

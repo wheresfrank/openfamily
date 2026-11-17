@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../services/api_client.dart';
 import '../services/secure_url.dart';
 import '../services/server_config.dart';
@@ -45,11 +46,11 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
   Future<void> _save() async {
     final url = _controller.text.trim();
     if (url.isEmpty) {
-      setState(() => _error = 'Please enter your server URL.');
+      setState(() => _error = context.l10n.enterServerUrl);
       return;
     }
     if (normalizeHttpsBaseUrl(url) == null) {
-      setState(() => _error = 'Enter a valid HTTPS server URL.');
+      setState(() => _error = context.l10n.enterValidHttpsUrl);
       return;
     }
     setState(() {
@@ -78,7 +79,7 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Could not reach that server. Check the URL and try again.';
+        _error = context.l10n.serverUnreachable;
       });
     }
   }
@@ -86,7 +87,7 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.allowCancel ? AppBar(title: const Text('Server')) : null,
+      appBar: widget.allowCancel ? AppBar(title: Text(context.l10n.serverLabel)) : null,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -105,17 +106,16 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
                     ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Requires a self-hosted OpenFamily server with HTTPS.\n'
-                'Ask your family administrator for its secure address.',
+              Text(
+                context.l10n.serverRequirement,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 16, color: BrandTheme.of(context).muted),
               ),
               const SizedBox(height: 32),
               TextField(
                 controller: _controller,
                 decoration: InputDecoration(
-                  labelText: 'Server URL',
+                  labelText: context.l10n.serverUrlLabel,
                   hintText: 'https://openfamily.example.com',
                   prefixIcon: const Icon(Icons.dns_outlined),
                   errorText: _error,
@@ -137,7 +137,7 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Connect', style: TextStyle(fontSize: 16)),
+                      : Text(context.l10n.actionConnect, style: TextStyle(fontSize: 16)),
                 ),
               ),
               const Spacer(),
@@ -146,13 +146,12 @@ class _ServerConfigScreenState extends State<ServerConfigScreen> {
                   MaterialPageRoute<void>(
                       builder: (_) => const PrivacyPolicyScreen()),
                 ),
-                child: const Text('Privacy policy'),
+                child: Text(context.l10n.privacyPolicy),
               ),
-              const Text(
-                'Your HTTPS server URL is stored on this device only.\n'
-                'It is sent nowhere except your own server.',
+              Text(
+                context.l10n.serverUrlPrivacy,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 12, color: BrandTheme.of(context).muted),
               ),
             ],
           ),

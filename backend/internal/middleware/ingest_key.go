@@ -1,11 +1,13 @@
 package middleware
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -15,7 +17,8 @@ import (
 
 // DeviceKeyHeader carries the per-device ingest credential as
 // "<device_id>.<ingest_key>". The ingest key is a write-only, device-scoped
-// secret: it authorizes POST /locations and POST /devices/heartbeat only.
+// secret: it authorizes POST /locations, POST /devices/heartbeat and the
+// device's own notification WebSocket (GET /ws/device), and nothing else.
 //
 // It exists because the app's background reporter runs in a headless Flutter
 // isolate where the Keystore-backed secure store (which holds the refresh
@@ -71,6 +74,27 @@ func ingestKeysEqual(storedHashHex, presentedKey string) bool {
 	return subtle.ConstantTimeCompare([]byte(storedHashHex), []byte(candidate)) == 1
 }
 
+// AuthenticateDeviceKey validates a "<device_id>.<ingest_key>" credential and
+// returns the device id and the id of the user who owns it. The error text is
+// safe to show to the caller.
+func AuthenticateDeviceKey(ctx context.Context, pool *pgxpool.Pool, header string) (deviceID, ownerID string, err error) {
+	deviceID, key, ok := ParseDeviceKeyHeader(header)
+	if !ok {
+		return "", "", errors.New("malformed device key")
+	}
+	var owner *string
+	var storedHash *string
+	if err := pool.QueryRow(ctx,
+		`SELECT user_id, ingest_key_hash FROM devices WHERE id = $1`, deviceID,
+	).Scan(&owner, &storedHash); err != nil || owner == nil || storedHash == nil {
+		return "", "", errors.New("invalid device key")
+	}
+	if !ingestKeysEqual(*storedHash, key) {
+		return "", "", errors.New("invalid device key")
+	}
+	return deviceID, *owner, nil
+}
+
 // RequireAuthOrDeviceIngestKey guards the ingest endpoints (POST /locations
 // and POST /devices/heartbeat). It accepts either:
 //
@@ -107,25 +131,13 @@ func RequireAuthOrDeviceIngestKey(tm *auth.TokenManager, pool *pgxpool.Pool) fun
 				http.Error(w, `{"error":"missing credentials"}`, http.StatusUnauthorized)
 				return
 			}
-			deviceID, key, ok := ParseDeviceKeyHeader(deviceKeyHeader)
-			if !ok {
-				http.Error(w, `{"error":"malformed device key"}`, http.StatusUnauthorized)
-				return
-			}
-			var ownerID *string
-			var storedHash *string
-			if err := pool.QueryRow(r.Context(),
-				`SELECT user_id, ingest_key_hash FROM devices WHERE id = $1`, deviceID,
-			).Scan(&ownerID, &storedHash); err != nil || ownerID == nil || storedHash == nil {
-				http.Error(w, `{"error":"invalid device key"}`, http.StatusUnauthorized)
-				return
-			}
-			if !ingestKeysEqual(*storedHash, key) {
-				http.Error(w, `{"error":"invalid device key"}`, http.StatusUnauthorized)
+			_, ownerID, err := AuthenticateDeviceKey(r.Context(), pool, deviceKeyHeader)
+			if err != nil {
+				http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusUnauthorized)
 				return
 			}
 			next.ServeHTTP(w, r.WithContext(ContextWithClaims(r.Context(),
-				&auth.Claims{UserID: *ownerID, TokenType: auth.AccessToken})))
+				&auth.Claims{UserID: ownerID, TokenType: auth.AccessToken})))
 		})
 	}
 }

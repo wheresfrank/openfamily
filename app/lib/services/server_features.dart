@@ -9,6 +9,10 @@ class ServerFeatures {
 
   bool smsConfigured = false;
 
+  /// Whether the operator enabled the optional live-traffic layer
+  /// (`traffic_enabled`). Servers that predate it, or have no key, report false.
+  bool trafficEnabled = false;
+
   /// Applies `sms_configured` from a `/config` body.
   ///
   /// Older servers omit the field; assume SMS may be on so existing
@@ -19,9 +23,11 @@ class ServerFeatures {
     } else {
       smsConfigured = true;
     }
+    trafficEnabled = cfg['traffic_enabled'] == true;
   }
 
   void reset() {
     smsConfigured = false;
+    trafficEnabled = false;
   }
 }

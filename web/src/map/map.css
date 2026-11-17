@@ -405,9 +405,9 @@
   width: 28px;
   height: 28px;
   margin-left: var(--space-2);
-  border: 1px solid var(--accent);
+  border: 1px solid var(--accent-ink);
   border-radius: 50%;
-  color: var(--accent);
+  color: var(--accent-ink);
   cursor: pointer;
 }
 .wb-member-row-refresh:hover,
@@ -704,7 +704,8 @@
   height: 28px;
   border-radius: 50%;
   background: var(--place-color, var(--purple));
-  color: #fff;
+  /* Dark ink on the bright fills; white only where the fill is dark enough. */
+  color: var(--place-ink, var(--on-accent));
   border: 2px solid #fff;
   box-shadow: var(--shadow-sm);
 }
@@ -979,10 +980,10 @@
   margin-top: var(--space-4);
   width: 100%;
   height: 36px;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--accent-ink);
   border-radius: var(--radius-xs);
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-ink);
   font: inherit;
   font-size: var(--font-sm);
   font-weight: 600;
@@ -1021,4 +1022,34 @@
   .wb-panel[data-collapsed="true"] {
     transform: translateY(calc(100% + var(--space-4)));
   }
+}
+
+/* Live-traffic toggle (only shown when the server has a provider key). */
+.wb-map-traffic {
+  position: absolute;
+  top: 88px;
+  left: 10px;
+  z-index: 1000;
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.wb-map-traffic:hover {
+  background: var(--surface-hover);
+}
+.wb-map-traffic.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.wb-map-traffic:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
 }

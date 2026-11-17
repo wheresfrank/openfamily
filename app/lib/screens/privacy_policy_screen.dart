@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
+
 /// Available offline and before sign-in so users can review data handling
 /// before connecting to a server or granting location permission.
 class PrivacyPolicyScreen extends StatelessWidget {
@@ -79,14 +81,15 @@ class PrivacyPolicyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Privacy policy')),
+      appBar: AppBar(title: Text(context.l10n.privacyPolicy)),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          Text('OpenFamily privacy policy',
+          Text(
+              context.l10n.openFamilyPrivacyPolicy,
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
-          const Text('Updated October 17, 2026'),
+          Text(context.l10n.privacyUpdated),
           const SizedBox(height: 24),
           for (final section in sections) ...[
             Text(section.$1, style: Theme.of(context).textTheme.titleMedium),

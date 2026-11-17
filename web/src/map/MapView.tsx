@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 // MapView — the live map for the OpenFamily admin panel.
 //
 // A full-bleed Leaflet map (via react-leaflet) shows every group's members as
@@ -28,6 +29,7 @@ import {
   Marker,
   Popup,
   TileLayer,
+  useMap,
   useMapEvents,
 } from "react-leaflet";
 import "./map.css";
@@ -52,6 +54,7 @@ import {
 } from "./status";
 import type { Group, LatLng, Member, Place, RawMember, StreamFrame } from "./types";
 import { placeBubbleIcon } from "./placeBubble";
+import { TrafficTileLayer } from "./trafficLayer";
 
 /** Default OSM tile URL — privacy-first, matching the app. Swap for a self-hosted server. */
 export const DEFAULT_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -241,6 +244,44 @@ export function MapView(props: MapViewProps): JSX.Element {
   // Bumped to re-run the fetch effect in place (Retry) without a page reload.
   const [reloadKey, setReloadKey] = useState(0);
 
+  // Optional live-traffic overlay: offered only when the server has a provider
+  // key configured (GET /config -> traffic_enabled).
+  const [trafficAvailable, setTrafficAvailable] = useState(false);
+  const [trafficOn, setTrafficOn] = useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem("wb-traffic") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const sameOriginApi = isSameOriginApi(apiBase);
+  useEffect(() => {
+    if (!sameOriginApi) return;
+    let cancelled = false;
+    fetch(`${resolveBase(apiBase)}/config`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((cfg: { traffic_enabled?: boolean } | null) => {
+        if (!cancelled) setTrafficAvailable(cfg?.traffic_enabled === true);
+      })
+      .catch(() => {
+        // An older or unreachable server simply has no traffic option.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [apiBase, sameOriginApi]);
+  const toggleTraffic = useCallback(() => {
+    setTrafficOn((on) => {
+      const next = !on;
+      try {
+        window.localStorage.setItem("wb-traffic", next ? "1" : "0");
+      } catch {
+        // Blocked storage: the choice lasts for this page only.
+      }
+      return next;
+    });
+  }, []);
+
   const groups = groupsProp ?? fetchedGroups;
   const avatarSources = useMemo(
     () =>
@@ -333,11 +374,11 @@ export function MapView(props: MapViewProps): JSX.Element {
 
   // Shared requester used by both the member card button and the automatic
   // refresh of quiet members after load. The backend authorizes same-family
-  // membership (and reports conflicts/unreachability), so this works from
-  // either portal scope.
+  // membership or platform admin (and reports conflicts/unreachability), so
+  // this works from either portal scope.
   const requestLocation = useCallback(
     async (memberId: string): Promise<{ ok: boolean; message: string }> => {
-      if (!token) return { ok: false, message: "Not signed in." };
+      if (!token) return { ok: false, message: t("Not signed in.") };
       const base = resolveBase(apiBase);
       try {
         const response = await fetch(
@@ -355,23 +396,23 @@ export function MapView(props: MapViewProps): JSX.Element {
           let message: string;
           if (response.status === 409) {
             message =
-              "This phone has no registered push connection. Open the app on the phone once to reconnect it.";
+              t("This phone has no registered push connection. Open the app on the phone once to reconnect it.");
           } else if (response.status >= 500) {
-            message = "Could not reach the phone right now. Try again shortly.";
+            message = t("Could not reach the phone right now. Try again shortly.");
           } else {
-            message = data.error ?? `Request failed (${response.status})`;
+            message = data.error ?? t("Request failed ({status})", { status: response.status });
           }
           return { ok: false, message };
         }
         const message =
           data.status === "cooldown"
-            ? "A recent request is still cooling down."
+            ? t("A recent request is still cooling down.")
             : data.status === "coalesced"
-              ? "A location request is already in progress."
-              : "Request sent. The map will update when the phone responds.";
+              ? t("A location request is already in progress.")
+              : t("Request sent. The map will update when the phone responds.");
         return { ok: true, message };
       } catch {
-        return { ok: false, message: "Could not reach the server." };
+        return { ok: false, message: t("Could not reach the server.") };
       }
     },
     [apiBase, token],
@@ -379,14 +420,14 @@ export function MapView(props: MapViewProps): JSX.Element {
 
   const requestSelectedLocation = useCallback(async (): Promise<void> => {
     if (!selectedMemberId) return;
-    setLocationRequest({ memberId: selectedMemberId, sending: true, message: "Requesting a fresh location…" });
+    setLocationRequest({ memberId: selectedMemberId, sending: true, message: t("Requesting a fresh location…") });
     const result = await requestLocation(selectedMemberId);
     setLocationRequest({ memberId: selectedMemberId, sending: false, message: result.message });
   }, [requestLocation, selectedMemberId]);
 
   const requestMemberLocation = useCallback(
     (member: Member): void => {
-      setLocationRequest({ memberId: member.id, sending: true, message: "Requesting a fresh location…" });
+      setLocationRequest({ memberId: member.id, sending: true, message: t("Requesting a fresh location…") });
       void requestLocation(member.id).then((result) => {
         setLocationRequest({ memberId: member.id, sending: false, message: result.message });
       });
@@ -545,7 +586,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         }
       } catch (e) {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : "Could not load families. Check your connection and try again.");
+        setError(e instanceof Error ? e.message : t("Could not load families. Check your connection and try again."));
         setLoading(false);
       }
     }
@@ -682,8 +723,11 @@ export function MapView(props: MapViewProps): JSX.Element {
   /* ----------------------------- render ----------------------------- */
   const panelTitle =
     groupFilter == null
-      ? `All groups · ${visibleMembers.length}`
-      : `${groups.find((g) => g.id === groupFilter)?.name ?? "Group"} · ${visibleMembers.length}`;
+      ? t("All groups · {count}", { count: visibleMembers.length })
+      : t("{name} · {count}", {
+          name: groups.find((g) => g.id === groupFilter)?.name ?? t("Group"),
+          count: visibleMembers.length,
+        });
 
   const showOverlay =
     loading ||
@@ -708,6 +752,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       >
         <TileLayer url={tileUrl} attribution='&copy; OpenStreetMap contributors' />
         <ZoomWatcher onZoom={() => setViewTick((t) => t + 1)} />
+        {trafficAvailable && trafficOn ? <TrafficOverlay /> : null}
 
         {/* GPS-issue approximate zones */}
         {gpsIssueMembers.map((m) => (
@@ -765,6 +810,17 @@ export function MapView(props: MapViewProps): JSX.Element {
           ),
         )}
       </MapContainer>
+      {trafficAvailable ? (
+        <button
+          type="button"
+          className={`wb-map-traffic${trafficOn ? " is-on" : ""}`}
+          aria-pressed={trafficOn}
+          title={trafficOn ? t("Hide traffic") : t("Show traffic")}
+          onClick={toggleTraffic}
+        >
+          {t("Traffic")}
+        </button>
+      ) : null}
 
       <GroupSwitcher
         groups={groups}
@@ -775,9 +831,9 @@ export function MapView(props: MapViewProps): JSX.Element {
       />
 
       {!showOverlay && (
-        <div className="wb-live-badge" aria-label="Live">
+        <div className="wb-live-badge" aria-label={t("Live")}>
           <span className="wb-live-dot" />
-          LIVE
+          {t("LIVE")}
         </div>
       )}
 
@@ -815,7 +871,7 @@ export function MapView(props: MapViewProps): JSX.Element {
           {loading ? (
             <>
               <div className="wb-map-spinner" />
-              <p className="wb-state-text">Loading live locations…</p>
+              <p className="wb-state-text">{t("Loading live locations…")}</p>
             </>
           ) : error != null ? (
             <div className="wb-state-card">
@@ -825,7 +881,7 @@ export function MapView(props: MapViewProps): JSX.Element {
                   <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.6" />
                 </svg>
               </span>
-              <span className="wb-state-title">Couldn’t load the map</span>
+              <span className="wb-state-title">{t("Couldn’t load the map")}</span>
               <span className="wb-state-text">{error}</span>
               <button
                 type="button"
@@ -836,7 +892,7 @@ export function MapView(props: MapViewProps): JSX.Element {
                   setReloadKey((k) => k + 1);
                 }}
               >
-                Retry
+                {t("Retry")}
               </button>
             </div>
           ) : (
@@ -848,12 +904,12 @@ export function MapView(props: MapViewProps): JSX.Element {
                 </svg>
               </span>
               <span className="wb-state-title">
-                {visibleMembers.length === 0 ? "No members to map yet" : "No locations reported yet"}
+                {visibleMembers.length === 0 ? t("No members to map yet") : t("No locations reported yet")}
               </span>
               <span className="wb-state-text">
                 {visibleMembers.length === 0
-                  ? "When families have members reporting their location, they’ll appear here live."
-                  : "Members are here, but none have reported a location yet."}
+                  ? t("When families have members reporting their location, they’ll appear here live.")
+                  : t("Members are here, but none have reported a location yet.")}
               </span>
             </div>
           )}
@@ -866,6 +922,19 @@ export function MapView(props: MapViewProps): JSX.Element {
 export default MapView;
 
 /* --------------------------------- helpers --------------------------------- */
+
+/** Adds the live-traffic tile layer to the surrounding map while mounted. */
+function TrafficOverlay(): null {
+  const map = useMap();
+  useEffect(() => {
+    const layer = new TrafficTileLayer({ attribution: "© TomTom", maxNativeZoom: 19, opacity: 0.85, zIndex: 5 });
+    layer.addTo(map);
+    return () => {
+      layer.remove();
+    };
+  }, [map]);
+  return null;
+}
 
 /** A tiny child that bumps `viewTick` on zoom changes so clustering re-runs. */
 function ZoomWatcher({ onZoom }: { onZoom: () => void }): JSX.Element | null {

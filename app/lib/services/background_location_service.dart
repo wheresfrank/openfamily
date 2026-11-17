@@ -8,10 +8,16 @@ import 'package:background_locator_2/settings/locator_settings.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:geolocator/geolocator.dart'
     hide AndroidSettings, LocationAccuracy;
+import 'package:geolocator/geolocator.dart' as geo show LocationAccuracy;
 import 'package:http/http.dart' as http;
 
 import 'background_credential_store.dart';
+import 'device_channel.dart';
+import 'device_channel_host.dart' show readChannelCredentials;
 import 'location_outbox.dart';
+import 'location_refresh_service.dart';
+import 'location_sharing_service.dart';
+import 'push_service.dart';
 import 'token_storage.dart';
 
 /// Background location reporting: keeps the device's GPS position flowing to
@@ -50,6 +56,56 @@ import 'token_storage.dart';
 /// How long to wait for a single HTTP request before giving up.
 const Duration _httpTimeout = Duration(seconds: 15);
 
+/// This isolate's device channel. While the location service runs, this is
+/// the one that keeps the server connection open, so notifications and
+/// location requests still arrive after the app UI is closed. Started lazily
+/// from the callbacks below; idempotent.
+final DeviceChannel _backgroundChannel = DeviceChannel(
+  readCredentials: readChannelCredentials,
+  onPush: _handleBackgroundPush,
+);
+
+/// Executes location requests with the ingest key (the secure token store is
+/// not reliably reachable from this isolate).
+final LocationRefreshHandler _backgroundRefreshHandler = LocationRefreshHandler(
+  sharingEnabled: LocationSharingService.load,
+  getPosition: () async {
+    final LocationPermission permission = await Geolocator.checkPermission();
+    if (permission != LocationPermission.always) {
+      throw StateError('background location permission is not granted');
+    }
+    return Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: geo.LocationAccuracy.high,
+        timeLimit: Duration(seconds: 20),
+      ),
+    );
+  },
+  getDeviceId: () async {
+    final String? id = await BackgroundCredentialStore.readDeviceId();
+    if (id == null || id.isEmpty) throw StateError('device is not registered');
+    return id;
+  },
+  getBattery: _readBattery,
+  post: (String path, Map<String, dynamic> body) async {
+    final _BackgroundCredentials? credentials = await _readCredentials();
+    if (credentials == null) throw StateError('no credentials');
+    if (!await _report(credentials, path, body)) {
+      throw StateError('report was not accepted');
+    }
+    return null;
+  },
+  wasProcessed: LocationRefreshService.wasProcessed,
+  markProcessed: LocationRefreshService.markProcessed,
+);
+
+Future<void> _handleBackgroundPush(DevicePushFrame frame) async {
+  final LocationRefreshResult result =
+      await _backgroundRefreshHandler.handle(frame.body);
+  if (result != LocationRefreshResult.notCommand) return;
+  await PushService.showDevicePush(frame);
+}
+
 /// Top-level liveness callback, invoked by the plugin's native alarm (roughly
 /// every 10 minutes) even when no location fixes are produced — the device
 /// stationary, GPS deferred by the OS power manager, etc. POSTs a bare
@@ -57,6 +113,7 @@ const Duration _httpTimeout = Duration(seconds: 15);
 @pragma('vm:entry-point')
 Future<void> onHeartbeatTick() async {
   try {
+    _backgroundChannel.start();
     final _BackgroundCredentials? credentials = await _readCredentials();
     if (credentials == null) return;
 
@@ -79,6 +136,7 @@ Future<void> onHeartbeatTick() async {
 @pragma('vm:entry-point')
 Future<void> onLocationUpdate(LocationDto location) async {
   try {
+    _backgroundChannel.start();
     // Skip spoofed locations (Android mock-location detection).
     if (location.isMocked) return;
 

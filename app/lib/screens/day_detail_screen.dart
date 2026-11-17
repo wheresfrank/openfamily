@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../l10n/l10n.dart';
 import '../models/member.dart';
 import '../models/place.dart';
 import '../services/api_client.dart';
@@ -73,9 +75,36 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
       setState(() {
         _error = e is ApiException
             ? e.message
-            : 'Couldn\'t load history. Please try again.';
+            : context.l10n.loadHistoryFailed;
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _exportTrack(_ExportChoice choice) async {
+    try {
+      final TrackExport file = await HistoryService.exportTrack(
+        memberId: widget.member.id,
+        day: _day,
+        format: choice.format,
+        days: choice.days,
+      );
+      if (!mounted) return;
+      await Share.shareXFiles(
+        <XFile>[
+          XFile.fromData(file.bytes, mimeType: file.mimeType, name: file.filename),
+        ],
+        fileNameOverrides: <String>[file.filename],
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e is ApiException ? e.message : context.l10n.exportTrackFailed,
+          ),
+        ),
+      );
     }
   }
 
@@ -132,7 +161,7 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${result.name} saved for the family')),
+        SnackBar(content: Text(context.l10n.placeSavedForFamily(result.name))),
       );
       await _load();
     } catch (e) {
@@ -140,7 +169,7 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            e is ApiException ? e.message : 'Couldn\'t save this place.',
+            e is ApiException ? e.message : context.l10n.placeSaveFailed,
           ),
         ),
       );
@@ -150,7 +179,34 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Day Detail')),
+      appBar: AppBar(
+        title: Text(context.l10n.dayDetailTitle),
+        actions: [
+          PopupMenuButton<_ExportChoice>(
+            tooltip: context.l10n.exportTrack,
+            icon: const Icon(Icons.ios_share),
+            onSelected: _exportTrack,
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem<_ExportChoice>(
+                value: const _ExportChoice(TrackFormat.gpx, 1),
+                child: Text(context.l10n.exportDayGpx),
+              ),
+              PopupMenuItem<_ExportChoice>(
+                value: const _ExportChoice(TrackFormat.geojson, 1),
+                child: Text(context.l10n.exportDayGeoJson),
+              ),
+              PopupMenuItem<_ExportChoice>(
+                value: const _ExportChoice(TrackFormat.gpx, 7),
+                child: Text(context.l10n.exportWeekGpx),
+              ),
+              PopupMenuItem<_ExportChoice>(
+                value: const _ExportChoice(TrackFormat.geojson, 7),
+                child: Text(context.l10n.exportWeekGeoJson),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: Column(
         children: [
           _Header(
@@ -184,10 +240,10 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textMuted),
+                style: TextStyle(color: BrandTheme.of(context).muted),
               ),
               const SizedBox(height: 12),
-              TextButton(onPressed: _load, child: const Text('Retry')),
+              TextButton(onPressed: _load, child: Text(context.l10n.actionRetry)),
             ],
           ),
         ),
@@ -195,13 +251,13 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
     }
     final MemberHistory history = _history!;
     if (history.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
-            'No location history for this day.',
+            context.l10n.noHistoryForDay,
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textMuted, fontSize: 15),
+            style: TextStyle(color: BrandTheme.of(context).muted, fontSize: 15),
           ),
         ),
       );
@@ -276,21 +332,21 @@ class _Header extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   _formatDate(day),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textMuted,
+                    color: BrandTheme.of(context).muted,
                   ),
                 ),
               ],
             ),
           ),
           IconButton(
-            tooltip: 'Previous day',
+            tooltip: context.l10n.previousDay,
             onPressed: canGoBack ? onBack : null,
             icon: const Icon(Icons.chevron_left),
           ),
           IconButton(
-            tooltip: 'Next day',
+            tooltip: context.l10n.nextDay,
             onPressed: canGoForward ? onForward : null,
             icon: const Icon(Icons.chevron_right),
           ),
@@ -404,7 +460,7 @@ class _TimelineEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     final MovementType movement = _movementFor(visit);
     final Color dotColor =
-        visit.isTransit ? AppColors.textMuted : AppColors.purple;
+        visit.isTransit ? BrandTheme.of(context).muted : AppColors.purple;
     final Duration stay = visit.departedAt.difference(visit.arrivedAt);
 
     return IntrinsicHeight(
@@ -418,10 +474,10 @@ class _TimelineEntry extends StatelessWidget {
               child: Text(
                 _formatTime(visit.arrivedAt.toLocal()),
                 textAlign: TextAlign.right,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textMuted,
+                  color: BrandTheme.of(context).muted,
                 ),
               ),
             ),
@@ -471,9 +527,9 @@ class _TimelineEntry extends StatelessWidget {
                         if (stay.inMinutes >= 1)
                           Text(
                             _formatDuration(stay),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textMuted,
+                              color: BrandTheme.of(context).muted,
                             ),
                           ),
                       ],
@@ -487,14 +543,14 @@ class _TimelineEntry extends StatelessWidget {
                     Icon(
                       _visitIcon(visit),
                       size: 18,
-                      color: AppColors.purple,
+                      color: BrandTheme.of(context).accentInk,
                     ),
                   ],
                   if (canSave)
                     IconButton(
-                      tooltip: 'Save as place',
+                      tooltip: context.l10n.saveAsPlace,
                       icon: const Icon(Icons.add_location_alt_outlined),
-                      color: AppColors.purple,
+                      color: BrandTheme.of(context).accentInk,
                       onPressed: onSave,
                     ),
                 ],
@@ -551,7 +607,7 @@ class _SavePlaceDialogState extends State<_SavePlaceDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Save as family place'),
+      title: Text(context.l10n.saveAsFamilyPlace),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -559,15 +615,15 @@ class _SavePlaceDialogState extends State<_SavePlaceDialog> {
             controller: _name,
             autofocus: true,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Name',
-              hintText: 'Coffee shop',
+            decoration: InputDecoration(
+              labelText: context.l10n.nameLabel,
+              hintText: context.l10n.coffeeShopExample,
             ),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _type,
-            decoration: const InputDecoration(labelText: 'Type'),
+            decoration: InputDecoration(labelText: context.l10n.typeLabel),
             items: _types
                 .map(
                   (String t) => DropdownMenuItem<String>(
@@ -587,7 +643,7 @@ class _SavePlaceDialogState extends State<_SavePlaceDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.actionCancel),
         ),
         FilledButton(
           onPressed: () {
@@ -597,7 +653,7 @@ class _SavePlaceDialogState extends State<_SavePlaceDialog> {
               _SavePlaceResult(name: name, type: _type),
             );
           },
-          child: const Text('Save'),
+          child: Text(context.l10n.actionSave),
         ),
       ],
     );
@@ -655,4 +711,12 @@ String _formatDuration(Duration d) {
     return '${hours}h ${mins}m';
   }
   return '${d.inMinutes} min';
+}
+
+/// One entry of the export menu: a file format and how many days it covers.
+class _ExportChoice {
+  const _ExportChoice(this.format, this.days);
+
+  final TrackFormat format;
+  final int days;
 }

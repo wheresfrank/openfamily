@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 
-/// Speed (mph) at or above which a driving member is shown as a
-/// "race car with flames".
-const int kSpeedingMph = 70;
+/// Speed (m/s) at or above which a driving member is shown as a
+/// "race car with flames" (70 mph, about 113 km/h).
+const double kSpeedingMps = 31.2928;
 
 /// Health/accuracy state of a member's location, mapped to the colored
 /// status circle shown on their avatar bubble and list row.
@@ -94,7 +95,7 @@ class Member {
     this.avatarVersion = 0,
     this.avatarColor = AppColors.purple,
     this.movement = MovementType.none,
-    this.speedMph,
+    this.speedMps,
     this.eta,
     this.waypoints,
     this.history = const [],
@@ -141,8 +142,9 @@ class Member {
 
   final MovementType movement;
 
-  /// Speed in mph, only meaningful when [movement] is [MovementType.car].
-  final int? speedMph;
+  /// Speed in meters per second, only meaningful when [movement] is
+  /// [MovementType.car]. Formatted for display with `Units`.
+  final double? speedMps;
 
   /// Estimated time of arrival, e.g. "12m" or "6:42 PM".
   final String? eta;
@@ -168,12 +170,12 @@ class Member {
   /// Whether this member is driving fast enough to show as "speeding".
   bool get isSpeeding =>
       movement == MovementType.car &&
-      speedMph != null &&
-      speedMph! >= kSpeedingMph;
+      speedMps != null &&
+      speedMps! >= kSpeedingMps;
 
   /// Whether the map pin should render a numeric speed caption.
   bool get hasDrivingSpeed =>
-      movement == MovementType.car && speedMph != null;
+      movement == MovementType.car && speedMps != null;
 
   /// Initials used while no avatar is available.
   String get initials {
@@ -197,7 +199,7 @@ class Member {
     String? address,
     String? name,
     MovementType? movement,
-    int? speedMph,
+    double? speedMps,
     String? eta,
     DateTime? lastSeen,
     double? accuracyMeters,
@@ -214,7 +216,7 @@ class Member {
       avatarVersion: avatarVersion,
       avatarColor: avatarColor,
       movement: movement ?? this.movement,
-      speedMph: speedMph ?? this.speedMph,
+      speedMps: speedMps ?? this.speedMps,
       eta: eta ?? this.eta,
       waypoints: waypoints,
       history: history,
@@ -244,7 +246,7 @@ class Member {
       avatarVersion: avatarVersion,
       avatarColor: avatarColor,
       movement: movement,
-      speedMph: speedMph,
+      speedMps: speedMps,
       eta: eta,
       waypoints: waypoints,
       history: history,
@@ -275,15 +277,15 @@ extension MemberStatusColor on MemberStatus {
   String get label {
     switch (this) {
       case MemberStatus.normal:
-        return 'Live';
+        return CurrentL10n.value.statusLive;
       case MemberStatus.warning:
-        return 'Low battery / accuracy';
+        return CurrentL10n.value.statusLowBatteryAccuracy;
       case MemberStatus.gpsIssue:
-        return 'GPS issue';
+        return CurrentL10n.value.statusGpsIssue;
       case MemberStatus.stopped:
-        return 'Updates stopped';
+        return CurrentL10n.value.statusUpdatesStopped;
       case MemberStatus.error:
-        return 'Location error';
+        return CurrentL10n.value.statusLocationError;
     }
   }
 
@@ -291,15 +293,15 @@ extension MemberStatusColor on MemberStatus {
   String get description {
     switch (this) {
       case MemberStatus.normal:
-        return 'Live — real-time, accurate location';
+        return CurrentL10n.value.statusDescLive;
       case MemberStatus.warning:
-        return 'Low battery or location-accuracy issue';
+        return CurrentL10n.value.statusDescWarning;
       case MemberStatus.gpsIssue:
-        return 'GPS accuracy issue — approximate location';
+        return CurrentL10n.value.statusDescGpsIssue;
       case MemberStatus.stopped:
-        return 'Location updates stopped';
+        return CurrentL10n.value.statusDescStopped;
       case MemberStatus.error:
-        return 'Location error';
+        return CurrentL10n.value.statusDescError;
     }
   }
 }
@@ -346,21 +348,21 @@ extension MovementTypeIcon on MovementType {
   String get label {
     switch (this) {
       case MovementType.car:
-        return 'Driving';
+        return CurrentL10n.value.movementDriving;
       case MovementType.bike:
-        return 'Biking';
+        return CurrentL10n.value.movementBiking;
       case MovementType.boat:
-        return 'On a boat';
+        return CurrentL10n.value.movementBoat;
       case MovementType.plane:
-        return 'Flying';
+        return CurrentL10n.value.movementFlying;
       case MovementType.home:
-        return 'At Home';
+        return CurrentL10n.value.movementAtHome;
       case MovementType.work:
-        return 'At Work';
+        return CurrentL10n.value.movementAtWork;
       case MovementType.gym:
-        return 'At Gym';
+        return CurrentL10n.value.movementAtGym;
       case MovementType.star:
-        return 'Most-visited place';
+        return CurrentL10n.value.movementMostVisited;
       case MovementType.none:
         return '';
     }

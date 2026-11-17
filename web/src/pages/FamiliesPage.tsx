@@ -56,6 +56,7 @@ import type { AdminInvite, Family, Member, MyFamily, Role } from '../lib/types'
 import { useMemberAvatarUrls } from '../lib/useMemberAvatarUrls'
 import './pages.css'
 import './FamiliesPage.css'
+import { t } from '../lib/i18n'
 
 interface AvatarUpdate {
   userId: string
@@ -206,7 +207,7 @@ function AllFamiliesPage() {
       setCreating(false)
       await families.refetch()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create family')
+      setError(e instanceof Error ? e.message : t("Failed to create family"))
     } finally {
       setBusy(false)
     }
@@ -224,7 +225,7 @@ function AllFamiliesPage() {
     return (
       <div className="wb-page">
         <ErrorState
-          title="Couldn’t load families"
+          title={t("Couldn’t load families")}
           description={families.error.message}
           onRetry={families.refetch}
         />
@@ -238,17 +239,17 @@ function AllFamiliesPage() {
     <div className="wb-page">
       <div className="wb-page-header">
         <div>
-          <h1 className="wb-page-title">Families</h1>
+          <h1 className="wb-page-title">{t("Families")}</h1>
           <p className="wb-page-subtitle">
             {list.length} {list.length === 1 ? 'family' : 'families'} on this server.
           </p>
         </div>
         <div className="wb-row">
           <Button variant="secondary" size="sm" onClick={families.refetch}>
-            Refresh
+            {t("Refresh")}
           </Button>
           <Button size="sm" onClick={() => setCreating((c) => !c)}>
-            New family
+            {t("New family")}
           </Button>
         </div>
       </div>
@@ -258,7 +259,7 @@ function AllFamiliesPage() {
           <div className="wb-row">
             <input
               className="wb-input"
-              placeholder="Family name"
+              placeholder={t("Family name")}
               value={newName}
               autoFocus
               onChange={(e) => setNewName(e.target.value)}
@@ -267,10 +268,10 @@ function AllFamiliesPage() {
               }}
             />
             <Button size="sm" loading={busy} onClick={submitNew}>
-              Create
+              {t("Create")}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setCreating(false)}>
-              Cancel
+              {t("Cancel")}
             </Button>
           </div>
           {error && <p className="wb-error-text">{error}</p>}
@@ -280,12 +281,12 @@ function AllFamiliesPage() {
       {list.length === 0 ? (
         <Card>
           <EmptyState
-            title="No families yet"
-            description="Create a family, then generate an invite code so people can join it."
+            title={t("No families yet")}
+            description={t("Create a family, then generate an invite code so people can join it.")}
             icon={<FamiliesIcon />}
             action={
               <Button size="sm" onClick={() => setCreating(true)}>
-                New family
+                {t("New family")}
               </Button>
             }
           />
@@ -384,21 +385,21 @@ function FamilyRow({
       setRenaming(false)
       onChanged()
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Failed to rename')
+      setActionError(e instanceof Error ? e.message : t("Failed to rename"))
     } finally {
       setBusy(false)
     }
   }
 
   const doDelete = async () => {
-    if (!window.confirm(`Delete family “${family.name}”? Its members will become unassigned.`)) return
+    if (!window.confirm(t("Delete family “{name}”? Its members will become unassigned.", { name: family.name }))) return
     setBusy(true)
     setActionError(null)
     try {
       await deleteFamily(family.id)
       onChanged()
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Failed to delete')
+      setActionError(e instanceof Error ? e.message : t("Failed to delete"))
     } finally {
       setBusy(false)
     }
@@ -412,7 +413,7 @@ function FamilyRow({
       setInviteCode(inv.code)
       invites.refetch()
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : 'Failed to create invite')
+      setActionError(e instanceof Error ? e.message : t("Failed to create invite"))
     } finally {
       setBusy(false)
     }
@@ -449,13 +450,13 @@ function FamilyRow({
         <div className="wb-group-body">
           <div className="wb-group-actions">
             <Button size="sm" variant="secondary" loading={busy} onClick={doInvite}>
-              Invite code
+              {t("Invite code")}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setRenaming((r) => !r)}>
-              Rename
+              {t("Rename")}
             </Button>
             <Button size="sm" variant="danger" onClick={doDelete}>
-              Delete
+              {t("Delete")}
             </Button>
           </div>
 
@@ -474,33 +475,33 @@ function FamilyRow({
                 }}
               />
               <Button size="sm" loading={busy} onClick={doRename}>
-                Save
+                {t("Save")}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setRenaming(false)}>
-                Cancel
+                {t("Cancel")}
               </Button>
             </div>
           )}
 
           {inviteCode && (
             <div className="wb-invite-banner">
-              <span className="wb-invite-label">Invite code</span>
+              <span className="wb-invite-label">{t("Invite code")}</span>
               <span className="wb-invite-code">{inviteCode}</span>
-              <CopyButton value={inviteCode} label="Copy invite code" />
-              <span className="wb-invite-hint">Share this code; it expires in 7 days.</span>
+              <CopyButton value={inviteCode} label={t("Copy invite code")} />
+              <span className="wb-invite-hint">{t("Share this code; it expires in 7 days.")}</span>
             </div>
           )}
 
           {familyInvites.length > 0 && (
             <div className="wb-invite-list">
-              <div className="wb-invite-list-title">Active invite codes</div>
+              <div className="wb-invite-list-title">{t("Active invite codes")}</div>
               {familyInvites.map((i) => (
                 <div key={i.id} className="wb-invite-row">
                   <span className="wb-invite-code">{i.code}</span>
                   <span className="wb-invite-meta">
                     {i.uses}/{i.max_uses} used · {i.role} · expires {formatDate(i.expires_at)}
                   </span>
-                  <CopyButton value={i.code} label="Copy invite code" />
+                  <CopyButton value={i.code} label={t("Copy invite code")} />
                 </div>
               ))}
             </div>
@@ -508,31 +509,31 @@ function FamilyRow({
 
           {members.loading ? (
             <div className="wb-group-body-loading">
-              <Spinner size={16} /> Loading members…
+              <Spinner size={16} /> {t("Loading members…")}
             </div>
           ) : members.error ? (
             <ErrorState
-              title="Couldn’t load members"
+              title={t("Couldn’t load members")}
               description={members.error.message}
               onRetry={members.refetch}
             />
           ) : (members.data?.length ?? 0) === 0 ? (
             <EmptyState
-              title="No members yet"
-              description="Generate an invite code above so someone can join this family."
+              title={t("No members yet")}
+              description={t("Generate an invite code above so someone can join this family.")}
             />
           ) : (
             <div className="wb-table-wrap">
               <table className="wb-table">
                 <thead>
                   <tr>
-                    <th>Member</th>
-                    <th>Role</th>
-                    <th>Last seen</th>
-                    <th>Battery</th>
-                    <th>Speed</th>
-                    <th>Accuracy</th>
-                    <th>Move to family</th>
+                    <th>{t("Member")}</th>
+                    <th>{t("Role")}</th>
+                    <th>{t("Last seen")}</th>
+                    <th>{t("Battery")}</th>
+                    <th>{t("Speed")}</th>
+                    <th>{t("Accuracy")}</th>
+                    <th>{t("Move to family")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -598,7 +599,7 @@ function MoveMember({
   const [error, setError] = React.useState<string | null>(null)
 
   if (families.length === 0) {
-    return <span className="wb-muted">No other families</span>
+    return <span className="wb-muted">{t("No other families")}</span>
   }
 
   const doMove = async () => {
@@ -610,7 +611,7 @@ function MoveMember({
       setTarget('')
       onMoved()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to move')
+      setError(e instanceof Error ? e.message : t("Failed to move"))
     } finally {
       setBusy(false)
     }
@@ -622,9 +623,9 @@ function MoveMember({
         className="wb-select wb-move-select"
         value={target}
         onChange={(e) => setTarget(e.target.value)}
-        aria-label={`Move ${member.name} to family`}
+        aria-label={t("Move {name} to family", { name: member.name })}
       >
-        <option value="">Choose…</option>
+        <option value="">{t("Choose…")}</option>
         {families.map((f) => (
           <option key={f.id} value={f.id}>
             {f.name}
@@ -632,7 +633,7 @@ function MoveMember({
         ))}
       </select>
       <Button size="sm" variant="secondary" disabled={!target} loading={busy} onClick={doMove}>
-        Move
+        {t("Move")}
       </Button>
       {error && <span className="wb-error-text">{error}</span>}
     </div>
@@ -657,8 +658,8 @@ function FamiliesSkeleton() {
     <div className="wb-page">
       <div className="wb-page-header">
         <div>
-          <h1 className="wb-page-title">Families</h1>
-          <p className="wb-page-subtitle">Families using this OpenFamily server.</p>
+          <h1 className="wb-page-title">{t("Families")}</h1>
+          <p className="wb-page-subtitle">{t("Families using this OpenFamily server.")}</p>
         </div>
       </div>
       <div className="wb-stack">
@@ -702,7 +703,7 @@ function MyCirclePage() {
   if (family.error?.status === 404) {
     return (
       <div className="wb-page">
-        <PageHeader title="Families" subtitle="Create a new circle or join one with an invite code." />
+        <PageHeader title={t("Families")} subtitle={t("Create a new circle or join one with an invite code.")} />
         <CreateOrJoinCard
           onDone={() => {
             family.refetch()
@@ -716,7 +717,7 @@ function MyCirclePage() {
   if (family.error) {
     return (
       <div className="wb-page">
-        <ErrorState title="Couldn’t load your family" description={family.error.message} onRetry={family.refetch} />
+        <ErrorState title={t("Couldn’t load your family")} description={family.error.message} onRetry={family.refetch} />
       </div>
     )
   }
@@ -740,25 +741,25 @@ function MyCirclePage() {
     <div className="wb-page">
       <PageHeader
         title={f.name}
-        subtitle={`Your circle · you are ${roleLabel(f.role)}. Members share locations with each other.`}
+        subtitle={t("Your circle · you are {role}. Members share locations with each other.", { role: roleLabel(f.role) })}
       />
 
       {isAdmin && (
         <div className="wb-row wb-family-owner-actions">
           <Button size="sm" variant="secondary" onClick={doInvite}>
-            Invite code
+            {t("Invite code")}
           </Button>
         </div>
       )}
 
       {inviteCode === '' ? (
-        <p className="wb-error-text">Couldn’t create an invite code. Ask your server administrator if this persists.</p>
+        <p className="wb-error-text">{t("Couldn’t create an invite code. Ask your server administrator if this persists.")}</p>
       ) : inviteCode ? (
         <div className="wb-invite-banner">
-          <span className="wb-invite-label">Invite code</span>
+          <span className="wb-invite-label">{t("Invite code")}</span>
           <span className="wb-invite-code">{inviteCode}</span>
-          <CopyButton value={inviteCode} label="Copy invite code" />
-          <span className="wb-invite-hint">Share this code so someone can join this circle.</span>
+          <CopyButton value={inviteCode} label={t("Copy invite code")} />
+          <span className="wb-invite-hint">{t("Share this code so someone can join this circle.")}</span>
         </div>
       ) : null}
 
@@ -841,21 +842,21 @@ function MyFamilyMembers({
       setRenameOpen(false)
       members.refetch()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to rename')
+      setError(e instanceof Error ? e.message : t("Failed to rename"))
     } finally {
       setBusy(false)
     }
   }
 
   const doLeave = async () => {
-    if (!window.confirm('Leave this family? You will stop sharing location with them. You can join another family with an invite code, or create a new one.')) return
+    if (!window.confirm(t("Leave this family? You will stop sharing location with them. You can join another family with an invite code, or create a new one."))) return
     setBusy(true)
     setError(null)
     try {
       await leaveMyFamily()
       onChanged()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not leave the family.')
+      setError(e instanceof Error ? e.message : t("Could not leave the family."))
     } finally {
       setBusy(false)
     }
@@ -869,7 +870,7 @@ function MyFamilyMembers({
     } catch (e) {
       setRowError((prev) => ({
         ...prev,
-        [memberId]: e instanceof Error ? e.message : 'Could not change that role.',
+        [memberId]: e instanceof Error ? e.message : t("Could not change that role."),
       }))
     }
   }
@@ -878,7 +879,7 @@ function MyFamilyMembers({
     return (
       <Card>
         <div className="wb-group-body-loading">
-          <Spinner size={16} /> Loading members…
+          <Spinner size={16} /> {t("Loading members…")}
         </div>
       </Card>
     )
@@ -887,7 +888,7 @@ function MyFamilyMembers({
   if (members.error) {
     return (
       <Card>
-        <ErrorState title="Couldn’t load members" description={members.error.message} onRetry={members.refetch} />
+        <ErrorState title={t("Couldn’t load members")} description={members.error.message} onRetry={members.refetch} />
       </Card>
     )
   }
@@ -911,7 +912,7 @@ function MyFamilyMembers({
           </span>
           {canManage && (
             <Button size="sm" variant="ghost" onClick={() => setRenameOpen((r) => !r)}>
-              Rename
+              {t("Rename")}
             </Button>
           )}
         </div>
@@ -931,10 +932,10 @@ function MyFamilyMembers({
               }}
             />
             <Button size="sm" loading={busy} onClick={doRename}>
-              Save
+              {t("Save")}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setRenameOpen(false)}>
-              Cancel
+              {t("Cancel")}
             </Button>
           </div>
         )}
@@ -943,11 +944,11 @@ function MyFamilyMembers({
           <table className="wb-table">
             <thead>
               <tr>
-                <th>Member</th>
-                <th>Role</th>
-                <th>Last seen</th>
-                <th>Battery</th>
-                {canManage && <th>Change role</th>}
+                <th>{t("Member")}</th>
+                <th>{t("Role")}</th>
+                <th>{t("Last seen")}</th>
+                <th>{t("Battery")}</th>
+                {canManage && <th>{t("Change role")}</th>}
               </tr>
             </thead>
             <tbody>
@@ -980,12 +981,12 @@ function MyFamilyMembers({
                       <select
                         className="wb-select wb-move-select"
                         value={m.role}
-                        aria-label={`Change ${m.name}'s role`}
+                        aria-label={t("Change {name}'s role", { name: m.name })}
                         onChange={(e) => changeRole(m.id, e.target.value as Role)}
                       >
-                        <option value="admin">Admin</option>
-                        <option value="member">Member</option>
-                        <option value="child">Child</option>
+                        <option value="admin">{t("Admin")}</option>
+                        <option value="member">{t("Member")}</option>
+                        <option value="child">{t("Child")}</option>
                       </select>
                       {rowError[m.id] && <span className="wb-error-text">{rowError[m.id]}</span>}
                     </td>
@@ -998,17 +999,16 @@ function MyFamilyMembers({
       </Card>
 
       <Card className="wb-leave-card">
-        <h3 className="wb-settings-title">Leave this circle</h3>
+        <h3 className="wb-settings-title">{t("Leave this circle")}</h3>
         <p className="wb-settings-section-help">
-          You will stop sharing location with this family. You can join another family with an
-          invite code, or create a new one.
+          {t("You will stop sharing location with this family. You can join another family with an invite code, or create a new one.")}
         </p>
         {isLastAdmin && (
-          <p className="wb-settings-section-help">Promote another admin before you leave.</p>
+          <p className="wb-settings-section-help">{t("Promote another admin before you leave.")}</p>
         )}
         {error && <p className="wb-error-text">{error}</p>}
         <Button variant="danger" loading={busy} disabled={isLastAdmin || busy} onClick={doLeave}>
-          Leave family
+          {t("Leave family")}
         </Button>
       </Card>
     </>
@@ -1032,7 +1032,7 @@ function CreateOrJoinCard({ onDone }: { onDone: () => void }) {
       await createMyFamily(trimmed)
       onDone()
     } catch (e) {
-      setCreateError(e instanceof Error ? e.message : 'Failed to create family')
+      setCreateError(e instanceof Error ? e.message : t("Failed to create family"))
     } finally {
       setBusy(null)
     }
@@ -1047,7 +1047,7 @@ function CreateOrJoinCard({ onDone }: { onDone: () => void }) {
       await joinFamilyByCode(trimmed)
       onDone()
     } catch (e) {
-      setJoinError(e instanceof Error ? e.message : 'That code didn’t work. Check it and try again.')
+      setJoinError(e instanceof Error ? e.message : t("That code didn’t work. Check it and try again."))
     } finally {
       setBusy(null)
     }
@@ -1056,14 +1056,14 @@ function CreateOrJoinCard({ onDone }: { onDone: () => void }) {
   return (
     <div className="wb-settings-grid">
       <Card>
-        <h3 className="wb-settings-title">Create a new circle</h3>
+        <h3 className="wb-settings-title">{t("Create a new circle")}</h3>
         <p className="wb-settings-section-help">
-          Start fresh: you become the circle’s admin and can invite people with a code.
+          {t("Start fresh: you become the circle’s admin and can invite people with a code.")}
         </p>
         <div className="wb-row">
           <input
             className="wb-input"
-            placeholder="Family name"
+            placeholder={t("Family name")}
             value={name}
             autoFocus
             onChange={(e) => setName(e.target.value)}
@@ -1072,21 +1072,21 @@ function CreateOrJoinCard({ onDone }: { onDone: () => void }) {
             }}
           />
           <Button size="sm" loading={busy === 'create'} onClick={doCreate}>
-            Create
+            {t("Create")}
           </Button>
         </div>
         {createError && <p className="wb-error-text">{createError}</p>}
       </Card>
 
       <Card>
-        <h3 className="wb-settings-title">Join with an invite code</h3>
+        <h3 className="wb-settings-title">{t("Join with an invite code")}</h3>
         <p className="wb-settings-section-help">
-          Enter the code a family admin shared with you to join their circle.
+          {t("Enter the code a family admin shared with you to join their circle.")}
         </p>
         <div className="wb-row">
           <input
             className="wb-input"
-            placeholder="Invite code"
+            placeholder={t("Invite code")}
             value={code}
             onChange={(e) => setCode(e.target.value)}
             onKeyDown={(e) => {
@@ -1094,7 +1094,7 @@ function CreateOrJoinCard({ onDone }: { onDone: () => void }) {
             }}
           />
           <Button size="sm" variant="secondary" loading={busy === 'join'} onClick={doJoin}>
-            Join
+            {t("Join")}
           </Button>
         </div>
         {joinError && <p className="wb-error-text">{joinError}</p>}

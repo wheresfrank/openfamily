@@ -1,6 +1,7 @@
 // Route definitions shared by Sidebar, TopBar, and App.
 
 import React from 'react'
+import { t } from './i18n'
 
 export type RouteKey = 'dashboard' | 'history' | 'families' | 'users' | 'builds' | 'settings'
 
@@ -27,7 +28,7 @@ const icon = (path: React.ReactNode): React.ReactNode => (
 export const ROUTES: RouteDef[] = [
   {
     key: 'dashboard',
-    label: 'Dashboard',
+    label: t("Dashboard"),
     hash: '#/dashboard',
     icon: icon(
       <path
@@ -41,7 +42,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     key: 'history',
-    label: 'History',
+    label: t("History"),
     hash: '#/history',
     icon: icon(
       <path
@@ -55,7 +56,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     key: 'families',
-    label: 'Families',
+    label: t("Families"),
     hash: '#/families',
     icon: icon(
       <path
@@ -69,7 +70,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     key: 'users',
-    label: 'Users',
+    label: t("Users"),
     hash: '#/users',
     adminOnly: true,
     icon: icon(
@@ -84,7 +85,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     key: 'builds',
-    label: 'Builds',
+    label: t("Builds"),
     hash: '#/builds',
     adminOnly: true,
     icon: icon(
@@ -99,7 +100,7 @@ export const ROUTES: RouteDef[] = [
   },
   {
     key: 'settings',
-    label: 'Settings',
+    label: t("Settings"),
     hash: '#/settings',
     icon: icon(
       <path

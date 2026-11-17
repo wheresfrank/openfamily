@@ -8,6 +8,7 @@ import MapView from '../map/MapView'
 import { getAccessToken } from '../lib/auth'
 import { useMe } from '../lib/me'
 import './MapArea.css'
+import { t } from '../lib/i18n'
 
 export function MapArea() {
   const token = getAccessToken()
@@ -16,7 +17,7 @@ export function MapArea() {
   if (!token) {
     return (
       <div className="wb-maparea wb-maparea-loading">
-        <span className="wb-maparea-loading-text">Sign in to view the live map.</span>
+        <span className="wb-maparea-loading-text">{t("Sign in to view the live map.")}</span>
       </div>
     )
   }
@@ -26,7 +27,7 @@ export function MapArea() {
   if (loading) {
     return (
       <div className="wb-maparea wb-maparea-loading">
-        <span className="wb-maparea-loading-text">Loading…</span>
+        <span className="wb-maparea-loading-text">{t("Loading…")}</span>
       </div>
     )
   }

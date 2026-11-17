@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../l10n/l10n.dart';
 import '../services/invite_service.dart';
 import '../services/server_config.dart';
 import '../theme/app_theme.dart';
@@ -44,7 +45,7 @@ class _InviteScreenState extends State<InviteScreen> {
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not create an invite code')),
+            SnackBar(content: Text(context.l10n.inviteCodeCreateFailed)),
           );
         }
         return;
@@ -60,7 +61,7 @@ class _InviteScreenState extends State<InviteScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open the share sheet')),
+          SnackBar(content: Text(context.l10n.shareSheetFailed)),
         );
       }
     }
@@ -72,7 +73,7 @@ class _InviteScreenState extends State<InviteScreen> {
     await Clipboard.setData(ClipboardData(text: code));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Code copied to clipboard')),
+      SnackBar(content: Text(context.l10n.codeCopied)),
     );
   }
 
@@ -88,7 +89,7 @@ class _InviteScreenState extends State<InviteScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Invite'),
+        title: Text(context.l10n.actionInvite),
         bottom: widget.step == null
             ? null
             : OnboardingStepIndicator(currentStep: widget.step!, totalSteps: 6),
@@ -103,30 +104,30 @@ class _InviteScreenState extends State<InviteScreen> {
   }
 
   Widget _buildInvite() {
-    final String circle = widget.circleName ?? 'your family';
+    final String circle = widget.circleName ?? context.l10n.yourFamilyFallback;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Spacer(),
-        const Icon(Icons.person_add_alt_1, size: 64, color: AppColors.purple),
+        Icon(Icons.person_add_alt_1, size: 64, color: BrandTheme.of(context).accentInk),
         const SizedBox(height: 16),
-        const Text(
-          'Invite your family',
+        Text(
+          context.l10n.inviteYourFamily,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Text(
-          'Share a code so your family can join $circle and appear on your map.',
+          context.l10n.shareCodeToJoin(circle),
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 15, color: AppColors.textMuted),
+          style: TextStyle(fontSize: 15, color: BrandTheme.of(context).muted),
         ),
         const Spacer(),
         FilledButton(
           onPressed: _sendCode,
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.symmetric(vertical: 14),
-            child: Text('Send Code', style: TextStyle(fontSize: 16)),
+            child: Text(context.l10n.sendCode, style: TextStyle(fontSize: 16)),
           ),
         ),
       ],
@@ -138,49 +139,49 @@ class _InviteScreenState extends State<InviteScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Spacer(),
-        const Text(
-          'Your invite code',
+        Text(
+          context.l10n.yourInviteCode,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Share it so your family can join.',
+        Text(
+          context.l10n.shareCodeHint,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+          style: TextStyle(fontSize: 14, color: BrandTheme.of(context).muted),
         ),
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.symmetric(vertical: 20),
           decoration: BoxDecoration(
-            color: AppColors.surfaceTint,
+            color: BrandTheme.of(context).paper,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             children: [
               Text(
                 _code!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 40,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 8,
-                  color: AppColors.purple,
+                  color: BrandTheme.of(context).accentInk,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 ServerConfig.instance.apiBaseUrl,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.textMuted,
+                  color: BrandTheme.of(context).muted,
                 ),
               ),
               const SizedBox(height: 8),
               TextButton.icon(
                 onPressed: _copyCode,
                 icon: const Icon(Icons.copy, size: 18),
-                label: const Text('Copy code'),
+                label: Text(context.l10n.copyCode),
               ),
             ],
           ),
@@ -188,9 +189,9 @@ class _InviteScreenState extends State<InviteScreen> {
         const Spacer(),
         FilledButton(
           onPressed: _sendCode,
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.symmetric(vertical: 14),
-            child: Text('Send Code', style: TextStyle(fontSize: 16)),
+            child: Text(context.l10n.sendCode, style: TextStyle(fontSize: 16)),
           ),
         ),
         const SizedBox(height: 8),

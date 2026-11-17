@@ -270,4 +270,4 @@
   outline: none;
   box-shadow: 0 0 0 3px var(--ring);
 }
-.wb-copy-btn:active { color: var(--purple-dark); }
+.wb-copy-btn:active { color: var(--accent-ink); }

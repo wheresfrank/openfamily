@@ -22,6 +22,7 @@ import { clearTokens, getEmail, isAuthenticated, subscribeAuth } from './lib/aut
 import { useMe } from './lib/me'
 import { AccessDenied, Spinner } from './components/primitives'
 import './shell.css'
+import { t } from './lib/i18n'
 
 export default function App() {
   // Re-render when auth changes (login, logout, cross-tab, failed refresh).
@@ -71,7 +72,7 @@ export default function App() {
         {meLoading ? (
           <div className="wb-page">
             <div className="wb-page-loading">
-              <Spinner /> Loading your account…
+              <Spinner /> {t("Loading your account…")}
             </div>
           </div>
         ) : renderPage(route, email, logout, isPlatformAdmin)}

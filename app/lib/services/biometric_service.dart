@@ -3,6 +3,8 @@ import 'package:local_auth/error_codes.dart' as local_auth_error;
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../l10n/l10n.dart';
+
 /// The device's readiness for biometric-only authentication.
 enum BiometricAvailabilityStatus {
   available,
@@ -69,9 +71,9 @@ class BiometricAvailability {
       status: BiometricAvailabilityStatus.unsupported,
       isDeviceSupported: isDeviceSupported,
       canCheckBiometrics: false,
-      error: const BiometricError(
+      error: BiometricError(
         code: BiometricErrorCode.unsupported,
-        message: 'Biometric authentication is not supported on this device.',
+        message: CurrentL10n.value.biometricNotSupported,
       ),
     );
   }
@@ -83,10 +85,9 @@ class BiometricAvailability {
       status: BiometricAvailabilityStatus.notEnrolled,
       isDeviceSupported: isDeviceSupported,
       canCheckBiometrics: true,
-      error: const BiometricError(
+      error: BiometricError(
         code: BiometricErrorCode.notEnrolled,
-        message: 'Set up face or fingerprint recognition in device settings '
-            'before enabling biometric unlock.',
+        message: CurrentL10n.value.biometricNotEnrolled,
       ),
     );
   }
@@ -109,7 +110,7 @@ class BiometricAvailability {
   bool get isAvailable => status == BiometricAvailabilityStatus.available;
 
   String get message =>
-      error?.message ?? 'Biometric authentication is ready to use.';
+      error?.message ?? CurrentL10n.value.biometricReady;
 }
 
 /// Result returned by [BiometricService.authenticate].
@@ -243,8 +244,7 @@ class BiometricService {
             preferenceStore ?? SharedPreferencesBiometricPreferenceStore(),
         _graceStore = graceStore ?? SharedPreferencesLockGraceStore();
 
-  static const String defaultReason =
-      'Use your biometric to unlock OpenFamily.';
+  static String get defaultReason => CurrentL10n.value.biometricPrompt;
 
   final BiometricAuthenticator _authenticator;
   final BiometricPreferenceStore _preferenceStore;
@@ -333,10 +333,9 @@ class BiometricService {
       return _availabilityForPlatformException(exception);
     } catch (_) {
       return BiometricAvailability.unavailable(
-        const BiometricError(
+        BiometricError(
           code: BiometricErrorCode.unavailable,
-          message: 'Biometric authentication is unavailable right now. '
-              'Please try again.',
+          message: CurrentL10n.value.biometricUnavailableRetry,
         ),
       );
     }
@@ -348,14 +347,15 @@ class BiometricService {
   /// [requireEnabled] as false when authenticating as part of the opt-in flow,
   /// before saving the setting.
   Future<BiometricAuthenticationResult> authenticate({
-    String localizedReason = defaultReason,
+    String? localizedReason,
     bool requireEnabled = true,
   }) async {
-    if (localizedReason.trim().isEmpty) {
-      return const BiometricAuthenticationResult.failure(
+    final String reason = localizedReason ?? defaultReason;
+    if (reason.trim().isEmpty) {
+      return BiometricAuthenticationResult.failure(
         BiometricError(
           code: BiometricErrorCode.unavailable,
-          message: 'Biometric authentication could not be started.',
+          message: CurrentL10n.value.biometricCouldNotStart,
         ),
       );
     }
@@ -363,18 +363,18 @@ class BiometricService {
     if (requireEnabled) {
       try {
         if (!await _preferenceStore.isEnabled()) {
-          return const BiometricAuthenticationResult.failure(
+          return BiometricAuthenticationResult.failure(
             BiometricError(
               code: BiometricErrorCode.disabled,
-              message: 'Biometric unlock is turned off in app settings.',
+              message: CurrentL10n.value.biometricTurnedOff,
             ),
           );
         }
       } catch (_) {
-        return const BiometricAuthenticationResult.failure(
+        return BiometricAuthenticationResult.failure(
           BiometricError(
             code: BiometricErrorCode.storageUnavailable,
-            message: 'Biometric settings could not be read. Please try again.',
+            message: CurrentL10n.value.biometricSettingsUnreadable,
           ),
         );
       }
@@ -384,9 +384,9 @@ class BiometricService {
     if (!availability.isAvailable) {
       return BiometricAuthenticationResult.failure(
         availability.error ??
-            const BiometricError(
+            BiometricError(
               code: BiometricErrorCode.unavailable,
-              message: 'Biometric authentication is unavailable right now.',
+              message: CurrentL10n.value.biometricUnavailableNow,
             ),
       );
     }
@@ -394,7 +394,7 @@ class BiometricService {
     _activeAuthentications++;
     try {
       final bool authenticated = await _authenticator.authenticate(
-        localizedReason: localizedReason.trim(),
+        localizedReason: reason.trim(),
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
@@ -406,11 +406,10 @@ class BiometricService {
       if (authenticated) {
         return const BiometricAuthenticationResult.success();
       }
-      return const BiometricAuthenticationResult.failure(
+      return BiometricAuthenticationResult.failure(
         BiometricError(
           code: BiometricErrorCode.authenticationFailed,
-          message: 'Biometric authentication was not completed. '
-              'Please try again.',
+          message: CurrentL10n.value.biometricNotCompletedRetry,
         ),
       );
     } on PlatformException catch (exception) {
@@ -418,11 +417,10 @@ class BiometricService {
         _errorForPlatformException(exception),
       );
     } catch (_) {
-      return const BiometricAuthenticationResult.failure(
+      return BiometricAuthenticationResult.failure(
         BiometricError(
           code: BiometricErrorCode.unavailable,
-          message: 'Biometric authentication is unavailable right now. '
-              'Please try again.',
+          message: CurrentL10n.value.biometricUnavailableRetry,
         ),
       );
     } finally {
@@ -462,41 +460,37 @@ class BiometricService {
       case local_auth_error.biometricOnlyNotSupported:
         return BiometricError(
           code: BiometricErrorCode.unsupported,
-          message: 'Biometric authentication is not supported on this device.',
+          message: CurrentL10n.value.biometricNotSupported,
           platformCode: exception.code,
         );
       case local_auth_error.notEnrolled:
         return BiometricError(
           code: BiometricErrorCode.notEnrolled,
-          message: 'Set up face or fingerprint recognition in device settings '
-              'before enabling biometric unlock.',
+          message: CurrentL10n.value.biometricNotEnrolled,
           platformCode: exception.code,
         );
       case local_auth_error.lockedOut:
         return BiometricError(
           code: BiometricErrorCode.temporarilyLockedOut,
-          message: 'Biometric authentication is temporarily locked after too '
-              'many attempts. Please try again later.',
+          message: CurrentL10n.value.biometricTemporaryLock,
           platformCode: exception.code,
         );
       case local_auth_error.permanentlyLockedOut:
         return BiometricError(
           code: BiometricErrorCode.permanentlyLockedOut,
-          message: 'Biometrics are locked. Unlock your device with its '
-              'passcode, then try again.',
+          message: CurrentL10n.value.biometricLockedOut,
           platformCode: exception.code,
         );
       case local_auth_error.passcodeNotSet:
         return BiometricError(
           code: BiometricErrorCode.passcodeNotSet,
-          message: 'Set up a device passcode before using biometric unlock.',
+          message: CurrentL10n.value.biometricNeedsPasscode,
           platformCode: exception.code,
         );
       default:
         return BiometricError(
           code: BiometricErrorCode.unavailable,
-          message: 'Biometric authentication is unavailable right now. '
-              'Please try again.',
+          message: CurrentL10n.value.biometricUnavailableRetry,
           platformCode: exception.code,
         );
     }

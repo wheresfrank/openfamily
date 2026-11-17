@@ -5,7 +5,7 @@ import 'api_client.dart';
 
 /// Client for the backend Places (geofence) endpoints.
 ///
-/// Places are fetched, created, and deleted against the real Go backend via
+/// Places are fetched, created, updated, and deleted against the real Go backend via
 /// [ApiClient].
 class PlaceService {
   PlaceService._();
@@ -42,6 +42,35 @@ class PlaceService {
       body['address'] = address;
     }
     final dynamic data = await ApiClient.post('/family/places', body: body);
+    final Place? place = _fromBackend(data as Map<String, dynamic>);
+    if (place == null) {
+      throw const ApiException(0, 'Unexpected place response.');
+    }
+    return place;
+  }
+
+  /// Updates a place's name, icon type, position, radius and address, and
+  /// returns the stored [Place].
+  static Future<Place> updatePlace({
+    required String id,
+    required String name,
+    required String type,
+    required double lat,
+    required double lon,
+    required double radiusMeters,
+    String? address,
+  }) async {
+    final Map<String, dynamic> body = <String, dynamic>{
+      'name': name,
+      'type': type,
+      'lat': lat,
+      'lon': lon,
+      'radius_meters': radiusMeters,
+    };
+    if (address != null && address.isNotEmpty) {
+      body['address'] = address;
+    }
+    final dynamic data = await ApiClient.patch('/family/places/$id', body: body);
     final Place? place = _fromBackend(data as Map<String, dynamic>);
     if (place == null) {
       throw const ApiException(0, 'Unexpected place response.');
