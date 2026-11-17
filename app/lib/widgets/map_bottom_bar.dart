@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 
 /// The fixed bottom control bar, pinned to the very bottom of the map screen.
@@ -73,14 +74,14 @@ class MapBottomBar extends StatelessWidget {
                   // People — the dedicated family-member roster.
                   _FloatingIconButton(
                     icon: Icons.people_alt_outlined,
-                    label: 'People',
+                    label: context.l10n.peopleTitle,
                     onTap: onPeople,
                   ),
                   const SizedBox(width: 6),
                   // Places.
                   _FloatingIconButton(
                     icon: Icons.place_outlined,
-                    label: 'Places',
+                    label: context.l10n.placesTitle,
                     onTap: onPlaces,
                   ),
                   if (onSafety != null) ...[
@@ -90,7 +91,7 @@ class MapBottomBar extends StatelessWidget {
                     // be notified.
                     _FloatingIconButton(
                       icon: Icons.shield_outlined,
-                      label: 'Emergency contacts',
+                      label: context.l10n.emergencyContacts,
                       onTap: onSafety,
                     ),
                   ],
@@ -103,7 +104,7 @@ class MapBottomBar extends StatelessWidget {
           // corner as a distinct corner element.
           _FloatingIconButton(
             icon: Icons.settings_outlined,
-            label: 'Settings',
+            label: context.l10n.settingsTitle,
             onTap: onSettings,
           ),
         ],
@@ -129,7 +130,7 @@ class _SosButton extends StatelessWidget {
     final Color fill = intense ? AppColors.sosIntenseRed : AppColors.sosRed;
     return Semantics(
       button: true,
-      label: 'SOS — send emergency alert',
+      label: context.l10n.sosTooltip,
       child: Material(
         color: fill,
         borderRadius: BorderRadius.circular(24),

@@ -201,6 +201,23 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
+`POSTGRES_PASSWORD` is interpolated into the default `DATABASE_URL`, so it must
+be URL-safe — use `openssl rand -hex 24`, not a password with `%`, `@`, `:`,
+`/`, `?` or `#`.
+
+**Ports already in use, or running behind a tunnel / reverse proxy?** Caddy
+publishes host ports 80 and 443 by default. Override them in `.env`:
+
+```bash
+CADDY_HTTP_PORT=8080
+CADDY_HTTPS_PORT=8443
+CADDY_BIND=127.0.0.1      # optional: reachable only from this host
+SITE_ADDRESS=:80          # plain HTTP; let the tunnel/proxy terminate TLS
+```
+
+then point Cloudflare Tunnel, Tailscale Serve, nginx, etc. at
+`http://127.0.0.1:<CADDY_HTTP_PORT>`.
+
 Existing deployments should retain their current `DATABASE_URL`,
 `POSTGRES_USER`, and `POSTGRES_DB` values during the upgrade. The OpenFamily
 database defaults are for fresh installations and do not rename stored data.
@@ -307,7 +324,11 @@ builds on Gradle 8).
 
 - **Android:** install [ntfy](https://ntfy.sh/) (or another UnifiedPush
   distributor). The API advertises `NTFY_BASE_URL` on `GET /config` so the
-  generic APK can register without a rebuild.
+  generic APK can register without a rebuild. The app only uses that value
+  when it is `https://`; with a plain-HTTP `NTFY_BASE_URL` it is ignored and
+  the ntfy app registers against its own default server (`ntfy.sh`). Use an
+  HTTPS ntfy (`PUSH_ADDRESS`), or change the default server in the ntfy app on
+  every phone.
 - **iOS:** APNs. Requires an Apple Developer account and an auth key — see
   [Configuration](#configuration). Payloads do not include coordinates.
 
@@ -413,7 +434,8 @@ UPDATER_TOKEN=$(openssl rand -hex 32)
 
 then `docker compose up -d --build` once more (this builds the sidecar). The
 token must be identical on both sides; compose wires it to both services.
-Leave it empty to disable self-update entirely — the card still reports
+Leave it empty to disable self-update entirely — the `updater` container then
+exits at startup (it never runs with the Docker socket mounted) and the card still reports
 versions and tells you the manual commands. The updater listens only on the
 internal Docker network (no published ports) and rejects every request without
 the token.
@@ -509,7 +531,7 @@ For a fully private map, host your own tiles. The simplest option is
 | `TLS_BEHIND_PROXY` | `false` | `true` when a reverse proxy terminates TLS |
 | `INSECURE_HTTP` | `false` | Opt-out of TLS (trusted private networks only) |
 | `VERBOSE_PUSH` | `false` | Include the user's name in push payloads |
-| `NTFY_BASE_URL` | *(empty)* | Public ntfy origin advertised on `GET /config` |
+| `NTFY_BASE_URL` | *(empty)* | Public ntfy origin advertised on `GET /config` (the app only honors `https://`) |
 | `TILE_URL` | OSM public tiles | Street `{z}/{x}/{y}` template on `GET /config` |
 | `SATELLITE_TILE_URL` | Esri public tiles | Satellite template on `GET /config` |
 | `PLATFORM_ADMIN_EMAIL` | *(empty)* | First platform admin; also closes open registration |

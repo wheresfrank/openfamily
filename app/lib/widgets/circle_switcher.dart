@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 
 /// A compact family-name control at the top of the map.
@@ -105,7 +106,7 @@ class _SingleCircleContext extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Semantics(
-                label: 'Current family: $label',
+                label: context.l10n.currentFamilyLabel(label),
                 child: Material(
                   color: BrandTheme.of(context).sheet,
                   borderRadius: BorderRadius.circular(22),
@@ -147,10 +148,10 @@ class _SingleCircleContext extends StatelessWidget {
               if (onJoinCircle != null) ...[
                 const SizedBox(width: 8),
                 Tooltip(
-                  message: 'Join a family',
+                  message: context.l10n.joinFamilyTitle,
                   child: Semantics(
                     button: true,
-                    label: 'Join a family',
+                    label: context.l10n.joinFamilyTitle,
                     child: Material(
                       color: BrandTheme.of(context).sheet,
                       shape: const CircleBorder(),
@@ -239,7 +240,7 @@ class _JoinChip extends StatelessWidget {
             Icon(Icons.add, size: 18, color: BrandTheme.of(context).accentInk),
             const SizedBox(width: 4),
             Text(
-              'Join a family',
+              context.l10n.joinFamilyTitle,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,

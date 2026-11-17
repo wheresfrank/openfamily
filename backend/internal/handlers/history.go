@@ -183,6 +183,10 @@ func familyHistoryAccess(callerFamily, targetFamily string, targetFound bool) (i
 }
 
 func parseHistoryRange(r *http.Request, now time.Time) (time.Time, time.Time, string, bool) {
+	return parseHistoryRangeMax(r, now, maxHistoryRange, "range must be at most one day")
+}
+
+func parseHistoryRangeMax(r *http.Request, now time.Time, maxRange time.Duration, tooLongMsg string) (time.Time, time.Time, string, bool) {
 	fromStr := r.URL.Query().Get("from")
 	toStr := r.URL.Query().Get("to")
 	if fromStr == "" || toStr == "" {
@@ -199,8 +203,8 @@ func parseHistoryRange(r *http.Request, now time.Time) (time.Time, time.Time, st
 	if !to.After(from) {
 		return time.Time{}, time.Time{}, "to must be after from", false
 	}
-	if to.Sub(from) > maxHistoryRange {
-		return time.Time{}, time.Time{}, "range must be at most one day", false
+	if to.Sub(from) > maxRange {
+		return time.Time{}, time.Time{}, tooLongMsg, false
 	}
 	if now.Sub(from) > maxHistoryAge {
 		return time.Time{}, time.Time{}, "from is older than the 90-day retention window", false
@@ -231,6 +235,12 @@ func (s *Server) userFamilyID(ctx context.Context, userID string) (string, bool,
 }
 
 func (s *Server) buildMemberHistory(ctx context.Context, userID, familyID string, from, to time.Time) (historyOut, error) {
+	return s.buildMemberHistoryCapped(ctx, userID, familyID, from, to, trailPointCap)
+}
+
+// buildMemberHistoryCapped is buildMemberHistory with a caller-chosen trail
+// point cap (0 disables the cap, used by exports).
+func (s *Server) buildMemberHistoryCapped(ctx context.Context, userID, familyID string, from, to time.Time, trailCap int) (historyOut, error) {
 	out := historyOut{
 		UserID: userID,
 		From:   from,
@@ -249,7 +259,7 @@ func (s *Server) buildMemberHistory(ctx context.Context, userID, familyID string
 	}
 
 	usable := filterUsablePoints(points)
-	out.Trail = downsampleTrail(usable, trailBucket, trailPointCap)
+	out.Trail = downsampleTrail(usable, trailBucket, trailCap)
 	out.Visits = buildVisits(usable, places)
 	return out, nil
 }

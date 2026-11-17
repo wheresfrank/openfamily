@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../l10n/l10n.dart';
 import '../models/member.dart';
 import '../models/place.dart';
 import '../services/api_client.dart';
@@ -73,7 +74,7 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
       setState(() {
         _error = e is ApiException
             ? e.message
-            : 'Couldn\'t load history. Please try again.';
+            : context.l10n.loadHistoryFailed;
         _loading = false;
       });
     }
@@ -132,7 +133,7 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${result.name} saved for the family')),
+        SnackBar(content: Text(context.l10n.placeSavedForFamily(result.name))),
       );
       await _load();
     } catch (e) {
@@ -140,7 +141,7 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            e is ApiException ? e.message : 'Couldn\'t save this place.',
+            e is ApiException ? e.message : context.l10n.placeSaveFailed,
           ),
         ),
       );
@@ -150,7 +151,7 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Day Detail')),
+      appBar: AppBar(title: Text(context.l10n.dayDetailTitle)),
       body: Column(
         children: [
           _Header(
@@ -187,7 +188,7 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
                 style: const TextStyle(color: AppColors.textMuted),
               ),
               const SizedBox(height: 12),
-              TextButton(onPressed: _load, child: const Text('Retry')),
+              TextButton(onPressed: _load, child: Text(context.l10n.actionRetry)),
             ],
           ),
         ),
@@ -195,11 +196,11 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
     }
     final MemberHistory history = _history!;
     if (history.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
-            'No location history for this day.',
+            context.l10n.noHistoryForDay,
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textMuted, fontSize: 15),
           ),
@@ -285,12 +286,12 @@ class _Header extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Previous day',
+            tooltip: context.l10n.previousDay,
             onPressed: canGoBack ? onBack : null,
             icon: const Icon(Icons.chevron_left),
           ),
           IconButton(
-            tooltip: 'Next day',
+            tooltip: context.l10n.nextDay,
             onPressed: canGoForward ? onForward : null,
             icon: const Icon(Icons.chevron_right),
           ),
@@ -492,7 +493,7 @@ class _TimelineEntry extends StatelessWidget {
                   ],
                   if (canSave)
                     IconButton(
-                      tooltip: 'Save as place',
+                      tooltip: context.l10n.saveAsPlace,
                       icon: const Icon(Icons.add_location_alt_outlined),
                       color: AppColors.purple,
                       onPressed: onSave,
@@ -551,7 +552,7 @@ class _SavePlaceDialogState extends State<_SavePlaceDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Save as family place'),
+      title: Text(context.l10n.saveAsFamilyPlace),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -559,15 +560,15 @@ class _SavePlaceDialogState extends State<_SavePlaceDialog> {
             controller: _name,
             autofocus: true,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Name',
-              hintText: 'Coffee shop',
+            decoration: InputDecoration(
+              labelText: context.l10n.nameLabel,
+              hintText: context.l10n.coffeeShopExample,
             ),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _type,
-            decoration: const InputDecoration(labelText: 'Type'),
+            decoration: InputDecoration(labelText: context.l10n.typeLabel),
             items: _types
                 .map(
                   (String t) => DropdownMenuItem<String>(
@@ -587,7 +588,7 @@ class _SavePlaceDialogState extends State<_SavePlaceDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.actionCancel),
         ),
         FilledButton(
           onPressed: () {
@@ -597,7 +598,7 @@ class _SavePlaceDialogState extends State<_SavePlaceDialog> {
               _SavePlaceResult(name: name, type: _type),
             );
           },
-          child: const Text('Save'),
+          child: Text(context.l10n.actionSave),
         ),
       ],
     );

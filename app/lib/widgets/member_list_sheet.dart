@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../models/member.dart';
 import '../theme/app_theme.dart';
 import 'member_avatar_bubble.dart';
@@ -157,8 +158,8 @@ class _PeopleHeader extends StatelessWidget {
                       button: true,
                       label: '$circleName people, $countLabel, $stateLabel',
                       hint: expanded
-                          ? 'Double tap to collapse the people drawer'
-                          : 'Double tap to expand the people drawer',
+                          ? context.l10n.collapsePeopleHint
+                          : context.l10n.expandPeopleHint,
                       child: InkWell(
                         onTap: onToggle,
                         borderRadius: BorderRadius.circular(16),
@@ -173,8 +174,8 @@ class _PeopleHeader extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'People',
+                                    Text(
+                                      context.l10n.peopleTitle,
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
@@ -200,7 +201,7 @@ class _PeopleHeader extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: onAddPerson,
-                    tooltip: 'Invite someone to $circleName',
+                    tooltip: context.l10n.inviteSomeoneTo(circleName),
                     icon: const Icon(
                       Icons.person_add_alt_1,
                       color: AppColors.purple,
@@ -208,7 +209,7 @@ class _PeopleHeader extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: onToggle,
-                    tooltip: expanded ? 'Collapse people' : 'Expand people',
+                    tooltip: expanded ? context.l10n.collapsePeople : context.l10n.expandPeople,
                     icon: Icon(
                       expanded
                           ? Icons.keyboard_arrow_down_rounded
@@ -316,7 +317,7 @@ class _EmptyMemberList extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       child: Text(
-        'Invite someone to see them on your map.',
+        context.l10n.inviteToSeeOnMap,
         style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     );

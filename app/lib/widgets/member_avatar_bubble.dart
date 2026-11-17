@@ -3,9 +3,11 @@ import 'dart:ui' show FontFeature;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../models/member.dart';
 import '../services/member_avatar_cache.dart';
 import '../theme/app_theme.dart';
+import '../utils/units.dart';
 import 'movement_icon.dart';
 
 /// A circular avatar bubble pinned to a member's location on the map.
@@ -29,7 +31,7 @@ class MemberAvatarBubble extends StatelessWidget {
   /// Radius of the avatar circle in logical pixels.
   final double radius;
 
-  /// Marker width — wide enough for a 3-digit speed caption ("128 mph").
+  /// Marker width — wide enough for a 3-digit speed caption ("128 km/h").
   static const double markerWidth = 76;
 
   /// Height of the avatar box (circle + glyph overflow).
@@ -124,9 +126,11 @@ class MemberAvatarBubble extends StatelessWidget {
     final StringBuffer sb = StringBuffer(member.name);
     sb.write(' — ${member.status.description}');
     if (member.movement != MovementType.none) {
-      sb.write(' · ${member.isSpeeding ? 'Speeding' : member.movement.label}');
+      sb.write(' · ${member.isSpeeding ? CurrentL10n.value.speedingLabel : member.movement.label}');
       if (member.hasDrivingSpeed) {
-        sb.write(' ${member.speedMph} mph');
+        sb.write(
+          ' ${Units.speed(member.speedMps!, metric: Units.current)}',
+        );
       }
     }
     return sb.toString();
@@ -406,7 +410,7 @@ class ClusterBubble extends StatelessWidget {
       if (m.movement != MovementType.none) {
         sb.write(' ${m.movement.label}');
         if (m.hasDrivingSpeed) {
-          sb.write(' ${m.speedMph} mph');
+          sb.write(' ${Units.speed(m.speedMps!, metric: Units.current)}');
         }
       }
     }
@@ -485,7 +489,7 @@ class _MovementGlyphBadge extends StatelessWidget {
 }
 
 /// Numeric speed caption that hangs under the pin (or beside a cluster glyph).
-/// Number is the primary read; "mph" is a smaller unit — never a card on the
+/// Number is the primary read; the unit is smaller — never a card on the
 /// avatar face.
 class _SpeedCaption extends StatelessWidget {
   const _SpeedCaption({required this.member});
@@ -495,6 +499,7 @@ class _SpeedCaption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool speeding = member.isSpeeding;
+    final bool metric = Units.current;
     final Color ink = speeding ? _speedingInk : _badgeInk;
     return Container(
       padding: const EdgeInsets.fromLTRB(7, 2, 7, 2),
@@ -512,7 +517,7 @@ class _SpeedCaption extends StatelessWidget {
         TextSpan(
           children: [
             TextSpan(
-              text: '${member.speedMph}',
+              text: '${Units.speedValue(member.speedMps!, metric: metric)}',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
@@ -522,7 +527,7 @@ class _SpeedCaption extends StatelessWidget {
               ),
             ),
             TextSpan(
-              text: ' mph',
+              text: ' ${Units.speedUnit(metric: metric)}',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,

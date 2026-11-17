@@ -137,7 +137,7 @@ void main() {
       // Liveness only: pin and battery update, nothing else moves.
       expect(refreshed.position, member.position);
       expect(refreshed.batteryPercent, 88);
-      expect(refreshed.speedMph, member.speedMph);
+      expect(refreshed.speedMps, member.speedMps);
     });
 
     test('ignores equal-or-older presence frames and malformed frames', () {
@@ -316,7 +316,7 @@ void main() {
       });
 
       expect(member.movement, MovementType.car);
-      expect(member.speedMph, isNotNull);
+      expect(member.speedMps, isNotNull);
     });
 
     test('does not infer movement below the confident threshold', () {
@@ -332,7 +332,7 @@ void main() {
       final member = memberFromJson(<String, dynamic>{'id': 'member-1'});
 
       expect(member.movement, MovementType.none);
-      expect(member.speedMph, isNull);
+      expect(member.speedMps, isNull);
     });
 
     test('motion_state wins over speed inference when both are present', () {

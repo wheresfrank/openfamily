@@ -1,0 +1,631 @@
+{
+  "@@locale": "en",
+  "languageSetting": "Language",
+  "languageSettingHelp": "Choose the language of the app. Auto uses your server's default language, or this device's.",
+  "languageAuto": "Auto",
+  "languageEnglish": "English",
+  "languageSpanish": "Español",
+  "placeHomeHint": "Where you live",
+  "placeWorkHint": "Where you work",
+  "placeSchoolHint": "Where the kids go to school",
+  "placeGymHint": "Where you work out",
+  "namePlaceTitle": "Name your place",
+  "placeNameLabel": "Place name",
+  "placeNameExampleGrandma": "e.g. Grandma's house",
+  "actionCancel": "Cancel",
+  "actionNext": "Next",
+  "placesSaveFailed": "Some places couldn't be saved. Check your connection and try again.",
+  "addLocationsTitle": "Add locations",
+  "addPlacesHeading": "Add places to your map",
+  "actionContinue": "Continue",
+  "actionSkipForNow": "Skip for now",
+  "actionAdd": "Add",
+  "addCustomPlace": "Add a custom place",
+  "customPlaceHint": "Any other place — e.g. Grandma's house",
+  "checkInTitle": "Check In",
+  "checkInSubtitle": "Share your location with your family",
+  "checkInBody": "Your family will see where you are right now.",
+  "youLabel": "You",
+  "addNoteOptional": "Add a note (optional)",
+  "noteExample": "e.g. \"Picked up the kids\"",
+  "checkedInTitle": "Checked in",
+  "checkedInBody": "Your family can now see your location.",
+  "actionDone": "Done",
+  "createNewFamily": "Create a new family",
+  "nameYourFamily": "Name your family",
+  "familyNameOptional": "Family name (optional)",
+  "defaultFamilyName": "My Family",
+  "actionCreateFamily": "Create family",
+  "createOrJoinTitle": "Create or join a family",
+  "familyExplainer": "A family is the group of people you share your location with.",
+  "startNewFamilyHint": "Start a new family to share locations.",
+  "joinFamilyTitle": "Join a family",
+  "joinFamilyHint": "Enter an invite code from a family member.",
+  "placeSaveFailed": "Couldn't save this place.",
+  "dayDetailTitle": "Day Detail",
+  "actionRetry": "Retry",
+  "noHistoryForDay": "No location history for this day.",
+  "previousDay": "Previous day",
+  "nextDay": "Next day",
+  "saveAsPlace": "Save as place",
+  "saveAsFamilyPlace": "Save as family place",
+  "nameLabel": "Name",
+  "coffeeShopExample": "Coffee shop",
+  "typeLabel": "Type",
+  "actionSave": "Save",
+  "renameFamilyTitle": "Rename family",
+  "familyNameLabel": "Family name",
+  "leaveFamilyQuestion": "Leave this family?",
+  "actionLeave": "Leave",
+  "familyLabel": "Family",
+  "actionRename": "Rename",
+  "inviteSomeone": "Invite someone",
+  "membersHeader": "MEMBERS",
+  "roleAdmin": "Admin",
+  "roleMember": "Member",
+  "roleChild": "Child",
+  "leaveFamily": "Leave family",
+  "promoteAdminBeforeLeaving": "Promote another admin before you leave.",
+  "noFamilyTitle": "You are not in a family yet",
+  "noFamilyBody": "Create a family to invite people, or join one with a code.",
+  "createAFamily": "Create a family",
+  "actionCreate": "Create",
+  "joinWithCode": "Join with a code",
+  "helpAlertTitle": "Help Alert",
+  "helpAlertSubtitle": "Ask your family for help",
+  "helpAlertUseSos": "For a real emergency, use SOS instead.",
+  "sendHelpAlert": "Send Help Alert",
+  "helpAlertSentTitle": "Help alert sent",
+  "helpAlertSentBody": "Your family has been notified with your location.",
+  "inviteCodeCreateFailed": "Could not create an invite code",
+  "shareSheetFailed": "Could not open the share sheet",
+  "codeCopied": "Code copied to clipboard",
+  "actionInvite": "Invite",
+  "inviteYourFamily": "Invite your family",
+  "sendCode": "Send Code",
+  "yourInviteCode": "Your invite code",
+  "shareCodeHint": "Share it so your family can join.",
+  "copyCode": "Copy code",
+  "enterInviteCodeTitle": "Enter your invite code",
+  "enterInviteCodeBody": "Ask a family member for the invite code to join their family.",
+  "inviteCodeLabel": "Invite code",
+  "inviteCodeExample": "e.g. AB12CD34",
+  "actionJoin": "Join",
+  "familyJoinedTitle": "Family joined",
+  "familyJoinedBody": "You are now a member of the family.",
+  "actionLogIn": "Log In",
+  "welcomeBack": "Welcome back",
+  "emailLabel": "Email",
+  "passwordLabel": "Password",
+  "twoFactorCode": "Two-factor code",
+  "sixDigitCode": "6-digit code",
+  "actionSignUp": "Sign up",
+  "backgroundUpdatesTitle": "Keep background updates reliable",
+  "actionNotNow": "Not now",
+  "openSettingsLower": "Open settings",
+  "inviteTooltip": "Send a code to invite someone to your family",
+  "addMenuLabel": "Add — Check In / Help Alert / Invite",
+  "centerOnMe": "Center on my location",
+  "actionEnable": "Enable",
+  "batteryLabel": "Battery",
+  "etaLabel": "ETA",
+  "statusLabel": "Status",
+  "accuracyLabel": "Accuracy",
+  "addressLabel": "Address",
+  "updateLocation": "Update location",
+  "locationHistory": "Location history",
+  "peopleTitle": "People",
+  "peopleEmptyBody": "Invite family to share their location and see them on your map.",
+  "permLocationTitle": "Location access",
+  "notificationsTitle": "Notifications",
+  "permMotionTitle": "Motion & Fitness",
+  "skipAnyway": "Skip anyway",
+  "enablePermissions": "Enable permissions",
+  "openSettings": "Open Settings",
+  "optionalLabel": "Optional",
+  "addressNotFound": "Couldn't find that address. Try a nearby landmark.",
+  "addNameFirst": "Add a name for this place first.",
+  "useMyLocation": "Use my location",
+  "nameExampleGrandma": "e.g. Grandma",
+  "addressExample": "e.g. 123 Maple St",
+  "searchAddress": "Search address",
+  "radiusLabelTitle": "Radius",
+  "savePlace": "Save place",
+  "deletePlaceQuestion": "Delete place?",
+  "actionDelete": "Delete",
+  "placesTitle": "Places",
+  "editPlace": "Edit place",
+  "deletePlace": "Delete place",
+  "addAPlace": "Add a Place",
+  "privacyPolicy": "Privacy policy",
+  "openFamilyPrivacyPolicy": "OpenFamily privacy policy",
+  "privacyUpdated": "Updated October 17, 2026",
+  "passwordUpdated": "Password updated. Other devices will need to sign in again.",
+  "removePhotoQuestion": "Remove profile photo?",
+  "removePhotoBody": "Your photo will be removed from this device view and your server.",
+  "actionRemove": "Remove",
+  "profileTitle": "Profile",
+  "phoneSmsLabel": "Phone (SMS alerts)",
+  "saveChanges": "Save changes",
+  "familyRole": "Family role",
+  "removePhoto": "Remove photo",
+  "changePassword": "Change password",
+  "currentPassword": "Current password",
+  "newPassword": "New password",
+  "confirmNewPassword": "Confirm new password",
+  "updatePassword": "Update password",
+  "profilePhotoPrivacy": "Profile photo privacy",
+  "contactNoPhone": "That contact has no phone number.",
+  "removeContactQuestion": "Remove contact?",
+  "safetyTitle": "Safety",
+  "noEmergencyContacts": "No emergency contacts yet. Choose someone from your phone.",
+  "typeNameAndNumber": "Type a name and number",
+  "chooseFromContacts": "Choose from contacts",
+  "addEmergencyContact": "Add emergency contact",
+  "phoneLabel": "Phone",
+  "serverLabel": "Server",
+  "serverUrlLabel": "Server URL",
+  "actionConnect": "Connect",
+  "lockDelaySaveFailed": "Could not save the lock delay.",
+  "logOutFailed": "Could not log out safely. Please try again.",
+  "changeServerQuestion": "Change server?",
+  "changeServerBody": "You will be signed out. Enter the new server address on the next screen.",
+  "signOutFailed": "Could not sign out safely. Please try again.",
+  "deleteAccountQuestion": "Delete account?",
+  "deleteAccountFailed": "Could not delete the account. Try again.",
+  "settingsTitle": "Settings",
+  "biometricUnlock": "Biometric unlock",
+  "lockDelay": "Lock delay",
+  "lockImmediately": "Immediately",
+  "lock30Seconds": "30 seconds",
+  "lock1Minute": "1 minute",
+  "lock5Minutes": "5 minutes",
+  "lock15Minutes": "15 minutes",
+  "locationSharing": "Location sharing",
+  "locationSharingHelp": "When off, this device stops reporting your position.",
+  "backgroundUpdates": "Background updates",
+  "pushNotifications": "Push notifications",
+  "actionLogOut": "Log Out",
+  "deleteAccount": "Delete account",
+  "themeTitle": "Theme",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "unitsSetting": "Units",
+  "unitsSettingHelp": "Distances and speeds: kilometers and km/h, or miles and mph.",
+  "unitsAuto": "Auto",
+  "unitsMetric": "Metric",
+  "unitsImperial": "Imperial",
+  "createYourAccount": "Create your account",
+  "yourNameLabel": "Your name",
+  "emailAddressLabel": "Email address",
+  "alreadyHaveAccount": "Already have an account?",
+  "sendSosQuestion": "Send SOS?",
+  "sendSos": "Send SOS",
+  "noSosToResolve": "There's no SOS to resolve. Practice does not send an alert.",
+  "imSafeFailed": "Couldn't send I'm safe. Try again.",
+  "practiceSos": "Practice SOS",
+  "practiceSosEllipsis": "Practice SOS…",
+  "sendingSos": "Sending SOS…",
+  "sosSent": "SOS sent",
+  "practiceComplete": "Practice complete",
+  "practiceCompleteBody": "No alert was sent. You are ready to send a real SOS.",
+  "cancelledTitle": "Cancelled",
+  "noSosSent": "No SOS was sent.",
+  "youAreSafe": "You're safe",
+  "howSosWorks": "How SOS works",
+  "addEmergencyContacts": "Add emergency contacts",
+  "slideToCancel": "Slide to Cancel",
+  "welcomeTagline": "Know where your family is — privately.",
+  "welcomeSubtitle": "Self-hosted. No ads. Your location stays in your family.",
+  "getStarted": "Get Started",
+  "appLockedTitle": "OpenFamily is locked",
+  "appLockedBody": "Authenticate to view your private family map.",
+  "emergencyContacts": "Emergency contacts",
+  "sosTooltip": "SOS — send emergency alert",
+  "inviteToSeeOnMap": "Invite someone to see them on your map.",
+  "offlineLabel": "Offline",
+  "placeHomeName": "Home",
+  "placeWorkName": "Work",
+  "placeSchoolName": "School",
+  "placeGymName": "Gym",
+  "permLocationWhy": "OpenFamily collects and sends your precise location to your configured server to enable family location sharing, location history, and arrival and departure alerts, even when the app is closed or not in use. Your family members and server administrator can view shared locations. Choose \"Always Allow\" to enable background location sharing.",
+  "permLocationConsequence": "Without \"Always Allow\", background tracking won't work — your family won't see your location when the app is closed.",
+  "permLocationButton": "Allow Location",
+  "permNotificationsWhy": "Get gentle alerts when family members arrive at or leave saved places, and critical alerts in an emergency. We only send what matters — never marketing.",
+  "permNotificationsConsequence": "Without notifications, you won't get arrival or departure alerts, or emergency alerts.",
+  "permNotificationsButton": "Allow Notifications",
+  "permMotionWhy": "Detects when you're driving, biking, or walking so your family sees how you're moving — without draining your battery with constant GPS.",
+  "permMotionConsequence": "Without motion & fitness, the app can't tell when you're driving, biking, or walking.",
+  "permMotionButton": "Allow Motion",
+  "skipPermissionTitle": "Skip {name}?",
+  "@skipPermissionTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "skipPermissionBody": "{consequence}\n\nYou can enable it later in Settings.",
+  "@skipPermissionBody": {
+    "placeholders": {
+      "consequence": {
+        "type": "String"
+      }
+    }
+  },
+  "statusLive": "Live",
+  "statusLowBatteryAccuracy": "Low battery / accuracy",
+  "statusGpsIssue": "GPS issue",
+  "statusUpdatesStopped": "Updates stopped",
+  "statusLocationError": "Location error",
+  "statusDescLive": "Live — real-time, accurate location",
+  "statusDescWarning": "Low battery or location-accuracy issue",
+  "statusDescGpsIssue": "GPS accuracy issue — approximate location",
+  "statusDescStopped": "Location updates stopped",
+  "statusDescError": "Location error",
+  "movementDriving": "Driving",
+  "movementBiking": "Biking",
+  "movementBoat": "On a boat",
+  "movementFlying": "Flying",
+  "movementAtHome": "At Home",
+  "movementAtWork": "At Work",
+  "movementAtGym": "At Gym",
+  "movementMostVisited": "Most-visited place",
+  "addressNoLocation": "No location yet",
+  "addressStationary": "Stationary",
+  "speedingLabel": "Speeding",
+  "notMoving": "Not moving",
+  "offlineStatus": "Offline",
+  "defaultMemberName": "Member",
+  "positionFromAgo": "Position from {age} ago",
+  "@positionFromAgo": {
+    "placeholders": {
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "drivingWithSpeed": "Driving · {speed}",
+  "@drivingWithSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "speedingWithSpeed": "Speeding · {speed}",
+  "@speedingWithSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "etaWithValue": "ETA {eta}",
+  "@etaWithValue": {
+    "placeholders": {
+      "eta": {
+        "type": "String"
+      }
+    }
+  },
+  "currentFamilyLabel": "Current family: {name}",
+  "@currentFamilyLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteSomeoneTo": "Invite someone to {name}",
+  "@inviteSomeoneTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removePlaceBody": "Remove \"{name}\" from your family's places?",
+  "@removePlaceBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "placeSavedForFamily": "{name} saved for the family",
+  "@placeSavedForFamily": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "shareCodeToJoin": "Share a code so your family can join {family} and appear on your map.",
+  "@shareCodeToJoin": {
+    "placeholders": {
+      "family": {
+        "type": "String"
+      }
+    }
+  },
+  "yourFamilyFallback": "your family",
+  "requestingFreshLocation": "Requesting a fresh location…",
+  "locationRequestCooldown": "A recent location request is still cooling down.",
+  "locationRequestInProgress": "A location request is already in progress.",
+  "locationRequestSent": "Request sent. The map will update when the phone responds.",
+  "locationRequestFailed": "Could not request a location right now.",
+  "createFamilyFailed": "Could not create the family. Please try again.",
+  "createFamilyHint": "Optional — this is the group your family will see on the map, e.g. \"Family\" or \"The Smiths\". Leave it blank and we'll call it \"My Family\".",
+  "loadFamilyFailed": "Could not load your family.",
+  "renameFamilyFailed": "Could not rename the family.",
+  "changeRoleFailed": "Could not change that role.",
+  "leaveFamilyBody": "You will stop sharing location with this family. You can join another family with an invite code, or create a new one.",
+  "leaveFamilyFailed": "Could not leave the family.",
+  "enterServerUrl": "Please enter your server URL.",
+  "enterValidHttpsUrl": "Enter a valid HTTPS server URL.",
+  "serverUnreachable": "Could not reach that server. Check the URL and try again.",
+  "serverRequirement": "Requires a self-hosted OpenFamily server with HTTPS.\nAsk your family administrator for its secure address.",
+  "serverUrlPrivacy": "Your HTTPS server URL is stored on this device only.\nIt is sent nowhere except your own server.",
+  "pinnedLocation": "Pinned location",
+  "addAPlaceTitle": "Add a place",
+  "addressOptional": "Address (optional)",
+  "pickerHintWithSearch": "Type an address to move the pin, or drag the map — the address fills in automatically.",
+  "pickerHintNoSearch": "Drag the map to drop a pin, then save. Address search needs a geocoding add-on — you can still save the pin, and type a label here if you want.",
+  "lastReportedLocationUsed": "Last reported location will be used.",
+  "checkInFailed": "Couldn't check in. Please try again.",
+  "loadHistoryFailed": "Couldn't load history. Please try again.",
+  "helpAlertFailed": "Couldn't send help alert. Please try again.",
+  "helpAlertExplainer": "Send a non-emergency help alert with your location. Your family members get a notification and can see where you are. Emergency contacts are not texted.",
+  "skipOptional": "Skip (optional)",
+  "permDeniedForever": "This permission is permanently denied. Tap \"Open Settings\" below to enable it.",
+  "permIosAlways": "On iOS, choose \"Always Allow\" in Settings to enable background tracking. Tap \"Open Settings\" below.",
+  "permEnableLater": "You can enable this later in Settings.",
+  "noPlacesYet": "No places yet. Add one to start getting arrival and departure alerts.",
+  "signUpPrivacyNote": "Your email is used to sign you in. Your data stays on your own server — not ours, not anyone's.",
+  "loadFamilyConnectionFailed": "Could not load your family. Check your connection and try again.",
+  "batteryOptimizationBody": "To keep your location fresh when OpenFamily is closed, Android may need OpenFamily exempted from battery optimization. Otherwise the system can pause background location to save battery.",
+  "locationSharingOffBanner": "Location sharing is off, so your family can't see where you are.",
+  "switchToStandardMap": "Switch to standard map",
+  "switchToSatellite": "Switch to satellite",
+  "fillAllPasswordFields": "Fill in all password fields.",
+  "passwordMin8": "New password must be at least 8 characters.",
+  "passwordsDoNotMatch": "New passwords do not match.",
+  "changePasswordFailed": "Could not change password. Try again.",
+  "loadPhotoFailed": "Couldn't load your profile photo. Please try again.",
+  "loadProfileFailed": "Couldn't load your profile. Please try again.",
+  "nameRequired": "Name is required.",
+  "profileUpdated": "Profile updated.",
+  "updateProfileFailed": "Couldn't update your profile. Please try again.",
+  "photoTooLarge": "Profile photos must be 5 MB or smaller.",
+  "photoWrongType": "Choose a JPEG or PNG image.",
+  "photoUpdated": "Profile photo updated.",
+  "updatePhotoFailed": "Couldn't update your profile photo. Please try again.",
+  "photoRemoved": "Profile photo removed.",
+  "removePhotoFailed": "Couldn't remove your profile photo. Please try again.",
+  "photoPrivacyBody": "Your photo is stored privately on your OpenFamily server and shared only with authenticated family members and platform administrators.",
+  "addPhoto": "Add photo",
+  "changePhoto": "Change photo",
+  "sosExplainerWithContacts": "This alerts your family and emergency contacts with your location. Use Practice if you only want to try the countdown.",
+  "sosExplainer": "This alerts your family with your location. Use Practice if you only want to try the countdown.",
+  "sosFailed": "Couldn't send SOS. Please try again.",
+  "sosAlreadySent": "An SOS was already sent recently. Wait a couple of minutes, or tap I'm safe if that alert is still active.",
+  "sosActiveWithContacts": "Your family and emergency contacts have been alerted with your location. Tap I'm safe when you are.",
+  "sosActive": "Your family has been alerted with your location. Tap I'm safe when you are.",
+  "safeToldWithContacts": "Your family and emergency contacts were told you're safe.",
+  "safeToldFamily": "Your family was told you're safe.",
+  "sosHowRedWithContacts": "The red button sends a real alert to your family and any emergency contacts, with your location.",
+  "sosHowRed": "The red button sends a real alert to your family, with your location.",
+  "practiceHowWithContacts": "Practice runs the countdown only — nobody is notified. The shield on the map is where you add emergency contacts, not I'm safe.",
+  "practiceHow": "Practice runs the countdown only — nobody is notified.",
+  "sosArmedSemantics": "SOS armed. Release to start the countdown.",
+  "sosButtonSemantics": "SOS. Tap to send a real alert. Press and hold to arm discreetly.",
+  "sosHoldHint": "Keep holding… release to start the countdown",
+  "sosTapHint": "Tap to send · press and hold to arm discreetly",
+  "pushHelpAndroid": "Android needs the ntfy app (UnifiedPush) so alerts arrive when OpenFamily is closed. Off unregisters this device.",
+  "pushHelpIos": "Delivered through your server via APNs. Off unregisters this device.",
+  "pushHelpWeb": "Push delivery is not available in the browser preview. This preference is remembered for the installed apps.",
+  "pushHelpDefault": "Off unregisters this device from push notifications.",
+  "biometricReadFailedReopen": "Could not read biometric settings. Please reopen Settings.",
+  "biometricConfirmEnable": "Confirm your identity to enable biometric unlock.",
+  "biometricConfirmDisable": "Confirm your identity to disable biometric unlock.",
+  "biometricNotCompleted": "Biometric authentication was not completed.",
+  "biometricSaveFailed": "Could not save the biometric setting. Please try again.",
+  "biometricEnabled": "Biometric unlock enabled.",
+  "biometricDisabled": "Biometric unlock disabled.",
+  "checkingDevice": "Checking this device…",
+  "waitingConfirmation": "Waiting for confirmation…",
+  "biometricUnavailable": "Biometric authentication is unavailable.",
+  "deleteAccountBody": "This permanently deletes your account, devices, and location history on this server. If you are the last admin of a family that still has other people, promote someone else first.",
+  "serverCannotDeleteAccounts": "This server cannot delete accounts yet. Ask the operator to update it.",
+  "notSet": "Not set",
+  "privacySecurityHeader": "Privacy & Security",
+  "lockDelayHelp": "How long the app can stay in the background before it locks. Longer delays are convenient but let the recents screen show your family map.",
+  "backgroundUpdatesHelp": "Let OpenFamily run freely so your location stays fresh when the app is closed.",
+  "themeHelpSystem": "Following this device. Light is Ice, dark is Night.",
+  "themeHelpLight": "Ice. This device setting is ignored.",
+  "themeHelpDark": "Night. This device setting is ignored.",
+  "loadContactsFailed": "Couldn't load emergency contacts. Please try again.",
+  "openContactsFailed": "Couldn't open your contacts.",
+  "saveContactFailed": "Couldn't save that contact. Please try again.",
+  "removeContactFailed": "Couldn't remove that contact. Please try again.",
+  "smsNotConfigured": "Emergency contacts get SOS by text message. This server has not set up SMS yet, so those contacts would not be notified.",
+  "emergencyContactsExplainer": "Emergency contacts receive your SOS alerts with your location. They do not need the app or to be in your family.",
+  "enterAName": "Enter a name",
+  "biometricReadFailedRetry": "Could not read biometric settings. Retry or log out.",
+  "biometricNotCompletedRetry": "Biometric authentication was not completed. Please try again.",
+  "loggingOut": "Logging out…",
+  "logOutInstead": "Log out instead",
+  "collapsePeopleHint": "Double tap to collapse the people drawer",
+  "expandPeopleHint": "Double tap to expand the people drawer",
+  "collapsePeople": "Collapse people",
+  "expandPeople": "Expand people",
+  "sectionAccount": "Account",
+  "sectionAppearance": "Appearance",
+  "sectionLocation": "Location",
+  "sectionAbout": "About",
+  "biometricMethodBoth": "face or fingerprint recognition",
+  "biometricMethodFace": "face recognition",
+  "biometricMethodFingerprint": "your fingerprint",
+  "biometricMethodGeneric": "your biometrics",
+  "biometricRequire": "Require {method} when opening or returning to the app.",
+  "@biometricRequire": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "biometricUse": "Use {method} to protect your private family map.",
+  "@biometricUse": {
+    "placeholders": {
+      "method": {
+        "type": "String"
+      }
+    }
+  },
+  "findingLocation": "Finding your location…",
+  "whichNumberFor": "Which number for {name}?",
+  "@whichNumberFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "stopSosAlertsTo": "Stop sending SOS alerts to {name}?",
+  "@stopSosAlertsTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noProfilePhotoInitials": "No profile photo. Initials {initials}.",
+  "@noProfilePhotoInitials": {
+    "placeholders": {
+      "initials": {
+        "type": "String"
+      }
+    }
+  },
+  "profilePhotoFor": "Profile photo for {name}.",
+  "@profilePhotoFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "semanticUploading": "{label} Uploading.",
+  "@semanticUploading": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "setPlaceLocationTitle": "Set {name} location",
+  "@setPlaceLocationTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "savedButAlertsFailed": "Saved \"{name}\" but couldn't enable alerts. {detail}",
+  "@savedButAlertsFailed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "alertsToggleLater": "You can toggle them later in Places.",
+  "couldNotSaveNamed": "Couldn't save \"{name}\". {detail}",
+  "@couldNotSaveNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "stepNumber": "Step {current}",
+  "@stepNumber": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      }
+    }
+  },
+  "stepNumberOfTotal": "Step {current} of {total}",
+  "@stepNumberOfTotal": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "newNotification": "New notification",
+  "alertsChannelName": "Alerts",
+  "alertsChannelDescription": "Family check-ins, help, and SOS",
+  "biometricNotSupported": "Biometric authentication is not supported on this device.",
+  "biometricNotEnrolled": "Set up face or fingerprint recognition in device settings before enabling biometric unlock.",
+  "biometricReady": "Biometric authentication is ready to use.",
+  "biometricPrompt": "Use your biometric to unlock OpenFamily.",
+  "biometricUnavailableRetry": "Biometric authentication is unavailable right now. Please try again.",
+  "biometricUnavailableNow": "Biometric authentication is unavailable right now.",
+  "biometricCouldNotStart": "Biometric authentication could not be started.",
+  "biometricTurnedOff": "Biometric unlock is turned off in app settings.",
+  "biometricSettingsUnreadable": "Biometric settings could not be read. Please try again.",
+  "biometricTemporaryLock": "Biometric authentication is temporarily locked after too many attempts. Please try again later.",
+  "biometricLockedOut": "Biometrics are locked. Unlock your device with its passcode, then try again.",
+  "biometricNeedsPasscode": "Set up a device passcode before using biometric unlock.",
+  "shareSubject": "Join my OpenFamily family",
+  "shareMessage": "Join my OpenFamily family!\n\n1. Install the OpenFamily Android app\n2. Enter this server: {server}\n3. Use invite code {code}",
+  "@shareMessage": {
+    "placeholders": {
+      "server": {
+        "type": "String"
+      },
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "loadPlacesFailed": "Couldn't load places. Please try again.",
+  "alertsOn": "Alerts on",
+  "alertsOff": "Alerts off",
+  "pleaseTryAgain": "Please try again.",
+  "placesSharedNote": "Places are shared with all family members, so everyone gets arrival and departure alerts.",
+  "enterEmailAndPassword": "Enter your email and password.",
+  "enterTwoFactorCode": "Enter your two-factor code.",
+  "somethingWentWrong": "Something went wrong. Please try again.",
+  "enterYourName": "Enter your name.",
+  "enterValidEmail": "Enter a valid email address.",
+  "passwordMin8Signup": "Password must be at least 8 characters.",
+  "emailAlreadyRegistered": "This email is already registered. Please log in.",
+  "inviteCodeInvalid": "That code isn't valid. Check it and try again.",
+  "joinFailed": "Could not join. Check your connection and try again.",
+  "enterValidPhone": "Enter a valid phone number",
+  "justNow": "just now",
+  "dontHaveAccount": "Don't have an account?",
+  "nooneInFamilyYet": "No one is in {name} yet",
+  "@nooneInFamilyYet": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
+}

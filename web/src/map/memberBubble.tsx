@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 // Member avatar bubble + movement badges, and Leaflet divIcon builders for the
 // map. Mirrors app/lib/widgets/member_avatar_bubble.dart:
 //   - a circular avatar (photo or initials on the group accent) at full size,
@@ -12,6 +13,7 @@
 
 import L from "leaflet";
 import type { CSSProperties } from "react";
+import { formatSpeed, speedUnit, speedValue, isMetricNow } from "../lib/units";
 import { initials, isSpeeding, showsDrivingSpeed } from "./status";
 import type { Member, MemberStatus, MovementType } from "./types";
 
@@ -35,15 +37,15 @@ export function statusColor(status: MemberStatus): string {
 export function statusLabel(status: MemberStatus): string {
   switch (status) {
     case "normal":
-      return "Live";
+      return t("Live");
     case "warning":
-      return "Low battery";
+      return t("Low battery");
     case "gpsIssue":
-      return "GPS issue";
+      return t("GPS issue");
     case "stopped":
-      return "Updates stopped";
+      return t("Updates stopped");
     case "error":
-      return "Location error";
+      return t("Location error");
   }
 }
 
@@ -163,22 +165,22 @@ export function StatusAvatar({
 /** Small movement badge (icon + speed) used in the list row's trailing slot. */
 export function MovementBadge({ member }: { member: Member }): JSX.Element | null {
   if (member.movement === "none") return null;
-  const speeding = isSpeeding(member.movement, member.speedMph);
-  const showSpeed = showsDrivingSpeed(member.movement, member.speedMph);
+  const speeding = isSpeeding(member.movement, member.speedMps);
+  const showSpeed = showsDrivingSpeed(member.movement, member.speedMps);
   return (
     <span
       className={`wb-move${speeding ? " wb-speeding" : ""}`}
       style={{ position: "static" }}
     >
       <MovementGlyph movement={member.movement} size={14} />
-      {showSpeed ? <>{member.speedMph} mph</> : null}
+      {showSpeed ? <>{formatSpeed(member.speedMps!)}</> : null}
     </span>
   );
 }
 
 /* ---------------------------------------------------- Leaflet divIcon builders */
 
-/** Pin width — wide enough for a 3-digit speed caption ("128 mph"). */
+/** Pin width — wide enough for a 3-digit speed caption ("128 km/h"). */
 const PIN_WIDTH = 72;
 /** Avatar circle size. Geographic anchor is the center of this circle. */
 const BUBBLE_SIZE = 50;
@@ -208,14 +210,15 @@ function bubbleHtml(member: Member, selected: boolean): string {
   const faceBg = member.avatarUrl
     ? `background-image:url('${esc(member.avatarUrl)}');background-size:cover;background-position:center;background-color:${member.memberColor};`
     : `background:#fff;color:${member.memberColor};`;
-  const speeding = isSpeeding(member.movement, member.speedMph);
+  const speeding = isSpeeding(member.movement, member.speedMps);
+  const metric = isMetricNow();
   const speedingCls = speeding ? " wb-speeding" : "";
   const glyph =
     member.movement !== "none"
       ? `<span class="wb-move-glyph${speedingCls}" aria-hidden="true">${movementSvg(member.movement)}</span>`
       : "";
-  const speed = showsDrivingSpeed(member.movement, member.speedMph)
-    ? `<span class="wb-speed${speedingCls}"><span class="wb-speed-n">${member.speedMph}</span><span class="wb-speed-unit">mph</span></span>`
+  const speed = showsDrivingSpeed(member.movement, member.speedMps)
+    ? `<span class="wb-speed${speedingCls}"><span class="wb-speed-n">${speedValue(member.speedMps!, metric)}</span><span class="wb-speed-unit">${speedUnit(metric)}</span></span>`
     : "";
   const err = member.status === "error" ? `<span class="wb-err">!</span>` : "";
   return `<div class="wb-pin" title="${esc(bubbleTitle(member))}">
@@ -260,7 +263,7 @@ function bubbleTitle(m: Member): string {
   let t = `${m.name} — ${statusLabel(m.status)}`;
   if (m.batteryPercent > 0) t += ` · ${m.batteryPercent}% battery`;
   if (m.movement !== "none") {
-    const activity = isSpeeding(m.movement, m.speedMph)
+    const activity = isSpeeding(m.movement, m.speedMps)
       ? "Speeding"
       : m.movement === "car"
         ? "Driving"
@@ -272,7 +275,7 @@ function bubbleTitle(m: Member): string {
               ? "Running"
               : m.movement;
     t += ` · ${activity}`;
-    if (showsDrivingSpeed(m.movement, m.speedMph)) t += ` ${m.speedMph} mph`;
+    if (showsDrivingSpeed(m.movement, m.speedMps)) t += ` ${formatSpeed(m.speedMps!)}`;
   }
   return t;
 }
@@ -281,14 +284,14 @@ function clusterTitle(members: Member[]): string {
   let t = `${members.length} people here`;
   for (const m of members.slice(0, 3)) {
     t += ` · ${m.name}: ${statusLabel(m.status)}`;
-    if (showsDrivingSpeed(m.movement, m.speedMph)) t += ` ${m.speedMph} mph`;
+    if (showsDrivingSpeed(m.movement, m.speedMps)) t += ` ${formatSpeed(m.speedMps!)}`;
   }
   return t;
 }
 
 /** Leaflet divIcon for a single member bubble. */
 export function memberBubbleIcon(member: Member, selected: boolean): L.DivIcon {
-  const hasSpeed = showsDrivingSpeed(member.movement, member.speedMph);
+  const hasSpeed = showsDrivingSpeed(member.movement, member.speedMps);
   const h = hasSpeed ? BUBBLE_SIZE + SPEED_CAPTION_H : BUBBLE_SIZE + 8;
   return L.divIcon({
     className: "wb-marker",

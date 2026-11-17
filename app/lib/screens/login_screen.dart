@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/device_service.dart';
@@ -38,11 +39,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     if (_identifier.text.trim().isEmpty || _password.text.isEmpty) {
-      setState(() => _error = 'Enter your email and password.');
+      setState(() => _error = context.l10n.enterEmailAndPassword);
       return;
     }
     if (_totpRequired && _totpCode.text.trim().isEmpty) {
-      setState(() => _error = 'Enter your two-factor code.');
+      setState(() => _error = context.l10n.enterTwoFactorCode);
       return;
     }
     setState(() {
@@ -77,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       setState(() {
         _submitting = false;
-        _error = 'Something went wrong. Please try again.';
+        _error = context.l10n.somethingWentWrong;
       });
       return;
     }
@@ -108,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Log In')),
+      appBar: AppBar(title: Text(context.l10n.actionLogIn)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -122,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Center(child: OpenFamilyMark(size: 72)),
                   const SizedBox(height: 16),
                   Text(
-                    'Welcome back',
+                    context.l10n.welcomeBack,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
@@ -143,8 +144,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         });
                       }
                     },
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
+                    decoration: InputDecoration(
+                      labelText: context.l10n.emailLabel,
                       prefixIcon: Icon(Icons.person_outline),
                       border: OutlineInputBorder(),
                     ),
@@ -154,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _password,
                     obscureText: _obscure,
                     decoration: InputDecoration(
-                      labelText: 'Password',
+                      labelText: context.l10n.passwordLabel,
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -170,9 +171,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _totpCode,
                       keyboardType: TextInputType.number,
                       autocorrect: false,
-                      decoration: const InputDecoration(
-                        labelText: 'Two-factor code',
-                        hintText: '6-digit code',
+                      decoration: InputDecoration(
+                        labelText: context.l10n.twoFactorCode,
+                        hintText: context.l10n.sixDigitCode,
                         prefixIcon: Icon(Icons.lock_outline),
                         border: OutlineInputBorder(),
                       ),
@@ -202,15 +203,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Log In'),
+                          : Text(context.l10n.actionLogIn),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        "Don't have an account?",
+                      Text(
+                        context.l10n.dontHaveAccount,
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textMuted,
@@ -222,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             builder: (_) => const SignUpScreen(),
                           ),
                         ),
-                        child: const Text('Sign up'),
+                        child: Text(context.l10n.actionSignUp),
                       ),
                     ],
                   ),

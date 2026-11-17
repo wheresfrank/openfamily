@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../services/api_client.dart';
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
@@ -17,7 +18,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
   bool _sent = false;
   bool _sending = false;
   String? _error;
-  String _locationLabel = 'Finding your location…';
+  String? _locationLabel;
   double? _lat;
   double? _lon;
 
@@ -37,7 +38,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
     final position = await LocationService.currentPosition();
     if (!mounted) return;
     if (position == null) {
-      setState(() => _locationLabel = 'Last reported location will be used.');
+      setState(() => _locationLabel = context.l10n.lastReportedLocationUsed);
       return;
     }
     setState(() {
@@ -80,7 +81,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
       if (!mounted) return;
       setState(() {
         _sending = false;
-        _error = 'Couldn\'t check in. Please try again.';
+        _error = context.l10n.checkInFailed;
       });
     }
   }
@@ -88,7 +89,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Check In')),
+      appBar: AppBar(title: Text(context.l10n.checkInTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -102,13 +103,13 @@ class _CheckInScreenState extends State<CheckInScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Share your location with your family',
+        Text(
+          context.l10n.checkInSubtitle,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Your family will see where you are right now.',
+        Text(
+          context.l10n.checkInBody,
           style: TextStyle(fontSize: 14, color: AppColors.textMuted),
         ),
         const SizedBox(height: 20),
@@ -127,13 +128,13 @@ class _CheckInScreenState extends State<CheckInScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'You',
+                    Text(
+                      context.l10n.youLabel,
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _locationLabel,
+                      _locationLabel ?? context.l10n.findingLocation,
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.textMuted,
@@ -150,9 +151,9 @@ class _CheckInScreenState extends State<CheckInScreen> {
           controller: _note,
           maxLines: 3,
           enabled: !_sending,
-          decoration: const InputDecoration(
-            labelText: 'Add a note (optional)',
-            hintText: 'e.g. "Picked up the kids"',
+          decoration: InputDecoration(
+            labelText: context.l10n.addNoteOptional,
+            hintText: context.l10n.noteExample,
             border: OutlineInputBorder(),
           ),
         ),
@@ -174,7 +175,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                       color: Colors.white,
                     ),
                   )
-                : const Text('Check In'),
+                : Text(context.l10n.checkInTitle),
           ),
         ),
       ],
@@ -187,20 +188,20 @@ class _CheckInScreenState extends State<CheckInScreen> {
       children: [
         const Icon(Icons.check_circle, size: 72, color: AppColors.statusGreen),
         const SizedBox(height: 16),
-        const Text(
-          'Checked in',
+        Text(
+          context.l10n.checkedInTitle,
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Your family can now see your location.',
+        Text(
+          context.l10n.checkedInBody,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 15, color: AppColors.textMuted),
         ),
         const SizedBox(height: 24),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Done'),
+          child: Text(context.l10n.actionDone),
         ),
       ],
     );

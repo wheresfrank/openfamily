@@ -5,6 +5,7 @@ import { ROUTES, type RouteKey } from '../lib/routes'
 import { useMe } from '../lib/me'
 import { CommandMenu } from './CommandMenu'
 import './nav.css'
+import { t } from '../lib/i18n'
 
 interface TopBarProps {
   active: RouteKey
@@ -65,7 +66,7 @@ export function TopBar({ active, actions, onLogout, email, onNavigate }: TopBarP
             onClick={() => setMenuOpen((o) => !o)}
           >
             <span className="wb-account-avatar" aria-hidden="true">{initials}</span>
-            <span className="wb-account-email">{email ?? 'Account'}</span>
+            <span className="wb-account-email">{email ?? t("Account")}</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -81,7 +82,7 @@ export function TopBar({ active, actions, onLogout, email, onNavigate }: TopBarP
                   onLogout()
                 }}
               >
-                Sign out
+                {t("Sign out")}
               </button>
             </div>
           )}

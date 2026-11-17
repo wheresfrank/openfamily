@@ -14,6 +14,7 @@ import { MapArea } from '../components/MapArea'
 import { Badge, Card, EmptyState, Spinner, Button } from '../components/primitives'
 import './pages.css'
 import './DashboardPage.css'
+import { t } from '../lib/i18n'
 
 export function DashboardPage() {
   const { isPlatformAdmin, loading: meLoading } = useMe()
@@ -58,11 +59,11 @@ export function DashboardPage() {
       <div className="wb-page">
         <Card>
           <EmptyState
-            title="You’re not in a family circle yet"
-            description="Create a new circle or join one with an invite code — then your family shows up here live."
+            title={t("You’re not in a family circle yet")}
+            description={t("Create a new circle or join one with an invite code — then your family shows up here live.")}
             action={
               <Button size="sm" onClick={() => navigateToFamilies()}>
-                Set up your circle
+                {t("Set up your circle")}
               </Button>
             }
           />
@@ -79,30 +80,30 @@ export function DashboardPage() {
       <div className="wb-dashboard-strip">
         <div className="wb-dashboard-stats">
           {isPlatformAdmin ? (
-            <StatCard label="Families" value={loading ? null : totalFamilies} />
+            <StatCard label={t("Families")} value={loading ? null : totalFamilies} />
           ) : (
-            <StatCard label="Your circle" value={loading ? null : familyName ?? '—'} />
+            <StatCard label={t("Your circle")} value={loading ? null : familyName ?? '—'} />
           )}
-          <StatCard label="Members" value={loading ? null : totalMembers} />
+          <StatCard label={t("Members")} value={loading ? null : totalMembers} />
           <StatCard
-            label="Live now"
+            label={t("Live now")}
             value={loading ? null : online}
-            hint={loading ? undefined : 'Updated in the last 5 minutes'}
+            hint={loading ? undefined : t("Updated in the last 5 minutes")}
             accent="green"
           />
         </div>
         <div className="wb-dashboard-status">
           {loading ? (
             <span className="wb-dashboard-status-loading">
-              <Spinner size={14} /> Loading…
+              <Spinner size={14} /> {t("Loading…")}
             </span>
           ) : families.error || members.error ? (
             <Badge tone="red" dot>
-              Connection error
+              {t("Connection error")}
             </Badge>
           ) : (
             <Badge tone="green" dot>
-              Streaming
+              {t("Streaming")}
             </Badge>
           )}
         </div>
@@ -112,8 +113,8 @@ export function DashboardPage() {
         <Card padded={false} className="wb-dashboard-mapcard">
           {empty ? (
             <EmptyState
-              title="No groups yet"
-              description="Create a family circle in the app and its members will appear here on the live map."
+              title={t("No groups yet")}
+              description={t("Create a family circle in the app and its members will appear here on the live map.")}
             />
           ) : (
             <MapArea />

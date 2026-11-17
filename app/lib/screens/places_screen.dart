@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../models/place.dart';
 import '../services/api_client.dart';
 import '../services/family_service.dart';
@@ -83,7 +84,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
 
   String _errorMessage(Object e) {
     if (e is ApiException) return e.message;
-    return 'Couldn\'t load places. Please try again.';
+    return context.l10n.loadPlacesFailed;
   }
 
   Future<void> _addPlace() async {
@@ -115,20 +116,58 @@ class _PlacesScreenState extends State<PlacesScreen> {
     }
   }
 
+  Future<void> _editPlace(int index) async {
+    final Place place = _places![index];
+    final Place? picked = await Navigator.of(context).push<Place>(
+      MaterialPageRoute<Place>(
+        builder: (_) => PlacePickerScreen(
+          placeName: place.name,
+          icon: place.icon,
+          type: place.type,
+          initial: place,
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    try {
+      final Place saved = await PlaceService.updatePlace(
+        id: place.id,
+        name: picked.name,
+        lat: picked.position.latitude,
+        lon: picked.position.longitude,
+        radiusMeters: picked.radiusMeters,
+        address: picked.address,
+      );
+      if (!mounted) return;
+      setState(() {
+        // Keep the client-side alert state; it is not part of the place.
+        _places![index] = saved.copyWith(
+          alertsOn: place.alertsOn,
+          geofenceId: place.geofenceId,
+        );
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_errorMessage(e))),
+      );
+    }
+  }
+
   Future<void> _deletePlace(Place place) async {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete place?'),
-        content: Text('Remove "${place.name}" from your family\'s places?'),
+        title: Text(context.l10n.deletePlaceQuestion),
+        content: Text(context.l10n.removePlaceBody(place.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.actionCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
+            child: Text(context.l10n.actionDelete),
           ),
         ],
       ),
@@ -202,7 +241,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Places')),
+      appBar: AppBar(title: Text(context.l10n.placesTitle)),
       body: _buildBody(),
     );
   }
@@ -215,7 +254,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
           children: [
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _load, child: const Text('Retry')),
+            FilledButton(onPressed: _load, child: Text(context.l10n.actionRetry)),
           ],
         ),
       );
@@ -228,11 +267,10 @@ class _PlacesScreenState extends State<PlacesScreen> {
       return ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.all(24),
             child: Text(
-              'No places yet. Add one to start getting arrival and '
-              'departure alerts.',
+              context.l10n.noPlacesYet,
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textMuted),
             ),
@@ -249,6 +287,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             place: places[i],
             onToggleAlerts: _canManage ? () => _toggleAlerts(i) : null,
             toggling: _toggling,
+            onEdit: _canManage ? () => _editPlace(i) : null,
             onDelete: _canManage ? () => _deletePlace(places[i]) : null,
           ),
         if (_canManage) _AddPlaceTile(onTap: _addPlace),
@@ -262,12 +301,14 @@ class _PlaceTile extends StatelessWidget {
     required this.place,
     required this.onToggleAlerts,
     required this.toggling,
+    required this.onEdit,
     required this.onDelete,
   });
 
   final Place place;
   final VoidCallback? onToggleAlerts;
   final bool toggling;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   @override
@@ -295,7 +336,7 @@ class _PlaceTile extends StatelessWidget {
         children: [
           if (onToggleAlerts != null)
             IconButton(
-              tooltip: place.alertsOn ? 'Alerts on' : 'Alerts off',
+              tooltip: place.alertsOn ? context.l10n.alertsOn : context.l10n.alertsOff,
               icon: Icon(
                 place.alertsOn
                     ? Icons.notifications_active
@@ -304,9 +345,15 @@ class _PlaceTile extends StatelessWidget {
               ),
               onPressed: toggling ? null : onToggleAlerts,
             ),
+          if (onEdit != null)
+            IconButton(
+              tooltip: context.l10n.editPlace,
+              icon: const Icon(Icons.edit_outlined, color: AppColors.textMuted),
+              onPressed: onEdit,
+            ),
           if (onDelete != null)
             IconButton(
-              tooltip: 'Delete place',
+              tooltip: context.l10n.deletePlace,
               icon: const Icon(Icons.delete_outline, color: AppColors.textMuted),
               onPressed: onDelete,
             ),
@@ -325,8 +372,8 @@ class _AddPlaceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: const Icon(Icons.add_circle_outline, color: AppColors.purple),
-      title: const Text(
-        'Add a Place',
+      title: Text(
+        context.l10n.addAPlace,
         style: TextStyle(color: AppColors.purple, fontWeight: FontWeight.w600),
       ),
       onTap: onTap,

@@ -1,6 +1,8 @@
 import 'api_client.dart';
 import 'server_config.dart';
 
+import '../l10n/l10n.dart';
+
 /// Creates and shares alphanumeric family invite codes.
 ///
 /// A single source of truth for the code format and the share message, used by
@@ -17,15 +19,14 @@ class InviteService {
   }
 
   /// The share-sheet subject line.
-  static const String shareSubject = 'Join my OpenFamily family';
+  static String get shareSubject => CurrentL10n.value.shareSubject;
 
   /// The share-sheet body: the code and the operator's server URL.
   ///
   /// There is no `/join/{code}` web route; the recipient installs the Android
   /// app, enters this server, and types the code.
-  static String shareMessage(String code) =>
-      'Join my OpenFamily family!\n\n'
-      '1. Install the OpenFamily Android app\n'
-      '2. Enter this server: ${ServerConfig.instance.apiBaseUrl}\n'
-      '3. Use invite code $code';
+  static String shareMessage(String code) => CurrentL10n.value.shareMessage(
+        ServerConfig.instance.apiBaseUrl,
+        code,
+      );
 }

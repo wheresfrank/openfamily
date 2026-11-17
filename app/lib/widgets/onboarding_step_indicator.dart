@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 
 /// A compact "Step X of Y" progress indicator shown across the whole
@@ -39,7 +40,9 @@ class OnboardingStepIndicator extends StatelessWidget
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            total == null ? 'Step $currentStep' : 'Step $currentStep of $total',
+            total == null
+                ? context.l10n.stepNumber('$currentStep')
+                : context.l10n.stepNumberOfTotal('$currentStep', '$total'),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 13,

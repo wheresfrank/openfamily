@@ -9,6 +9,7 @@ import type { RouteKey } from '../lib/routes'
 import type { AdminMember, Family } from '../lib/types'
 import { Kbd, Spinner } from './primitives'
 import './CommandMenu.css'
+import { t } from '../lib/i18n'
 
 interface CommandMenuProps {
   onNavigate: (key: RouteKey) => void
@@ -140,8 +141,8 @@ export function CommandMenu({ onNavigate }: CommandMenuProps) {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onInputKeyDown}
-          placeholder="Search families and members…"
-          aria-label="Search families and members"
+          placeholder={t("Search families and members…")}
+          aria-label={t("Search families and members")}
           role="combobox"
           aria-expanded={open}
           aria-controls="wb-cmd-list"
@@ -154,13 +155,13 @@ export function CommandMenu({ onNavigate }: CommandMenuProps) {
         <div className="wb-cmd-menu" id="wb-cmd-list" role="listbox" ref={listRef}>
           {!loaded ? (
             <div className="wb-cmd-empty">
-              <Spinner size={14} /> Loading…
+              <Spinner size={14} /> {t("Loading…")}
             </div>
           ) : results.length === 0 ? (
             <div className="wb-cmd-empty">No results for “{query}”</div>
           ) : (
             <>
-              {hasFamilies && <div className="wb-cmd-group">Families</div>}
+              {hasFamilies && <div className="wb-cmd-group">{t("Families")}</div>}
               {filteredFamilies.map((f, i) => {
                 const idx = i
                 return (
@@ -180,7 +181,7 @@ export function CommandMenu({ onNavigate }: CommandMenuProps) {
                   </button>
                 )
               })}
-              {hasMembers && <div className="wb-cmd-group">Members</div>}
+              {hasMembers && <div className="wb-cmd-group">{t("Members")}</div>}
               {filteredMembers.map((m, i) => {
                 const idx = filteredFamilies.length + i
                 return (

@@ -4,6 +4,7 @@
 import React from 'react'
 import { ApiError, result as wrapResult } from './api'
 import type { ApiResult } from './types'
+import { t } from './i18n'
 
 export interface AsyncState<T> {
   loading: boolean
@@ -40,7 +41,7 @@ export function useAsync<T>(
         const err =
           e instanceof ApiError
             ? { status: e.status, message: e.message }
-            : { status: 0, message: e instanceof Error ? e.message : 'Network error' }
+            : { status: 0, message: e instanceof Error ? e.message : t("Network error") }
         setState({ loading: false, data: null, error: err })
       })
     return () => {

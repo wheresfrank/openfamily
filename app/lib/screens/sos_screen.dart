@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../l10n/l10n.dart';
 import '../services/api_client.dart';
 import '../services/location_reporter.dart';
 import '../services/location_service.dart';
@@ -212,18 +213,16 @@ class _SosScreenState extends State<SosScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Send SOS?'),
+          title: Text(context.l10n.sendSosQuestion),
           content: Text(
             _smsConfigured
-                ? 'This alerts your family and emergency contacts with your '
-                    'location. Use Practice if you only want to try the countdown.'
-                : 'This alerts your family with your location. Use Practice '
-                    'if you only want to try the countdown.',
+                ? context.l10n.sosExplainerWithContacts
+                : context.l10n.sosExplainer,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(context.l10n.actionCancel),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
@@ -231,7 +230,7 @@ class _SosScreenState extends State<SosScreen> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Send SOS'),
+              child: Text(context.l10n.sendSos),
             ),
           ],
         );
@@ -292,7 +291,7 @@ class _SosScreenState extends State<SosScreen> {
       if (!mounted) return;
       setState(() {
         _phase = _SosPhase.idle;
-        _error = 'Couldn\'t send SOS. Please try again.';
+        _error = context.l10n.sosFailed;
       });
     }
   }
@@ -307,8 +306,7 @@ class _SosScreenState extends State<SosScreen> {
 
   String _sendErrorMessage(ApiException e) {
     if (e.status == 429) {
-      return 'An SOS was already sent recently. Wait a couple of minutes, '
-          'or tap I\'m safe if that alert is still active.';
+      return context.l10n.sosAlreadySent;
     }
     return e.message;
   }
@@ -326,9 +324,8 @@ class _SosScreenState extends State<SosScreen> {
     if (id == null || id.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'There\'s no SOS to resolve. Practice does not send an alert.',
+        SnackBar(
+          content: Text(context.l10n.noSosToResolve,
           ),
         ),
       );
@@ -351,7 +348,7 @@ class _SosScreenState extends State<SosScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Couldn\'t send I\'m safe. Try again.')),
+        SnackBar(content: Text(context.l10n.imSafeFailed)),
       );
       return;
     }
@@ -437,7 +434,7 @@ class _SosScreenState extends State<SosScreen> {
                 style: TextButton.styleFrom(
                   foregroundColor: BrandTheme.of(context).accentInk,
                 ),
-                child: const Text('Practice SOS'),
+                child: Text(context.l10n.practiceSos),
               ),
             ],
           ],
@@ -448,10 +445,10 @@ class _SosScreenState extends State<SosScreen> {
         return _Countdown(
           seconds: _countdown,
           onCancel: _cancel,
-          label: 'Practice SOS…',
+          label: context.l10n.practiceSosEllipsis,
         );
       case _SosPhase.sending:
-        return const _PhaseColumn(
+        return _PhaseColumn(
           children: [
             SizedBox(
               width: 48,
@@ -459,20 +456,18 @@ class _SosScreenState extends State<SosScreen> {
               child: CircularProgressIndicator(color: AppColors.sosRed),
             ),
             SizedBox(height: 16),
-            Text('Sending SOS…'),
+            Text(context.l10n.sendingSos),
           ],
         );
       case _SosPhase.sent:
         return _ResultCard(
           icon: Icons.check_circle,
           color: AppColors.statusGreen,
-          title: 'SOS sent',
+          title: context.l10n.sosSent,
           subtitle: _error ??
               (_smsConfigured
-                  ? 'Your family and emergency contacts have been alerted with your location. '
-                      'Tap I\'m safe when you are.'
-                  : 'Your family has been alerted with your location. '
-                      'Tap I\'m safe when you are.'),
+                  ? context.l10n.sosActiveWithContacts
+                  : context.l10n.sosActive),
           actionLabel: 'I\'m safe',
           onAction: _imSafe,
           secondaryLabel: 'Done',
@@ -482,8 +477,8 @@ class _SosScreenState extends State<SosScreen> {
         return _ResultCard(
           icon: Icons.check_circle,
           color: BrandTheme.of(context).accentInk,
-          title: 'Practice complete',
-          subtitle: 'No alert was sent. You are ready to send a real SOS.',
+          title: context.l10n.practiceComplete,
+          subtitle: context.l10n.practiceCompleteBody,
           actionLabel: 'Done',
           onAction: _reset,
         );
@@ -491,8 +486,8 @@ class _SosScreenState extends State<SosScreen> {
         return _ResultCard(
           icon: Icons.info_outline,
           color: BrandTheme.of(context).accentInk,
-          title: 'Cancelled',
-          subtitle: 'No SOS was sent.',
+          title: context.l10n.cancelledTitle,
+          subtitle: context.l10n.noSosSent,
           actionLabel: 'Back',
           onAction: _reset,
         );
@@ -500,10 +495,10 @@ class _SosScreenState extends State<SosScreen> {
         return _ResultCard(
           icon: Icons.check_circle,
           color: AppColors.statusGreen,
-          title: 'You\'re safe',
+          title: context.l10n.youAreSafe,
           subtitle: _smsConfigured
-              ? 'Your family and emergency contacts were told you\'re safe.'
-              : 'Your family was told you\'re safe.',
+              ? context.l10n.safeToldWithContacts
+              : context.l10n.safeToldFamily,
           actionLabel: 'Done',
           onAction: () => Navigator.of(context).pop(),
         );
@@ -531,26 +526,23 @@ class _IntroCard extends StatelessWidget {
       children: [
         const Icon(Icons.sos, size: 72, color: AppColors.sosRed),
         const SizedBox(height: 16),
-        const Text(
-          'How SOS works',
+        Text(
+          context.l10n.howSosWorks,
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
         Text(
           smsConfigured
-              ? 'The red button sends a real alert to your family and any '
-                  'emergency contacts, with your location.'
-              : 'The red button sends a real alert to your family, with your location.',
+              ? context.l10n.sosHowRedWithContacts
+              : context.l10n.sosHowRed,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 15, color: muted),
         ),
         const SizedBox(height: 10),
         Text(
           smsConfigured
-              ? 'Practice runs the countdown only — nobody is notified. '
-                  'The shield on the map is where you add emergency contacts, '
-                  'not I\'m safe.'
-              : 'Practice runs the countdown only — nobody is notified.',
+              ? context.l10n.practiceHowWithContacts
+              : context.l10n.practiceHow,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 15, color: muted),
         ),
@@ -558,7 +550,7 @@ class _IntroCard extends StatelessWidget {
         if (smsConfigured) ...[
           FilledButton(
             onPressed: onAddContacts,
-            child: const Text('Add emergency contacts'),
+            child: Text(context.l10n.addEmergencyContacts),
           ),
           const SizedBox(height: 8),
         ],
@@ -567,7 +559,7 @@ class _IntroCard extends StatelessWidget {
           style: TextButton.styleFrom(
             foregroundColor: BrandTheme.of(context).accentInk,
           ),
-          child: const Text('Continue'),
+          child: Text(context.l10n.actionContinue),
         ),
       ],
     );
@@ -619,8 +611,8 @@ class _SosButton extends StatelessWidget {
         Semantics(
           button: true,
           label: holding
-              ? 'SOS armed. Release to start the countdown.'
-              : 'SOS. Tap to send a real alert. Press and hold to arm discreetly.',
+              ? context.l10n.sosArmedSemantics
+              : context.l10n.sosButtonSemantics,
           child: GestureDetector(
             key: const ValueKey<String>('sos-send-button'),
             behavior: HitTestBehavior.opaque,
@@ -667,8 +659,8 @@ class _SosButton extends StatelessWidget {
         const SizedBox(height: 24),
         Text(
           holding
-              ? 'Keep holding… release to start the countdown'
-              : 'Tap to send · press and hold to arm discreetly',
+              ? context.l10n.sosHoldHint
+              : context.l10n.sosTapHint,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,
@@ -685,12 +677,12 @@ class _Countdown extends StatelessWidget {
   const _Countdown({
     required this.seconds,
     required this.onCancel,
-    this.label = 'Sending SOS…',
+    this.label,
   });
 
   final int seconds;
   final VoidCallback onCancel;
-  final String label;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -707,7 +699,7 @@ class _Countdown extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          label,
+          label ?? context.l10n.sendingSos,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
@@ -814,7 +806,7 @@ class _SlideToCancelState extends State<_SlideToCancel> {
           children: [
             Center(
               child: Text(
-                'Slide to Cancel',
+                context.l10n.slideToCancel,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../main.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
@@ -51,7 +52,7 @@ class _CreateCircleScreenState extends State<CreateCircleScreen> {
       if (!mounted) return;
       setState(() {
         _submitting = false;
-        _error = 'Could not create the family. Please try again.';
+        _error = context.l10n.createFamilyFailed;
       });
       return;
     }
@@ -76,7 +77,7 @@ class _CreateCircleScreenState extends State<CreateCircleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create a new family'),
+        title: Text(context.l10n.createNewFamily),
         bottom: const OnboardingStepIndicator(currentStep: 4, totalSteps: 6),
       ),
       body: SafeArea(
@@ -85,15 +86,13 @@ class _CreateCircleScreenState extends State<CreateCircleScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Name your family',
+              Text(
+                context.l10n.nameYourFamily,
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Optional — this is the group your family will see on the map, '
-                'e.g. "Family" or "The Smiths". Leave it blank and we\'ll call '
-                'it "My Family".',
+              Text(
+                context.l10n.createFamilyHint,
                 style: TextStyle(fontSize: 14, color: AppColors.textMuted),
               ),
               const SizedBox(height: 20),
@@ -102,9 +101,9 @@ class _CreateCircleScreenState extends State<CreateCircleScreen> {
                 autofocus: true,
                 enabled: !_submitting,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Family name (optional)',
-                  hintText: 'My Family',
+                decoration: InputDecoration(
+                  labelText: context.l10n.familyNameOptional,
+                  hintText: context.l10n.defaultFamilyName,
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -129,8 +128,8 @@ class _CreateCircleScreenState extends State<CreateCircleScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'Create family',
+                      : Text(
+                          context.l10n.actionCreateFamily,
                           style: TextStyle(fontSize: 16),
                         ),
                 ),

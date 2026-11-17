@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../services/api_client.dart';
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
@@ -67,7 +68,7 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
       if (!mounted) return;
       setState(() {
         _sending = false;
-        _error = 'Couldn\'t send help alert. Please try again.';
+        _error = context.l10n.helpAlertFailed;
       });
     }
   }
@@ -75,7 +76,7 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Help Alert')),
+      appBar: AppBar(title: Text(context.l10n.helpAlertTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -91,20 +92,18 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
       children: [
         const Icon(Icons.campaign_outlined, size: 56, color: AppColors.purple),
         const SizedBox(height: 16),
-        const Text(
-          'Ask your family for help',
+        Text(
+          context.l10n.helpAlertSubtitle,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Send a non-emergency help alert with your location. Your family '
-          'members get a notification and can see where you are. Emergency '
-          'contacts are not texted.',
+        Text(
+          context.l10n.helpAlertExplainer,
           style: TextStyle(fontSize: 14, color: AppColors.textMuted),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'For a real emergency, use SOS instead.',
+        Text(
+          context.l10n.helpAlertUseSos,
           style: TextStyle(
             fontSize: 13,
             color: AppColors.sosRed,
@@ -129,7 +128,7 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
                       color: Colors.white,
                     ),
                   )
-                : const Text('Send Help Alert'),
+                : Text(context.l10n.sendHelpAlert),
           ),
         ),
       ],
@@ -142,20 +141,20 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
       children: [
         const Icon(Icons.check_circle, size: 72, color: AppColors.statusGreen),
         const SizedBox(height: 16),
-        const Text(
-          'Help alert sent',
+        Text(
+          context.l10n.helpAlertSentTitle,
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Your family has been notified with your location.',
+        Text(
+          context.l10n.helpAlertSentBody,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 15, color: AppColors.textMuted),
         ),
         const SizedBox(height: 24),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Done'),
+          child: Text(context.l10n.actionDone),
         ),
       ],
     );

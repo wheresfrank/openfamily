@@ -61,3 +61,21 @@ func TestIsDisallowedIPNil(t *testing.T) {
 		t.Error("isDisallowedIP(nil) = false, want true")
 	}
 }
+
+func TestUnifiedPushBody(t *testing.T) {
+	cases := []struct {
+		name string
+		n    Notification
+		want string
+	}{
+		{"title only", Notification{Title: "Mom arrived at Home"}, "Mom arrived at Home"},
+		{"title and body", Notification{Title: "SOS", Body: "Mom needs help"}, "SOS\nMom needs help"},
+		{"silent command untouched", Notification{Title: "refresh", Body: `{"type":"location_request"}`, Silent: true}, `{"type":"location_request"}`},
+		{"no title", Notification{Body: "hello"}, "hello"},
+	}
+	for _, c := range cases {
+		if got := unifiedPushBody(c.n); got != c.want {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+}

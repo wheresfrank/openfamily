@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 // Member list panel — the side panel listing every member with name, status,
 // last-seen, battery, and speed. Clicking a row centers the map on that member.
 // Mirrors app/lib/widgets/member_list_sheet.dart (rows, status chips, address).
@@ -10,6 +11,7 @@ import {
   StatusAvatar,
   statusLabel,
 } from "./memberBubble";
+import { formatSpeed } from "../lib/units";
 import { isSpeeding, lastSeenLabel, STALE_AFTER_MS } from "./status";
 import type { Member } from "./types";
 import { EmptyState } from "../components/primitives";
@@ -68,8 +70,8 @@ export function MemberList({
         type="button"
         className="wb-panel-open"
         onClick={onToggleCollapsed}
-        title="Show member list"
-        aria-label="Show member list"
+        title={t("Show member list")}
+        aria-label={t("Show member list")}
       >
         <ListIcon />
       </button>
@@ -77,15 +79,15 @@ export function MemberList({
   }
 
   return (
-    <aside className="wb-panel" aria-label="Members">
+    <aside className="wb-panel" aria-label={t("Members")}>
       <div className="wb-panel-head">
         <span className="wb-panel-title">{title}</span>
         <button
           type="button"
           className="wb-panel-toggle"
           onClick={onToggleCollapsed}
-          title="Hide member list"
-          aria-label="Hide member list"
+          title={t("Hide member list")}
+          aria-label={t("Hide member list")}
         >
           <ChevronIcon dir="right" />
         </button>
@@ -94,20 +96,20 @@ export function MemberList({
         <SearchIcon />
         <input
           type="search"
-          placeholder="Search members"
+          placeholder={t("Search members")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          aria-label="Search members"
+          aria-label={t("Search members")}
         />
       </label>
       <div className="wb-panel-list">
         {filtered.length === 0 ? (
           <EmptyState
-            title={members.length === 0 ? "No members yet" : "No matches"}
+            title={members.length === 0 ? t("No members yet") : t("No matches")}
             description={
               members.length === 0
-                ? "Members will appear here once they share a location."
-                : "No members match your search."
+                ? t("Members will appear here once they share a location.")
+                : t("No members match your search.")
             }
           />
         ) : (
@@ -145,15 +147,15 @@ export function MemberList({
                     </span>
                   ) : m.status === "stopped" ? (
                     <span className="wb-chip wb-chip-offline">
-                      Offline
+                      {t("Offline")}
                     </span>
                   ) : null}
-                  {m.movement === "car" && m.speedMph != null ? (
+                  {m.movement === "car" && m.speedMps != null ? (
                     <span
-                      className={`wb-chip ${isSpeeding(m.movement, m.speedMph) ? "wb-chip-speeding" : "wb-chip-car"}`}
+                      className={`wb-chip ${isSpeeding(m.movement, m.speedMps) ? "wb-chip-speeding" : "wb-chip-car"}`}
                     >
                       <MovementGlyph movement="car" size={12} />
-                      {m.speedMph} mph
+                      {formatSpeed(m.speedMps)}
                     </span>
                   ) : null}
                   <span className="wb-chip wb-chip-meta">
@@ -163,7 +165,7 @@ export function MemberList({
                 </span>
                 <span className="wb-member-row-addr">
                   <PinIcon />
-                  {m.position == null ? "No location yet" : m.address}
+                  {m.position == null ? t("No location yet") : m.address}
                 </span>
               </span>
               {m.movement !== "none" ? (
@@ -181,8 +183,8 @@ export function MemberList({
                   className={`wb-member-row-refresh${requestingMemberId === m.id ? " wb-member-row-refresh-busy" : ""}`}
                   title={
                     requestingMemberId === m.id
-                      ? "Requesting…"
-                      : "Ask this phone for a fresh location"
+                      ? t("Requesting…")
+                      : t("Ask this phone for a fresh location")
                   }
                   aria-label={`Request fresh location for ${m.name}`}
                   onClick={(e) => {

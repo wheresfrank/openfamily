@@ -1,5 +1,6 @@
 import 'api_client.dart';
 import 'secure_url.dart';
+import 'locale_preference.dart';
 import 'server_features.dart';
 
 /// Public OSM street tiles. Used until [GET /config] supplies an override.
@@ -36,6 +37,7 @@ class TileConfig {
         satelliteUrl = satellite.trim();
       }
       ServerFeatures.instance.apply(cfg);
+      await LocalePreferenceService.applyServerDefault(cfg);
     } catch (_) {
       // Keep whatever we already have (defaults or a previous successful fetch).
     }

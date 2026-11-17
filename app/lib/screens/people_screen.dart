@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../models/member.dart';
 import '../theme/app_theme.dart';
 import '../widgets/member_tile.dart';
@@ -40,14 +41,14 @@ class PeopleScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'People',
+        title: Text(
+          context.l10n.peopleTitle,
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
         actions: [
           IconButton(
             onPressed: _invite(context),
-            tooltip: 'Invite someone',
+            tooltip: context.l10n.inviteSomeone,
             icon: const Icon(
               Icons.person_add_alt_1,
               color: AppColors.purple,
@@ -179,13 +180,13 @@ class _EmptyPeople extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No one is in $circleName yet',
+              context.l10n.nooneInFamilyYet(circleName),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Invite family to share their location and see them on your map.',
+            Text(
+              context.l10n.peopleEmptyBody,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: AppColors.textMuted),
             ),
@@ -193,7 +194,7 @@ class _EmptyPeople extends StatelessWidget {
             FilledButton.icon(
               onPressed: onInvite,
               icon: const Icon(Icons.person_add_alt_1),
-              label: const Text('Invite someone'),
+              label: Text(context.l10n.inviteSomeone),
             ),
           ],
         ),
