@@ -253,6 +253,21 @@ func (d *DispatcherImpl) Dispatch(ctx context.Context, n Notification) error {
 	}
 }
 
+// unifiedPushBody returns the message text delivered to the app. A
+// UnifiedPush distributor forwards only the message body, never the ntfy
+// Title header, so a visible alert must carry its title in the body or the
+// app has nothing meaningful to show (geofence alerts have an empty Body).
+// Silent command payloads are passed through untouched.
+func unifiedPushBody(n Notification) string {
+	if n.Silent || n.Title == "" {
+		return n.Body
+	}
+	if n.Body == "" {
+		return n.Title
+	}
+	return n.Title + "\n" + n.Body
+}
+
 // dispatchUnifiedPush POSTs the message to a UnifiedPush/ntfy endpoint. The
 // endpoint is the full URL the device registered (e.g. https://ntfy.sh/<topic>).
 func (d *DispatcherImpl) dispatchUnifiedPush(ctx context.Context, n Notification) error {
@@ -263,7 +278,7 @@ func (d *DispatcherImpl) dispatchUnifiedPush(ctx context.Context, n Notification
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, n.UnifiedPushEndpoint, bytes.NewBufferString(n.Body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, n.UnifiedPushEndpoint, bytes.NewBufferString(unifiedPushBody(n)))
 	if err != nil {
 		return err
 	}
