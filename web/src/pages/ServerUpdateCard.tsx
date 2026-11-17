@@ -2,6 +2,7 @@ import React from 'react'
 import { ApiError, applyServerUpdate, getUpdateLog, getUpdateStatus } from '../lib/api'
 import type { UpdateStatus } from '../lib/types'
 import { Badge, Button, Card, Mono } from '../components/primitives'
+import { t } from '../lib/i18n'
 
 const POLL_INTERVAL_MS = 3000
 
@@ -21,7 +22,7 @@ function RefChip({ label, value }: { label: string; value?: string }) {
       {displayValue ? (
         <Mono truncate="none">{displayValue}</Mono>
       ) : (
-        <span className="wb-update-ref-unknown">Not reported</span>
+        <span className="wb-update-ref-unknown">{t("Not reported")}</span>
       )}
     </div>
   )
@@ -48,7 +49,7 @@ export function ServerUpdateCard() {
       setMessage(null)
       return next
     } catch (error) {
-      setMessage({ tone: 'error', text: messageFromError(error, 'Could not load update status.') })
+      setMessage({ tone: 'error', text: messageFromError(error, t("Could not load update status.")) })
       return null
     }
   }, [])
@@ -79,12 +80,12 @@ export function ServerUpdateCard() {
     setStarting(true)
     try {
       await applyServerUpdate()
-      setMessage({ tone: 'success', text: 'Update started. This can take several minutes; keep this page open.' })
+      setMessage({ tone: 'success', text: t("Update started. This can take several minutes; keep this page open.") })
       setConfirming(false)
       const next = await refresh()
       if (next?.busy) void getUpdateLog().then(setLog).catch(() => setLog(null))
     } catch (error) {
-      setMessage({ tone: 'error', text: messageFromError(error, 'Could not start the update.') })
+      setMessage({ tone: 'error', text: messageFromError(error, t("Could not start the update.")) })
     } finally {
       setStarting(false)
     }
@@ -94,18 +95,18 @@ export function ServerUpdateCard() {
     try {
       setLog(await getUpdateLog())
     } catch {
-      setLog('Could not load the update log.')
+      setLog(t("Could not load the update log."))
     }
   }
 
   const badge = (() => {
-    if (loading || (!status && !message)) return <Badge tone="neutral">Checking…</Badge>
-    if (running) return <Badge tone="orange" dot>Updating</Badge>
-    if (!status) return <Badge tone="red">Unavailable</Badge>
-    if (status.check_error) return <Badge tone="grey">Check failed</Badge>
-    if (status.update_available) return <Badge tone="purple" dot>Update available</Badge>
-    if (status.deployed_ref && status.deployed_ref !== 'dev') return <Badge tone="green" dot>Up to date</Badge>
-    return <Badge tone="neutral">Unknown version</Badge>
+    if (loading || (!status && !message)) return <Badge tone="neutral">{t("Checking…")}</Badge>
+    if (running) return <Badge tone="orange" dot>{t("Updating")}</Badge>
+    if (!status) return <Badge tone="red">{t("Unavailable")}</Badge>
+    if (status.check_error) return <Badge tone="grey">{t("Check failed")}</Badge>
+    if (status.update_available) return <Badge tone="purple" dot>{t("Update available")}</Badge>
+    if (status.deployed_ref && status.deployed_ref !== 'dev') return <Badge tone="green" dot>{t("Up to date")}</Badge>
+    return <Badge tone="neutral">{t("Unknown version")}</Badge>
   })()
 
   const job = status?.job
@@ -117,8 +118,8 @@ export function ServerUpdateCard() {
         <div className="wb-update-heading">
           <span className="wb-update-icon" aria-hidden="true"><UpdateIcon /></span>
           <div>
-            <h3 className="wb-settings-title">Server updates</h3>
-            <p className="wb-settings-section-help">Compare this server with the latest source release.</p>
+            <h3 className="wb-settings-title">{t("Server updates")}</h3>
+            <p className="wb-settings-section-help">{t("Compare this server with the latest source release.")}</p>
           </div>
         </div>
         <div className="wb-update-badge">{badge}</div>
@@ -134,9 +135,9 @@ export function ServerUpdateCard() {
       )}
 
       <div className="wb-update-refs">
-        <RefChip label="Running version" value={status?.deployed_ref} />
+        <RefChip label={t("Running version")} value={status?.deployed_ref} />
         <span className="wb-update-ref-arrow" aria-hidden="true">→</span>
-        <RefChip label="Latest version" value={status?.latest_ref} />
+        <RefChip label={t("Latest version")} value={status?.latest_ref} />
       </div>
 
       {status?.check_error && (
@@ -147,7 +148,7 @@ export function ServerUpdateCard() {
 
       {!status?.can_update && status?.update_available && !loading && (
         <p className="wb-update-note">
-          Automatic installation is unavailable on this deployment. Install the latest version from the server host, then check again.
+          {t("Automatic installation is unavailable on this deployment. Install the latest version from the server host, then check again.")}
         </p>
       )}
 
@@ -156,29 +157,29 @@ export function ServerUpdateCard() {
           Last update {lastRun.status === 'success' ? 'succeeded' : lastRun.status === 'interrupted' ? 'was interrupted' : 'failed'}
           {lastRun.previous_ref && lastRun.new_ref ? ` (${lastRun.previous_ref} → ${lastRun.new_ref})` : ''}
           {lastRun.error ? `: ${lastRun.error}` : '.'}{' '}
-          {lastRun.status === 'interrupted' && 'Verify container health, then run the update again.'}
-          {lastRun.status === 'failed' && 'See the log below for details.'}
-          {lastRun.status === 'success' && 'The API restarted onto the new build.'}
+          {lastRun.status === 'interrupted' && t("Verify container health, then run the update again.")}
+          {lastRun.status === 'failed' && t("See the log below for details.")}
+          {lastRun.status === 'success' && t("The API restarted onto the new build.")}
         </p>
       )}
 
       <div className="wb-update-footer">
         <span className="wb-update-check-time">
           {lastChecked
-            ? `Checked ${lastChecked.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-            : 'Checking version…'}
+            ? t("Checked {time}", { time: lastChecked.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })
+            : t("Checking version…")}
         </span>
         <div className="wb-settings-form-actions">
           <Button variant="secondary" size="sm" loading={checking} onClick={() => void checkNow()}>
-            Check again
+            {t("Check again")}
           </Button>
           {status?.can_update && (confirming ? (
             <>
               <Button variant="danger" size="sm" loading={starting} onClick={() => void startUpdate()}>
-                Confirm update
+                {t("Confirm update")}
               </Button>
               <Button variant="ghost" size="sm" disabled={starting} onClick={() => setConfirming(false)}>
-                Cancel
+                {t("Cancel")}
               </Button>
             </>
           ) : (
@@ -187,19 +188,19 @@ export function ServerUpdateCard() {
               size="sm"
               disabled={running || !status.update_available}
               onClick={() => setConfirming(true)}
-              title={status.update_available ? undefined : 'No newer commit detected'}
+              title={status.update_available ? undefined : t("No newer commit detected")}
             >
-              Update now
+              {t("Update now")}
             </Button>
           ))}
           {log !== null && (
             <Button variant="ghost" size="sm" onClick={() => void showLog()} disabled={running}>
-              Refresh log
+              {t("Refresh log")}
             </Button>
           )}
           {status?.can_update && log === null && !loading && (
             <Button variant="ghost" size="sm" onClick={() => void showLog()}>
-              View update log
+              {t("View update log")}
             </Button>
           )}
         </div>
@@ -207,7 +208,7 @@ export function ServerUpdateCard() {
 
       {running && (
         <p className="wb-update-note" role="status">
-          Update in progress — source pull and image rebuild are running. This page reconnects automatically.
+          {t("Update in progress — source pull and image rebuild are running. This page reconnects automatically.")}
         </p>
       )}
 

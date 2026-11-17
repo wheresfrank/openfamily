@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../services/api_client.dart';
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
@@ -21,6 +22,16 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
   String? _error;
   double? _lat;
   double? _lon;
+  final TextEditingController _note = TextEditingController();
+
+  /// Matches the server's limit on an alert note.
+  static const int _maxNoteLength = 280;
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -49,6 +60,8 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
         body['lat'] = _lat;
         body['lon'] = _lon;
       }
+      final String note = _note.text.trim();
+      if (note.isNotEmpty) body['note'] = note;
       await ApiClient.post('/alerts/help', body: body);
       if (!mounted) return;
       setState(() {
@@ -67,7 +80,7 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
       if (!mounted) return;
       setState(() {
         _sending = false;
-        _error = 'Couldn\'t send help alert. Please try again.';
+        _error = context.l10n.helpAlertFailed;
       });
     }
   }
@@ -75,7 +88,7 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Help Alert')),
+      appBar: AppBar(title: Text(context.l10n.helpAlertTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -86,53 +99,110 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
   }
 
   Widget _buildForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(Icons.campaign_outlined, size: 56, color: AppColors.purple),
-        const SizedBox(height: 16),
-        const Text(
-          'Ask your family for help',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Send a non-emergency help alert with your location. Your family '
-          'members get a notification and can see where you are. Emergency '
-          'contacts are not texted.',
-          style: TextStyle(fontSize: 14, color: AppColors.textMuted),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'For a real emergency, use SOS instead.',
-          style: TextStyle(
-            fontSize: 13,
-            color: AppColors.sosRed,
-            fontWeight: FontWeight.w600,
+    final List<String> presets = <String>[
+      context.l10n.helpPresetCar,
+      context.l10n.helpPresetUnsafe,
+      context.l10n.helpPresetLost,
+      context.l10n.helpPresetFollowed,
+      context.l10n.helpPresetAccident,
+      context.l10n.helpPresetRide,
+      context.l10n.helpPresetUnwell,
+    ];
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.campaign_outlined,
+            size: 56,
+            color: BrandTheme.of(context).accentInk,
           ),
-        ),
-        if (_error != null) ...[
           const SizedBox(height: 16),
-          Text(_error!, style: const TextStyle(color: AppColors.sosRed)),
-        ],
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: _sending ? null : _send,
-            child: _sending
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text('Send Help Alert'),
+          Text(
+            context.l10n.helpAlertSubtitle,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            context.l10n.helpAlertExplainer,
+            style: TextStyle(fontSize: 14, color: BrandTheme.of(context).muted),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            context.l10n.helpAlertUseSos,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.sosRed,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            context.l10n.helpQuickMessages,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _note,
+            builder: (BuildContext context, TextEditingValue value, _) {
+              return Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final String preset in presets)
+                    ChoiceChip(
+                      label: Text(preset),
+                      selected: value.text.trim() == preset,
+                      onSelected: _sending
+                          ? null
+                          : (bool selected) {
+                              _note.text = selected ? preset : '';
+                              _note.selection = TextSelection.collapsed(
+                                offset: _note.text.length,
+                              );
+                            },
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _note,
+            enabled: !_sending,
+            maxLength: _maxNoteLength,
+            maxLines: 3,
+            minLines: 1,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              labelText: context.l10n.helpMessageLabel,
+              hintText: context.l10n.helpMessageHint,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(_error!, style: const TextStyle(color: AppColors.sosRed)),
+          ],
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _sending ? null : _send,
+              child: _sending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.onAccent,
+                      ),
+                    )
+                  : Text(context.l10n.sendHelpAlert),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -142,20 +212,20 @@ class _HelpAlertScreenState extends State<HelpAlertScreen> {
       children: [
         const Icon(Icons.check_circle, size: 72, color: AppColors.statusGreen),
         const SizedBox(height: 16),
-        const Text(
-          'Help alert sent',
+        Text(
+          context.l10n.helpAlertSentTitle,
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Your family has been notified with your location.',
+        Text(
+          context.l10n.helpAlertSentBody,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 15, color: AppColors.textMuted),
+          style: TextStyle(fontSize: 15, color: BrandTheme.of(context).muted),
         ),
         const SizedBox(height: 24),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Done'),
+          child: Text(context.l10n.actionDone),
         ),
       ],
     );

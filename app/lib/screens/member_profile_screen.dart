@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../l10n/l10n.dart';
+import '../utils/units.dart';
 import '../models/member.dart';
 import '../services/app_config.dart';
 import '../services/api_client.dart';
@@ -68,14 +70,14 @@ class MemberProfileScreen extends StatelessWidget {
           const SizedBox(height: 24),
           _DetailRow(
             icon: Icon(_batteryIcon(), size: 22, color: _batteryColor()),
-            label: 'Battery',
+            label: context.l10n.batteryLabel,
             value: member.batteryPercent > 0
                 ? '${member.batteryPercent}%'
-                : 'Offline',
+                : context.l10n.offlineStatus,
           ),
           _DetailRow(
-            icon: const Icon(Icons.schedule, size: 22, color: AppColors.purple),
-            label: 'ETA',
+            icon: Icon(Icons.schedule, size: 22, color: BrandTheme.of(context).accentInk),
+            label: context.l10n.etaLabel,
             value: member.eta ?? '—',
           ),
           _DetailRow(
@@ -86,8 +88,8 @@ class MemberProfileScreen extends StatelessWidget {
                   ? Theme.of(context).colorScheme.onSurfaceVariant
                   : null,
             ),
-            label: 'Status',
-            value: _drivingStatus(),
+            label: context.l10n.statusLabel,
+            value: _drivingStatus(context),
           ),
           _DetailRow(
             icon: const Icon(
@@ -95,16 +97,16 @@ class MemberProfileScreen extends StatelessWidget {
               size: 22,
               color: AppColors.accuracyBlue,
             ),
-            label: 'Accuracy',
+            label: context.l10n.accuracyLabel,
             value: _accuracyLabel,
           ),
           _DetailRow(
-            icon: const Icon(
+            icon: Icon(
               Icons.place_outlined,
               size: 22,
-              color: AppColors.purple,
+              color: BrandTheme.of(context).accentInk,
             ),
-            label: 'Address',
+            label: context.l10n.addressLabel,
             value: member.address,
           ),
           const SizedBox(height: 16),
@@ -132,12 +134,15 @@ class MemberProfileScreen extends StatelessWidget {
     return AppColors.statusGreen;
   }
 
-  String _drivingStatus() {
-    if (member.movement == MovementType.car && member.speedMph != null) {
-      final String speed = '${member.speedMph} mph';
-      return member.isSpeeding ? 'Speeding · $speed' : 'Driving · $speed';
+  String _drivingStatus(BuildContext context) {
+    if (member.hasDrivingSpeed) {
+      final String speed =
+          Units.speed(member.speedMps!, metric: Units.current);
+      return member.isSpeeding
+          ? context.l10n.speedingWithSpeed(speed)
+          : context.l10n.drivingWithSpeed(speed);
     }
-    if (member.movement == MovementType.none) return 'Not moving';
+    if (member.movement == MovementType.none) return context.l10n.notMoving;
     return member.movement.label;
   }
 
@@ -169,7 +174,7 @@ class _LocationRefreshButtonState extends State<_LocationRefreshButton> {
     if (_sending) return;
     setState(() {
       _sending = true;
-      _status = 'Requesting a fresh location…';
+      _status = context.l10n.requestingFreshLocation;
     });
     try {
       final Map<String, dynamic> response =
@@ -178,9 +183,9 @@ class _LocationRefreshButtonState extends State<_LocationRefreshButton> {
       final String status = response['status'] as String? ?? 'queued';
       setState(() {
         _status = switch (status) {
-          'cooldown' => 'A recent location request is still cooling down.',
-          'coalesced' => 'A location request is already in progress.',
-          _ => 'Request sent. The map will update when the phone responds.',
+          'cooldown' => context.l10n.locationRequestCooldown,
+          'coalesced' => context.l10n.locationRequestInProgress,
+          _ => context.l10n.locationRequestSent,
         };
       });
     } on ApiException catch (error) {
@@ -188,7 +193,7 @@ class _LocationRefreshButtonState extends State<_LocationRefreshButton> {
       setState(() => _status = error.message);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _status = 'Could not request a location right now.');
+      setState(() => _status = context.l10n.locationRequestFailed);
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -207,7 +212,7 @@ class _LocationRefreshButtonState extends State<_LocationRefreshButton> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.refresh),
-          label: const Text('Update location'),
+          label: Text(context.l10n.updateLocation),
         ),
         if (_status != null) ...<Widget>[
           const SizedBox(height: 6),
@@ -363,7 +368,7 @@ class _DayDetailButton extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Day Detail',
+                  context.l10n.dayDetailTitle,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -372,7 +377,7 @@ class _DayDetailButton extends StatelessWidget {
                 ),
               ),
               Text(
-                'Location history',
+                context.l10n.locationHistory,
                 style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,

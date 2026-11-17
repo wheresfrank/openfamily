@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +9,8 @@ import 'device_service.dart';
 import 'location_refresh_service.dart';
 import 'secure_url.dart';
 import 'unifiedpush_bridge.dart';
+
+import '../l10n/l10n.dart';
 
 /// Registers this device for push (UnifiedPush/ntfy on Android, APNs on iOS)
 /// and shows a local notification when a message arrives while the app is open.
@@ -94,22 +95,21 @@ class PushService {
     }
   }
 
-  /// Shows a local notification while the app is in the foreground. Background
-  /// delivery is left to APNs / the UnifiedPush distributor.
+  /// Shows a local notification for a UnifiedPush message. A UnifiedPush
+  /// distributor (ntfy) only forwards the message to the app and does not
+  /// display it, so this must run whether or not the app is in the foreground.
   static Future<void> showForeground(String title, String body) async {
-    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
-      return;
-    }
     try {
+      await initialize();
       await _local.show(
         id: _localId++,
         title: title,
         body: body,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'alerts',
-            'Alerts',
-            channelDescription: 'Family check-ins, help, and SOS',
+            CurrentL10n.value.alertsChannelName,
+            channelDescription: CurrentL10n.value.alertsChannelDescription,
             importance: Importance.high,
             priority: Priority.high,
           ),
@@ -201,9 +201,15 @@ class PushService {
     final LocationRefreshResult result =
         await LocationRefreshService.handlePush(body);
     if (result == LocationRefreshResult.notCommand) {
+      // The server sends "<title>\n<body>" (or just the title); the
+      // distributor drops the separate Title header.
+      final String text = body.trim();
+      final int split = text.indexOf('\n');
+      final String title = split > 0 ? text.substring(0, split) : 'OpenFamily';
+      final String detail = split > 0 ? text.substring(split + 1) : text;
       await showForeground(
-        'OpenFamily',
-        body.trim().isEmpty ? 'New notification' : body,
+        title,
+        detail.isEmpty ? CurrentL10n.value.newNotification : detail,
       );
     }
   }

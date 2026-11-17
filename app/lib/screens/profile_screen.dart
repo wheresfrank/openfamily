@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../l10n/l10n.dart';
 import '../models/user_profile.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
@@ -66,15 +67,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final String next = _newPasswordController.text;
     final String confirm = _confirmPasswordController.text;
     if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
-      setState(() => _passwordError = 'Fill in all password fields.');
+      setState(() => _passwordError = context.l10n.fillAllPasswordFields);
       return;
     }
     if (next.length < 8) {
-      setState(() => _passwordError = 'New password must be at least 8 characters.');
+      setState(() => _passwordError = context.l10n.passwordMin8);
       return;
     }
     if (next != confirm) {
-      setState(() => _passwordError = 'New passwords do not match.');
+      setState(() => _passwordError = context.l10n.passwordsDoNotMatch);
       return;
     }
     setState(() {
@@ -92,7 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _confirmPasswordController.clear();
       setState(() => _passwordSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password updated. Other devices will need to sign in again.')),
+        SnackBar(content: Text(context.l10n.passwordUpdated)),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -104,7 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       setState(() {
         _passwordSaving = false;
-        _passwordError = 'Could not change password. Try again.';
+        _passwordError = context.l10n.changePasswordFailed;
       });
     }
   }
@@ -141,7 +142,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // unavailable. Keep identity details on screen and offer retry.
           avatarError = error.message;
         } catch (_) {
-          avatarError = 'Couldn\'t load your profile photo. Please try again.';
+          avatarError = context.l10n.loadPhotoFailed;
         }
       }
 
@@ -181,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted || generation != _profileLoadGeneration) return;
       setState(() {
         _loading = false;
-        _error = 'Couldn\'t load your profile. Please try again.';
+        _error = context.l10n.loadProfileFailed;
       });
     }
   }
@@ -191,7 +192,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final String name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _nameError = 'Name is required.');
+      setState(() => _nameError = context.l10n.nameRequired);
       return;
     }
 
@@ -232,7 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _nameDirty = false;
         _nameSaving = false;
       });
-      _showSnackBar('Profile updated.');
+      _showSnackBar(context.l10n.profileUpdated);
     } on SessionExpiredException {
       // ApiClient has already started the root redirect to login.
       return;
@@ -246,7 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       setState(() {
         _nameSaving = false;
-        _nameError = 'Couldn\'t update your profile. Please try again.';
+        _nameError = context.l10n.updateProfileFailed;
       });
     }
   }
@@ -273,7 +274,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final int length = await image.length();
       if (!mounted) return;
       if (length <= 0 || length > ApiClient.maxProfileAvatarBytes) {
-        _setAvatarError('Profile photos must be 5 MB or smaller.');
+        _setAvatarError(context.l10n.photoTooLarge);
         return;
       }
 
@@ -282,11 +283,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final String? contentType = _avatarContentType(bytes);
       if (contentType == null) {
-        _setAvatarError('Choose a JPEG or PNG image.');
+        _setAvatarError(context.l10n.photoWrongType);
         return;
       }
       if (bytes.isEmpty || bytes.length > ApiClient.maxProfileAvatarBytes) {
-        _setAvatarError('Profile photos must be 5 MB or smaller.');
+        _setAvatarError(context.l10n.photoTooLarge);
         return;
       }
 
@@ -314,7 +315,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           avatarUpdatedAt: DateTime.now().toUtc(),
         );
       });
-      _showSnackBar('Profile photo updated.');
+      _showSnackBar(context.l10n.photoUpdated);
     } on SessionExpiredException {
       // ApiClient has already started the root redirect to login.
       return;
@@ -330,7 +331,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _pendingAvatarBytes = null;
         _avatarSaving = false;
-        _avatarError = 'Couldn\'t update your profile photo. Please try again.';
+        _avatarError = context.l10n.updatePhotoFailed;
       });
     }
   }
@@ -341,21 +342,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: const Text('Remove profile photo?'),
-        content: const Text(
-          'Your photo will be removed from this device view and your server.',
+        title: Text(context.l10n.removePhotoQuestion),
+        content: Text(context.l10n.removePhotoBody,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.actionCancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.sosRed,
             ),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Remove'),
+            child: Text(context.l10n.actionRemove),
           ),
         ],
       ),
@@ -381,7 +381,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           clearAvatarUpdatedAt: true,
         );
       });
-      _showSnackBar('Profile photo removed.');
+      _showSnackBar(context.l10n.photoRemoved);
     } on SessionExpiredException {
       // ApiClient has already started the root redirect to login.
       return;
@@ -395,7 +395,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       setState(() {
         _avatarSaving = false;
-        _avatarError = 'Couldn\'t remove your profile photo. Please try again.';
+        _avatarError = context.l10n.removePhotoFailed;
       });
     }
   }
@@ -444,7 +444,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final UserProfile? profile = _profile;
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(context.l10n.profileTitle)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : profile == null
@@ -466,8 +466,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         enabled: !_nameSaving && !_avatarSaving,
                         textCapitalization: TextCapitalization.words,
                         onChanged: _onNameChanged,
-                        decoration: const InputDecoration(
-                          labelText: 'Name',
+                        decoration: InputDecoration(
+                          labelText: context.l10n.nameLabel,
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -477,8 +477,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         enabled: !_nameSaving && !_avatarSaving,
                         keyboardType: TextInputType.phone,
                         onChanged: _onNameChanged,
-                        decoration: const InputDecoration(
-                          labelText: 'Phone (SMS alerts)',
+                        decoration: InputDecoration(
+                          labelText: context.l10n.phoneSmsLabel,
                           hintText: '+15551234567',
                           border: OutlineInputBorder(),
                         ),
@@ -500,23 +500,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: AppColors.onAccent,
                                 ),
                               )
-                            : const Text('Save changes'),
+                            : Text(context.l10n.saveChanges),
                       ),
                       const SizedBox(height: 16),
                       InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
+                        decoration: InputDecoration(
+                          labelText: context.l10n.emailLabel,
                           border: OutlineInputBorder(),
                         ),
                         child: Text(profile.email),
                       ),
                       const SizedBox(height: 16),
                       InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Family role',
+                        decoration: InputDecoration(
+                          labelText: context.l10n.familyRole,
                           border: OutlineInputBorder(),
                         ),
                         child: Text(_roleLabel(profile.role)),
@@ -533,7 +533,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 : _chooseAndUploadAvatar,
                             icon: const Icon(Icons.photo_library_outlined),
                             label: Text(
-                              !profile.hasAvatar ? 'Add photo' : 'Change photo',
+                              !profile.hasAvatar ? context.l10n.addPhoto : context.l10n.changePhoto,
                             ),
                           ),
                           if (profile.hasAvatar)
@@ -542,7 +542,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ? null
                                   : _removeAvatar,
                               icon: const Icon(Icons.delete_outline),
-                              label: const Text('Remove photo'),
+                              label: Text(context.l10n.removePhoto),
                               style: TextButton.styleFrom(
                                 foregroundColor: AppColors.sosRed,
                               ),
@@ -559,8 +559,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 28),
                       const Divider(),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Change password',
+                      Text(
+                        context.l10n.changePassword,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -570,8 +570,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       TextField(
                         controller: _currentPasswordController,
                         obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Current password',
+                        decoration: InputDecoration(
+                          labelText: context.l10n.currentPassword,
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -579,8 +579,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       TextField(
                         controller: _newPasswordController,
                         obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'New password',
+                        decoration: InputDecoration(
+                          labelText: context.l10n.newPassword,
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -588,8 +588,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       TextField(
                         controller: _confirmPasswordController,
                         obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Confirm new password',
+                        decoration: InputDecoration(
+                          labelText: context.l10n.confirmNewPassword,
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -609,25 +609,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 height: 20,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('Update password'),
+                            : Text(context.l10n.updatePassword),
                       ),
                       const SizedBox(height: 28),
                       const Divider(),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Profile photo privacy',
+                      Text(
+                        context.l10n.profilePhotoPrivacy,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
-                        'Your photo is stored privately on your OpenFamily server '
-                        'and shared only with authenticated family members and '
-                        'platform administrators.',
+                      Text(
+                        context.l10n.photoPrivacyBody,
                         style: TextStyle(
-                          color: AppColors.textMuted,
+                          color: BrandTheme.of(context).muted,
                           height: 1.35,
                         ),
                       ),
@@ -662,12 +660,14 @@ class _AvatarEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final String initials = _initials(name);
     final String semanticLabel = avatarBytes == null
-        ? 'No profile photo. Initials $initials.'
-        : 'Profile photo for $name.';
+        ? context.l10n.noProfilePhotoInitials(initials)
+        : context.l10n.profilePhotoFor(name);
     return Center(
       child: Semantics(
         image: true,
-        label: saving ? '$semanticLabel Uploading.' : semanticLabel,
+        label: saving
+            ? context.l10n.semanticUploading(semanticLabel)
+            : semanticLabel,
         child: SizedBox(
           width: 120,
           height: 120,
@@ -679,7 +679,7 @@ class _AvatarEditor extends StatelessWidget {
                 height: 112,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.surfaceTint,
+                  color: BrandTheme.of(context).paper,
                   border: Border.all(color: AppColors.purple, width: 3),
                 ),
                 child: ClipOval(
@@ -687,8 +687,8 @@ class _AvatarEditor extends StatelessWidget {
                       ? Center(
                           child: Text(
                             initials,
-                            style: const TextStyle(
-                              color: AppColors.purple,
+                            style: TextStyle(
+                              color: BrandTheme.of(context).accentInk,
                               fontSize: 38,
                               fontWeight: FontWeight.w800,
                             ),
@@ -700,8 +700,8 @@ class _AvatarEditor extends StatelessWidget {
                           errorBuilder: (_, __, ___) => Center(
                             child: Text(
                               initials,
-                              style: const TextStyle(
-                                color: AppColors.purple,
+                              style: TextStyle(
+                                color: BrandTheme.of(context).accentInk,
                                 fontSize: 38,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -768,7 +768,7 @@ class _AvatarError extends StatelessWidget {
               style: const TextStyle(color: AppColors.sosRed),
             ),
           ),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
+          TextButton(onPressed: onRetry, child: Text(context.l10n.actionRetry)),
         ],
       ),
     );
@@ -792,12 +792,12 @@ class _ProfileLoadError extends StatelessWidget {
             const Icon(Icons.error_outline, color: AppColors.sosRed, size: 36),
             const SizedBox(height: 12),
             Text(
-              message ?? 'Couldn\'t load your profile. Please try again.',
+              message ?? context.l10n.loadProfileFailed,
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.sosRed),
             ),
             const SizedBox(height: 12),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            FilledButton(onPressed: onRetry, child: Text(context.l10n.actionRetry)),
           ],
         ),
       ),

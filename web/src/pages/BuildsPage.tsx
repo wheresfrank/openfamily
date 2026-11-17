@@ -4,22 +4,23 @@ import type { ApkReleaseInfo, ApkStatus } from '../lib/types'
 import { Badge, Button, Card, Mono } from '../components/primitives'
 import './pages.css'
 import './BuildsPage.css'
+import { t } from '../lib/i18n'
 
 function formatDate(value?: string): string {
-  if (!value) return 'Not reported'
+  if (!value) return t("Not reported")
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Not reported'
+  if (Number.isNaN(date.getTime())) return t("Not reported")
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
 }
 
 function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return 'Not reported'
+  if (!Number.isFinite(bytes) || bytes <= 0) return t("Not reported")
   const megabytes = bytes / (1024 * 1024)
   return `${megabytes < 10 ? megabytes.toFixed(1) : Math.round(megabytes)} MB`
 }
 
 function releaseTitle(release?: ApkReleaseInfo): string {
-  return release?.name?.trim() || release?.tag_name || 'Latest Android release'
+  return release?.name?.trim() || release?.tag_name || t("Latest Android release")
 }
 
 export function BuildsPage() {
@@ -34,7 +35,7 @@ export function BuildsPage() {
     try {
       setStatus(await getApkStatus())
     } catch (error) {
-      setLoadError(error instanceof ApiError ? error.message : 'Could not load release information.')
+      setLoadError(error instanceof ApiError ? error.message : t("Could not load release information."))
     } finally {
       setLoading(false)
     }
@@ -59,7 +60,7 @@ export function BuildsPage() {
       URL.revokeObjectURL(url)
       setDownloadState('done')
     } catch (error) {
-      setActionError(error instanceof ApiError ? error.message : 'Download failed')
+      setActionError(error instanceof ApiError ? error.message : t("Download failed"))
       setDownloadState('error')
     }
   }
@@ -71,11 +72,11 @@ export function BuildsPage() {
     <div className="wb-page">
       <div className="wb-page-header wb-builds-page-header">
         <div>
-          <h1 className="wb-page-title">Android builds</h1>
-          <p className="wb-page-subtitle">Download and install the latest OpenFamily release.</p>
+          <h1 className="wb-page-title">{t("Android builds")}</h1>
+          <p className="wb-page-subtitle">{t("Download and install the latest OpenFamily release.")}</p>
         </div>
         <Button variant="secondary" size="sm" loading={loading} onClick={() => void loadRelease()}>
-          Refresh release
+          {t("Refresh release")}
         </Button>
       </div>
 
@@ -84,9 +85,9 @@ export function BuildsPage() {
           <div className="wb-build-release-heading">
             <span className="wb-build-app-icon" aria-hidden="true"><AndroidIcon /></span>
             <div>
-              <div className="wb-build-eyebrow">Latest release</div>
+              <div className="wb-build-eyebrow">{t("Latest release")}</div>
               <h2 className="wb-build-release-title">
-                {loading && !release ? 'Loading release…' : releaseTitle(release)}
+                {loading && !release ? t("Loading release…") : releaseTitle(release)}
               </h2>
               {release?.tag_name && release.name?.trim() && (
                 <Mono truncate="none">{release.tag_name}</Mono>
@@ -94,33 +95,33 @@ export function BuildsPage() {
             </div>
           </div>
           <Badge tone={release ? 'green' : releaseError ? 'red' : 'neutral'} dot={Boolean(release)}>
-            {release ? 'Ready to install' : releaseError ? 'Release unavailable' : 'Checking…'}
+            {release ? t("Ready to install") : releaseError ? t("Release unavailable") : t("Checking…")}
           </Badge>
         </div>
 
         {releaseError && (
           <div className="wb-build-error" role="alert">
             <span>{releaseError}</span>
-            <button type="button" onClick={() => void loadRelease()}>Try again</button>
+            <button type="button" onClick={() => void loadRelease()}>{t("Try again")}</button>
           </div>
         )}
 
         <dl className="wb-build-meta">
           <div>
-            <dt>Published</dt>
-            <dd>{loading ? 'Checking…' : formatDate(release?.published_at)}</dd>
+            <dt>{t("Published")}</dt>
+            <dd>{loading ? t("Checking…") : formatDate(release?.published_at)}</dd>
           </div>
           <div>
-            <dt>Download size</dt>
-            <dd>{loading ? 'Checking…' : formatBytes(release?.asset_size ?? 0)}</dd>
+            <dt>{t("Download size")}</dt>
+            <dd>{loading ? t("Checking…") : formatBytes(release?.asset_size ?? 0)}</dd>
           </div>
           <div>
-            <dt>File</dt>
-            <dd className="wb-build-filename">{loading ? 'Checking…' : release?.asset_name || 'Not reported'}</dd>
+            <dt>{t("File")}</dt>
+            <dd className="wb-build-filename">{loading ? t("Checking…") : release?.asset_name || t("Not reported")}</dd>
           </div>
           <div>
-            <dt>Platform</dt>
-            <dd>Android APK</dd>
+            <dt>{t("Platform")}</dt>
+            <dd>{t("Android APK")}</dd>
           </div>
         </dl>
 
@@ -131,37 +132,37 @@ export function BuildsPage() {
             loading={downloadState === 'downloading'}
             icon={<DownloadIcon />}
           >
-            {downloadState === 'downloading' ? 'Downloading…' : 'Download APK'}
+            {downloadState === 'downloading' ? t("Downloading…") : t("Download APK")}
           </Button>
           {release?.html_url && (
             <a className="wb-build-release-link" href={release.html_url} target="_blank" rel="noreferrer">
-              View release <ExternalIcon />
+              {t("View release")} <ExternalIcon />
             </a>
           )}
         </div>
 
-        {downloadState === 'done' && <p className="wb-build-download-message" role="status">Download started.</p>}
+        {downloadState === 'done' && <p className="wb-build-download-message" role="status">{t("Download started.")}</p>}
         {actionError && <p className="wb-error-text wb-build-action-error" role="alert">{actionError}</p>}
       </Card>
 
       <div className="wb-builds-grid">
         <Card className="wb-build-notes-card">
           <div className="wb-build-section-icon" aria-hidden="true"><NotesIcon /></div>
-          <h3 className="wb-build-info-title">What’s in this release</h3>
+          <h3 className="wb-build-info-title">{t("What’s in this release")}</h3>
           <p className={release?.body ? 'wb-build-release-notes' : 'wb-build-info-text'}>
-            {release?.body?.trim() || 'Release notes have not been added for this build.'}
+            {release?.body?.trim() || t("Release notes have not been added for this build.")}
           </p>
         </Card>
 
         <Card className="wb-build-install-card">
           <div className="wb-build-section-icon" aria-hidden="true"><PhoneIcon /></div>
-          <h3 className="wb-build-info-title">Install on Android</h3>
+          <h3 className="wb-build-info-title">{t("Install on Android")}</h3>
           <ol className="wb-build-install-steps">
-            <li>Download the APK on your phone.</li>
-            <li>Open the downloaded file and allow installs when prompted.</li>
-            <li>Install over the existing app to keep your settings.</li>
+            <li>{t("Download the APK on your phone.")}</li>
+            <li>{t("Open the downloaded file and allow installs when prompted.")}</li>
+            <li>{t("Install over the existing app to keep your settings.")}</li>
           </ol>
-          <p className="wb-build-info-foot">Android may warn that the file came from outside the Play Store.</p>
+          <p className="wb-build-info-foot">{t("Android may warn that the file came from outside the Play Store.")}</p>
         </Card>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 // MapView — the live map for the OpenFamily admin panel.
 //
 // A full-bleed Leaflet map (via react-leaflet) shows every group's members as
@@ -337,7 +338,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   // either portal scope.
   const requestLocation = useCallback(
     async (memberId: string): Promise<{ ok: boolean; message: string }> => {
-      if (!token) return { ok: false, message: "Not signed in." };
+      if (!token) return { ok: false, message: t("Not signed in.") };
       const base = resolveBase(apiBase);
       try {
         const response = await fetch(
@@ -355,23 +356,23 @@ export function MapView(props: MapViewProps): JSX.Element {
           let message: string;
           if (response.status === 409) {
             message =
-              "This phone has no registered push connection. Open the app on the phone once to reconnect it.";
+              t("This phone has no registered push connection. Open the app on the phone once to reconnect it.");
           } else if (response.status >= 500) {
-            message = "Could not reach the phone right now. Try again shortly.";
+            message = t("Could not reach the phone right now. Try again shortly.");
           } else {
-            message = data.error ?? `Request failed (${response.status})`;
+            message = data.error ?? t("Request failed ({status})", { status: response.status });
           }
           return { ok: false, message };
         }
         const message =
           data.status === "cooldown"
-            ? "A recent request is still cooling down."
+            ? t("A recent request is still cooling down.")
             : data.status === "coalesced"
-              ? "A location request is already in progress."
-              : "Request sent. The map will update when the phone responds.";
+              ? t("A location request is already in progress.")
+              : t("Request sent. The map will update when the phone responds.");
         return { ok: true, message };
       } catch {
-        return { ok: false, message: "Could not reach the server." };
+        return { ok: false, message: t("Could not reach the server.") };
       }
     },
     [apiBase, token],
@@ -379,14 +380,14 @@ export function MapView(props: MapViewProps): JSX.Element {
 
   const requestSelectedLocation = useCallback(async (): Promise<void> => {
     if (!selectedMemberId) return;
-    setLocationRequest({ memberId: selectedMemberId, sending: true, message: "Requesting a fresh location…" });
+    setLocationRequest({ memberId: selectedMemberId, sending: true, message: t("Requesting a fresh location…") });
     const result = await requestLocation(selectedMemberId);
     setLocationRequest({ memberId: selectedMemberId, sending: false, message: result.message });
   }, [requestLocation, selectedMemberId]);
 
   const requestMemberLocation = useCallback(
     (member: Member): void => {
-      setLocationRequest({ memberId: member.id, sending: true, message: "Requesting a fresh location…" });
+      setLocationRequest({ memberId: member.id, sending: true, message: t("Requesting a fresh location…") });
       void requestLocation(member.id).then((result) => {
         setLocationRequest({ memberId: member.id, sending: false, message: result.message });
       });
@@ -545,7 +546,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         }
       } catch (e) {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : "Could not load families. Check your connection and try again.");
+        setError(e instanceof Error ? e.message : t("Could not load families. Check your connection and try again."));
         setLoading(false);
       }
     }
@@ -682,8 +683,11 @@ export function MapView(props: MapViewProps): JSX.Element {
   /* ----------------------------- render ----------------------------- */
   const panelTitle =
     groupFilter == null
-      ? `All groups · ${visibleMembers.length}`
-      : `${groups.find((g) => g.id === groupFilter)?.name ?? "Group"} · ${visibleMembers.length}`;
+      ? t("All groups · {count}", { count: visibleMembers.length })
+      : t("{name} · {count}", {
+          name: groups.find((g) => g.id === groupFilter)?.name ?? t("Group"),
+          count: visibleMembers.length,
+        });
 
   const showOverlay =
     loading ||
@@ -775,9 +779,9 @@ export function MapView(props: MapViewProps): JSX.Element {
       />
 
       {!showOverlay && (
-        <div className="wb-live-badge" aria-label="Live">
+        <div className="wb-live-badge" aria-label={t("Live")}>
           <span className="wb-live-dot" />
-          LIVE
+          {t("LIVE")}
         </div>
       )}
 
@@ -815,7 +819,7 @@ export function MapView(props: MapViewProps): JSX.Element {
           {loading ? (
             <>
               <div className="wb-map-spinner" />
-              <p className="wb-state-text">Loading live locations…</p>
+              <p className="wb-state-text">{t("Loading live locations…")}</p>
             </>
           ) : error != null ? (
             <div className="wb-state-card">
@@ -825,7 +829,7 @@ export function MapView(props: MapViewProps): JSX.Element {
                   <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.6" />
                 </svg>
               </span>
-              <span className="wb-state-title">Couldn’t load the map</span>
+              <span className="wb-state-title">{t("Couldn’t load the map")}</span>
               <span className="wb-state-text">{error}</span>
               <button
                 type="button"
@@ -836,7 +840,7 @@ export function MapView(props: MapViewProps): JSX.Element {
                   setReloadKey((k) => k + 1);
                 }}
               >
-                Retry
+                {t("Retry")}
               </button>
             </div>
           ) : (
@@ -848,12 +852,12 @@ export function MapView(props: MapViewProps): JSX.Element {
                 </svg>
               </span>
               <span className="wb-state-title">
-                {visibleMembers.length === 0 ? "No members to map yet" : "No locations reported yet"}
+                {visibleMembers.length === 0 ? t("No members to map yet") : t("No locations reported yet")}
               </span>
               <span className="wb-state-text">
                 {visibleMembers.length === 0
-                  ? "When families have members reporting their location, they’ll appear here live."
-                  : "Members are here, but none have reported a location yet."}
+                  ? t("When families have members reporting their location, they’ll appear here live.")
+                  : t("Members are here, but none have reported a location yet.")}
               </span>
             </div>
           )}

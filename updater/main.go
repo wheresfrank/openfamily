@@ -81,6 +81,15 @@ type updater struct {
 }
 
 func main() {
+	// Self-update is documented as disabled when UPDATER_TOKEN is empty. This
+	// sidecar mounts the Docker socket (root-equivalent), so do not keep it
+	// running in that case. Exit 0; compose uses restart: on-failure, so it
+	// stays down.
+	if os.Getenv("UPDATER_TOKEN") == "" {
+		slog.Info("UPDATER_TOKEN is empty: self-update disabled, exiting")
+		os.Exit(0)
+	}
+
 	addr := getenv("LISTEN_ADDR", defaultAddr)
 	repoDir := getenv("REPO_DIR", "/repo")
 	dataDir := getenv("DATA_DIR", "/data")

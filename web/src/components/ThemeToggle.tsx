@@ -1,16 +1,17 @@
 import { useThemePreference, type ThemePreference } from '../lib/theme'
+import { t } from '../lib/i18n'
 
 const OPTIONS: { id: ThemePreference; label: string; hint: string }[] = [
-  { id: 'system', label: 'System', hint: 'Match this device' },
-  { id: 'light', label: 'Light', hint: 'Ice' },
-  { id: 'dark', label: 'Dark', hint: 'Night' },
+  { id: 'system', label: t("System"), hint: t("Match this device") },
+  { id: 'light', label: t("Light"), hint: t("Ice") },
+  { id: 'dark', label: t("Dark"), hint: t("Night") },
 ]
 
 export function ThemeToggle() {
   const [preference, setPreference] = useThemePreference()
 
   return (
-    <div role="radiogroup" aria-label="Theme" className="wb-theme-toggle">
+    <div role="radiogroup" aria-label={t("Theme")} className="wb-theme-toggle">
       {OPTIONS.map((option) => {
         const checked = preference === option.id
         return (

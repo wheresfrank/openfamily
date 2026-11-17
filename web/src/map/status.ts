@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 // Status + movement derivation — a TypeScript port of the Flutter app's
 // app/lib/services/member_mapper.dart.
 //
@@ -6,7 +7,7 @@
 //   - low battery warning below 15% (kLowBatteryThreshold)
 //   - GPS accuracy issue at/above 100m (kGpsIssueAccuracyMeters)
 //   - movement from `motion_state`: driving→car, cycling→bike, else none
-//   - speed_mps (m/s) → mph (× 2.23694)
+//   - speed_mps (m/s) is kept as-is; display conversion lives in lib/units.ts
 // A `location` frame is applied on top of an existing member, falling back to
 // the prior value when a field is omitted, so a position-only frame does not
 // spuriously flip a low-battery / driving member back to normal / still.
@@ -29,10 +30,8 @@ export const LOW_BATTERY_THRESHOLD = 15;
 /** Accuracy (meters) at/above which a member is flagged as a GPS issue. */
 export const GPS_ISSUE_ACCURACY_METERS = 100;
 
-/** Speed (mph) at/above which a driving member is shown as "speeding". */
-export const SPEEDING_MPH = 70;
-
-const MPS_TO_MPH = 2.23694;
+/** Speed (m/s) at/above which a driving member is shown as "speeding" (70 mph). */
+export const SPEEDING_MPS = 31.2928;
 
 /**
  * Parses the backend `ts` field, which may be an ISO-8601 string or a Unix
@@ -90,13 +89,13 @@ export function movementFrom(motion: string | null | undefined): MovementType {
 }
 
 /** Whether a driving member is fast enough to flag as "speeding". */
-export function isSpeeding(movement: MovementType, speedMph: number | null): boolean {
-  return movement === "car" && speedMph != null && speedMph >= SPEEDING_MPH;
+export function isSpeeding(movement: MovementType, speedMps: number | null): boolean {
+  return movement === "car" && speedMps != null && speedMps >= SPEEDING_MPS;
 }
 
 /** Whether the map pin should render a numeric speed caption (driving + speed). */
-export function showsDrivingSpeed(movement: MovementType, speedMph: number | null): boolean {
-  return movement === "car" && speedMph != null;
+export function showsDrivingSpeed(movement: MovementType, speedMps: number | null): boolean {
+  return movement === "car" && speedMps != null;
 }
 
 /**
@@ -140,14 +139,14 @@ export function addressFrom(
   movement: MovementType,
   nowMs: number,
 ): string {
-  if (position == null) return "No location yet";
+  if (position == null) return t("No location yet");
   if (movement === "car") return "Driving";
   if (movement === "bike") return "Biking";
   if (movement === "walking") return "Walking";
   if (movement === "running") return "Running";
-  if (ts == null) return "No location yet";
+  if (ts == null) return t("No location yet");
   const age = nowMs - ts;
-  if (age > STALE_AFTER_MS) return `Position from ${formatAgo(age)} ago`;
+  if (age > STALE_AFTER_MS) return t("Position from {age} ago", { age: formatAgo(age) });
   return "Stationary";
 }
 
@@ -221,7 +220,7 @@ export function lastSeenLabel(member: Member, nowMs: number): string {
   if (member.lastSeen == null) return "never";
   const age = nowMs - member.lastSeen;
   if (age < 0) return "just now";
-  if (age > STALE_AFTER_MS) return `Last seen ${formatAgo(age)} ago`;
+  if (age > STALE_AFTER_MS) return t("Last seen {age} ago", { age: formatAgo(age) });
   return `${formatAgo(age)} ago`;
 }
 
@@ -259,7 +258,7 @@ export function deriveMember(
 
   return {
     id: raw.id ?? "",
-    name: raw.name ?? "Member",
+    name: raw.name ?? t("Member"),
     familyId,
     familyName,
     avatarColor,
@@ -268,7 +267,7 @@ export function deriveMember(
     status: statusFrom(position, effectiveTs, batteryPct, raw.accuracy_meters, nowMs),
     batteryPercent: batteryPct != null ? Math.round(batteryPct) : 0,
     movement,
-    speedMph: speedMps != null ? Math.round(speedMps * MPS_TO_MPH) : null,
+    speedMps: speedMps ?? null,
     lastSeen: effectiveTs,
     address: addressFrom(position, effectiveTs, movement, nowMs),
     hasAvatar: raw.has_avatar === true,
@@ -359,7 +358,7 @@ export function applyLocationUpdate(
     batteryPercent: batteryPct != null ? Math.round(batteryPct) : existing.batteryPercent,
     address: addressFrom(position, ts, movement, nowMs),
     movement,
-    speedMph: speedMps != null ? Math.round(speedMps * MPS_TO_MPH) : existing.speedMph,
+    speedMps: speedMps ?? existing.speedMps,
     lastSeen: ts,
   };
 }
@@ -371,7 +370,7 @@ export function applyLocationUpdate(
  * members without duplicating the prefix knowledge.
  */
 export function isStaleAddress(address: string): boolean {
-  return address.startsWith("Position from");
+  return address.startsWith(t("Position from {age} ago").split("{age}")[0]);
 }
 
 /**
@@ -391,7 +390,7 @@ export function refreshStaleness(member: Member, nowMs: number): Member {
   if (member.position == null || member.lastSeen == null) return member;
   const age = nowMs - member.lastSeen;
   if (age <= STALE_AFTER_MS) return member;
-  const label = `Position from ${formatAgo(age)} ago`;
+  const label = t("Position from {age} ago", { age: formatAgo(age) });
   if (member.status === "stopped" && member.address === label) return member;
   return { ...member, status: "stopped", address: label };
 }

@@ -3,6 +3,7 @@
 
 import React from 'react'
 import './primitives.css'
+import { t } from '../lib/i18n'
 
 // ---- Button ----
 
@@ -101,7 +102,7 @@ export function Spinner({ size = 18, className }: SpinnerProps) {
       className={`wb-spinner ${className ?? ''}`}
       style={{ width: size, height: size }}
       role="status"
-      aria-label="Loading"
+      aria-label={t("Loading")}
     >
       <span className="wb-spinner-ring" style={{ borderWidth: Math.max(2, Math.round(size / 9)) }} />
     </span>
@@ -150,7 +151,7 @@ interface ErrorStateProps {
   onRetry?: () => void
 }
 
-export function ErrorState({ title = 'Something went wrong', description, onRetry }: ErrorStateProps) {
+export function ErrorState({ title = t("Something went wrong"), description, onRetry }: ErrorStateProps) {
   return (
     <div className="wb-error">
       <div className="wb-error-icon">
@@ -168,7 +169,7 @@ export function ErrorState({ title = 'Something went wrong', description, onRetr
       {description && <p className="wb-error-desc">{description}</p>}
       {onRetry && (
         <Button variant="secondary" size="sm" onClick={onRetry}>
-          Try again
+          {t("Try again")}
         </Button>
       )}
     </div>
@@ -180,10 +181,10 @@ export function ErrorState({ title = 'Something went wrong', description, onRetr
 export function AccessDenied({ message }: { message?: string }) {
   return (
     <ErrorState
-      title="You don't have admin access"
+      title={t("You don't have admin access")}
       description={
         message ??
-        'Your account is not permitted to view this admin panel. Contact an administrator if you believe this is a mistake.'
+        t("Your account is not permitted to view this admin panel. Contact an administrator if you believe this is a mistake.")
       }
     />
   )
@@ -274,8 +275,8 @@ export function CopyButton({ value, label, size = 'sm' }: CopyButtonProps) {
       type="button"
       className={`wb-copy-btn wb-copy-btn-${size}`}
       onClick={onClick}
-      aria-label={label ?? 'Copy to clipboard'}
-      title={label ?? 'Copy to clipboard'}
+      aria-label={label ?? t("Copy to clipboard")}
+      title={label ?? t("Copy to clipboard")}
     >
       {copied ? <CheckIcon /> : <CopyIcon />}
     </button>

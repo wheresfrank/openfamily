@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../services/api_client.dart';
 import '../services/family_service.dart';
 import '../services/permission_service.dart';
@@ -51,12 +52,17 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
   int _index = 0;
   bool _requesting = false;
 
+  bool _stepsLoaded = false;
+
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_stepsLoaded) return;
+    _stepsLoaded = true;
     // Location and notifications are always requested. Motion & fitness is
     // added asynchronously only on devices that support it (iOS, or Android
-    // with Google Play Services available).
+    // with Google Play Services available). Built here, not in initState,
+    // because the step text depends on the localizations.
     _steps.addAll(_baseSteps());
     _states.addAll(List<PermissionState?>.filled(_steps.length, null));
     _loadMotionStep();
@@ -68,54 +74,47 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     super.dispose();
   }
 
-  static List<_PermissionStep> _baseSteps() => <_PermissionStep>[
-        const _PermissionStep(
-          permission: OnboardingPermission.location,
-          icon: Icons.location_on,
-          title: 'Location access',
-          why: 'OpenFamily collects and sends your precise location to your '
-              'configured server to enable family location sharing, location '
-              'history, and arrival and departure alerts, even when the app '
-              'is closed or not in use. Your family members and server '
-              'administrator can view shared locations. Choose "Always Allow" '
-              'to enable background location sharing.',
-          consequence:
-              'Without "Always Allow", background tracking won\'t work '
-              '— your family won\'t see your location when the app is closed.',
-          buttonLabel: 'Allow Location',
-        ),
-        const _PermissionStep(
-          permission: OnboardingPermission.notifications,
-          icon: Icons.notifications,
-          title: 'Notifications',
-          why: 'Get gentle alerts when family members arrive at or leave saved '
-              'places, and critical alerts in an emergency. We only send what '
-              'matters — never marketing.',
-          consequence: 'Without notifications, you won\'t get arrival or '
-              'departure alerts, or emergency alerts.',
-          buttonLabel: 'Allow Notifications',
-        ),
-      ];
+  List<_PermissionStep> _baseSteps() {
+    final AppLocalizations l10n = context.l10n;
+    return <_PermissionStep>[
+      _PermissionStep(
+        permission: OnboardingPermission.location,
+        icon: Icons.location_on,
+        title: l10n.permLocationTitle,
+        why: l10n.permLocationWhy,
+        consequence: l10n.permLocationConsequence,
+        buttonLabel: l10n.permLocationButton,
+      ),
+      _PermissionStep(
+        permission: OnboardingPermission.notifications,
+        icon: Icons.notifications,
+        title: l10n.notificationsTitle,
+        why: l10n.permNotificationsWhy,
+        consequence: l10n.permNotificationsConsequence,
+        buttonLabel: l10n.permNotificationsButton,
+      ),
+    ];
+  }
 
-  static const _PermissionStep _motionStep = _PermissionStep(
-    permission: OnboardingPermission.motion,
-    icon: Icons.directions_walk,
-    title: 'Motion & Fitness',
-    why: 'Detects when you\'re driving, biking, or walking so your '
-        'family sees how you\'re moving — without draining your battery '
-        'with constant GPS.',
-    consequence: 'Without motion & fitness, the app can\'t tell when '
-        'you\'re driving, biking, or walking.',
-    buttonLabel: 'Allow Motion',
-    optional: true,
-  );
+  _PermissionStep _motionStep() {
+    final AppLocalizations l10n = context.l10n;
+    return _PermissionStep(
+      permission: OnboardingPermission.motion,
+      icon: Icons.directions_walk,
+      title: l10n.permMotionTitle,
+      why: l10n.permMotionWhy,
+      consequence: l10n.permMotionConsequence,
+      buttonLabel: l10n.permMotionButton,
+      optional: true,
+    );
+  }
 
   /// Adds the motion & fitness step only on devices that support it.
   Future<void> _loadMotionStep() async {
     final bool supported = await PermissionService.supportsMotion();
     if (!mounted || !supported) return;
     setState(() {
-      _steps.add(_motionStep);
+      _steps.add(_motionStep());
       _states.add(null);
     });
   }
@@ -140,18 +139,16 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     final bool skip = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('Skip ${step.title}?'),
-            content: Text(
-              '${step.consequence}\n\nYou can enable it later in Settings.',
-            ),
+            title: Text(context.l10n.skipPermissionTitle(step.title)),
+            content: Text(context.l10n.skipPermissionBody(step.consequence)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Enable'),
+                child: Text(context.l10n.actionEnable),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Skip anyway'),
+                child: Text(context.l10n.skipAnyway),
               ),
             ],
           ),
@@ -233,7 +230,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enable permissions'),
+        title: Text(context.l10n.enablePermissions),
         bottom: const OnboardingStepIndicator(currentStep: 2, totalSteps: 6),
       ),
       body: SafeArea(
@@ -291,7 +288,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: AppColors.onAccent,
                               ),
                             )
                           : Text(
@@ -310,14 +307,14 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                           ? null
                           : () => PermissionService.openSettings(),
                       icon: const Icon(Icons.settings_outlined),
-                      label: const Text('Open Settings'),
+                      label: Text(context.l10n.openSettings),
                     ),
                   ],
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: _requesting ? null : _notNow,
                     child: Text(
-                      _steps[_index].optional ? 'Skip (optional)' : 'Not now',
+                      _steps[_index].optional ? context.l10n.skipOptional : context.l10n.actionNotNow,
                     ),
                   ),
                 ],
@@ -369,12 +366,12 @@ class _PermissionStepView extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: granted
                       ? AppColors.statusGreen.withValues(alpha: 0.12)
-                      : AppColors.surfaceTint,
+                      : BrandTheme.of(context).paper,
                 ),
                 child: Icon(
                   granted ? Icons.check_circle : step.icon,
                   size: 48,
-                  color: granted ? AppColors.statusGreen : AppColors.purple,
+                  color: granted ? AppColors.statusGreen : BrandTheme.of(context).accentInk,
                 ),
               ),
               const SizedBox(height: 24),
@@ -400,12 +397,12 @@ class _PermissionStepView extends StatelessWidget {
                         color: AppColors.purple.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text(
-                        'Optional',
+                      child: Text(
+                        context.l10n.optionalLabel,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.purple,
+                          color: BrandTheme.of(context).accentInk,
                         ),
                       ),
                     ),
@@ -416,22 +413,20 @@ class _PermissionStepView extends StatelessWidget {
               Text(
                 step.why,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   height: 1.4,
-                  color: AppColors.textMuted,
+                  color: BrandTheme.of(context).muted,
                 ),
               ),
               if (denied) ...[
                 const SizedBox(height: 16),
                 Text(
                   permanentlyDenied
-                      ? 'This permission is permanently denied. Tap "Open Settings" '
-                          'below to enable it.'
+                      ? context.l10n.permDeniedForever
                       : needsManualSettings
-                          ? 'On iOS, choose "Always Allow" in Settings to enable '
-                              'background tracking. Tap "Open Settings" below.'
-                          : 'You can enable this later in Settings.',
+                          ? context.l10n.permIosAlways
+                          : context.l10n.permEnableLater,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                       fontSize: 13, color: AppColors.statusOrange),

@@ -9,6 +9,7 @@ import React from 'react'
 import { ApiError, getDomainStatus } from '../lib/api'
 import type { DomainCheck, DomainStatus } from '../lib/types'
 import { Badge, Button, Card, CopyButton, Mono } from '../components/primitives'
+import { t } from '../lib/i18n'
 
 const CUSTOM_DOMAIN_DOCS_URL =
   'https://github.com/wheresfrank/whereabouts/blob/main/docs/custom-domain.md'
@@ -36,7 +37,7 @@ function CheckRow({ label, check }: { label: string; check?: DomainCheck }) {
       <div>
         <span className="wb-domain-check-label">{label}</span>{' '}
         <span className={`wb-domain-check-detail ${tone}`}>
-          {check.detail || (check.status === 'skipped' ? 'Skipped.' : '')}
+          {check.detail || (check.status === 'skipped' ? t("Skipped.") : '')}
         </span>
       </div>
     </div>
@@ -54,7 +55,7 @@ export function DomainSettingsCard() {
     try {
       setStatus(await getDomainStatus())
     } catch (error) {
-      setLoadError(messageFromError(error, 'Could not load domain status.'))
+      setLoadError(messageFromError(error, t("Could not load domain status.")))
     } finally {
       setLoading(false)
     }
@@ -70,20 +71,20 @@ export function DomainSettingsCard() {
   return (
     <Card>
       <div className="wb-settings-title-row">
-        <h3 className="wb-settings-title">Custom domain</h3>
+        <h3 className="wb-settings-title">{t("Custom domain")}</h3>
         <Badge tone={loading && !status ? 'grey' : custom ? 'green' : 'grey'} dot>
-          {loading && !status ? 'Checking…' : custom ? 'Configured' : 'Not configured'}
+          {loading && !status ? t("Checking…") : custom ? t("Configured") : t("Not configured")}
         </Badge>
       </div>
       <p className="wb-settings-section-help">
-        Serving on your own domain gives every device automatic HTTPS via Let&apos;s Encrypt.
+        {t("Serving on your own domain gives every device automatic HTTPS via Let's Encrypt.")}
       </p>
 
       {loadError && (
         <div className="wb-profile-load-error" role="alert">
           <span>{loadError}</span>
           <Button type="button" variant="secondary" size="sm" onClick={() => void refresh()}>
-            Try again
+            {t("Try again")}
           </Button>
         </div>
       )}
@@ -93,21 +94,21 @@ export function DomainSettingsCard() {
           {custom && status?.hostname ? (
             <dl className="wb-settings-list wb-settings-list-row">
               <div>
-                <dt>Address</dt>
+                <dt>{t("Address")}</dt>
                 <dd className="wb-settings-mono">
                   <Mono truncate="none" max={40}>{status.hostname}</Mono>
-                  <CopyButton value={status.hostname} label="Copy domain" />
+                  <CopyButton value={status.hostname} label={t("Copy domain")} />
                 </dd>
               </div>
               <div>
-                <dt>Site address (env)</dt>
+                <dt>{t("Site address (env)")}</dt>
                 <dd className="wb-settings-mono">
                   <Mono truncate="none" max={40}>{status.site_address}</Mono>
                 </dd>
               </div>
               {status.public_base_url && (
                 <div>
-                  <dt>SMS link origin</dt>
+                  <dt>{t("SMS link origin")}</dt>
                   <dd className="wb-settings-mono">
                     <Mono truncate="none" max={40}>{status.public_base_url}</Mono>
                   </dd>
@@ -122,14 +123,14 @@ export function DomainSettingsCard() {
                   {serverUrl || status?.site_address || 'a local address'}
                 </Mono>
               </span>
-              . It works, but browsers and phones will warn about the missing certificate.
+              {t(". It works, but browsers and phones will warn about the missing certificate.")}
             </p>
           )}
 
           {custom && (
             <div className="wb-domain-checks">
-              <CheckRow label="DNS:" check={status?.dns} />
-              <CheckRow label="HTTPS:" check={status?.https} />
+              <CheckRow label={t("DNS:")} check={status?.dns} />
+              <CheckRow label={t("HTTPS:")} check={status?.https} />
             </div>
           )}
         </>
@@ -137,10 +138,10 @@ export function DomainSettingsCard() {
 
       <p className="wb-domain-docs-row">
         <a href={CUSTOM_DOMAIN_DOCS_URL} target="_blank" rel="noreferrer">
-          How to set up a custom domain ↗
+          {t("How to set up a custom domain ↗")}
         </a>
         <Button type="button" variant="ghost" size="sm" loading={loading} onClick={() => void refresh()}>
-          Re-run checks
+          {t("Re-run checks")}
         </Button>
       </p>
     </Card>

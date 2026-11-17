@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../services/biometric_service.dart';
 import '../services/token_storage.dart';
 import '../theme/app_theme.dart';
@@ -241,7 +242,7 @@ class _BiometricAppLockState extends State<BiometricAppLock>
         _covered = hasSession;
         _checking = false;
         _error = hasSession
-            ? 'Could not read biometric settings. Retry or log out.'
+            ? context.l10n.biometricReadFailedRetry
             : null;
       });
       return;
@@ -342,7 +343,7 @@ class _BiometricAppLockState extends State<BiometricAppLock>
         _covered = true;
         _checking = false;
         _error = result.error?.message ??
-            'Biometric authentication was not completed. Please try again.';
+            context.l10n.biometricNotCompletedRetry;
       }
     });
   }
@@ -367,7 +368,7 @@ class _BiometricAppLockState extends State<BiometricAppLock>
         _loggingOut = false;
         _covered = true;
         _checking = false;
-        _error = 'Could not log out safely. Please try again.';
+        _error = context.l10n.logOutFailed;
       });
     }
   }
@@ -421,7 +422,7 @@ class _BiometricLockView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: BrandTheme.of(context).sheet,
       child: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -437,7 +438,7 @@ class _BiometricLockView extends StatelessWidget {
                         const Center(child: OpenFamilyMark(size: 88)),
                         const SizedBox(height: 24),
                         Text(
-                          'OpenFamily is locked',
+                          context.l10n.appLockedTitle,
                           textAlign: TextAlign.center,
                           style: Theme.of(context)
                               .textTheme
@@ -445,10 +446,10 @@ class _BiometricLockView extends StatelessWidget {
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Authenticate to view your private family map.',
+                        Text(
+                          context.l10n.appLockedBody,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textMuted),
+                          style: TextStyle(color: BrandTheme.of(context).muted),
                         ),
                         if (error != null) ...[
                           const SizedBox(height: 20),
@@ -471,7 +472,7 @@ class _BiometricLockView extends StatelessWidget {
                                   height: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.white,
+                                    color: AppColors.onAccent,
                                   ),
                                 )
                               : const Icon(Icons.fingerprint),
@@ -484,7 +485,7 @@ class _BiometricLockView extends StatelessWidget {
                           onPressed:
                               authenticating || loggingOut ? null : onLogout,
                           child: Text(
-                            loggingOut ? 'Logging out…' : 'Log out instead',
+                            loggingOut ? context.l10n.loggingOut : context.l10n.logOutInstead,
                           ),
                         ),
                       ],

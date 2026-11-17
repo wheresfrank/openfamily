@@ -4,6 +4,7 @@
 import { BatteryGlyph, MovementBadge, StatusAvatar, statusColor, statusLabel } from './memberBubble'
 import { lastSeenLabel } from './status'
 import type { Member } from './types'
+import { t } from '../lib/i18n'
 
 interface MemberCardProps {
   member: Member
@@ -28,7 +29,7 @@ export function MemberCard({
         type="button"
         className="wb-member-card-close"
         onClick={onClose}
-        aria-label="Close member details"
+        aria-label={t("Close member details")}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -53,7 +54,7 @@ export function MemberCard({
 
       <div className="wb-member-card-rows">
         <div className="wb-member-card-row">
-          <span className="wb-member-card-k">Battery</span>
+          <span className="wb-member-card-k">{t("Battery")}</span>
           <span className="wb-member-card-v">
             {member.batteryPercent > 0 ? (
               <>
@@ -66,12 +67,12 @@ export function MemberCard({
           </span>
         </div>
         <div className="wb-member-card-row">
-          <span className="wb-member-card-k">Last seen</span>
+          <span className="wb-member-card-k">{t("Last seen")}</span>
           <span className="wb-member-card-v">{lastSeenLabel(member, nowMs)}</span>
         </div>
         {member.movement !== 'none' && (
           <div className="wb-member-card-row">
-            <span className="wb-member-card-k">Activity</span>
+            <span className="wb-member-card-k">{t("Activity")}</span>
             <span className="wb-member-card-v">
               <MovementBadge member={member} />
             </span>
@@ -79,7 +80,7 @@ export function MemberCard({
         )}
         {member.address && (
           <div className="wb-member-card-row">
-            <span className="wb-member-card-k">Status</span>
+            <span className="wb-member-card-k">{t("Status")}</span>
             <span className="wb-member-card-v">{member.address}</span>
           </div>
         )}
@@ -93,7 +94,7 @@ export function MemberCard({
             onClick={onRequestLocation}
             disabled={requestingLocation}
           >
-            {requestingLocation ? "Requesting…" : "Update location"}
+            {requestingLocation ? t("Requesting…") : t("Update location")}
           </button>
           {locationRequestStatus && (
             <div className="wb-member-card-refresh-status" role="status">
@@ -107,7 +108,7 @@ export function MemberCard({
         className="wb-member-card-history"
         href={`#/history?member=${encodeURIComponent(member.id)}`}
       >
-        View history
+        {t("View history")}
       </a>
     </div>
   )

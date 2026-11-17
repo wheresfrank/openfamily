@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:latlong2/latlong.dart';
 
 import 'api_client.dart';
@@ -60,6 +62,30 @@ class MemberHistory {
 }
 
 /// Fetches location history for a family member.
+/// File formats a track can be exported in.
+enum TrackFormat {
+  gpx('gpx', 'application/gpx+xml'),
+  geojson('geojson', 'application/geo+json');
+
+  const TrackFormat(this.extension, this.mimeType);
+
+  final String extension;
+  final String mimeType;
+}
+
+/// A downloaded track file, ready to be shared or saved.
+class TrackExport {
+  const TrackExport({
+    required this.bytes,
+    required this.filename,
+    required this.mimeType,
+  });
+
+  final Uint8List bytes;
+  final String filename;
+  final String mimeType;
+}
+
 class HistoryService {
   HistoryService._();
 
@@ -80,6 +106,33 @@ class HistoryService {
       throw const ApiException(0, 'Unexpected history response.');
     }
     return _fromBackend(data);
+  }
+
+  /// Downloads a member's track as a GPX or GeoJSON file covering [days] days
+  /// that end with [day].
+  static Future<TrackExport> exportTrack({
+    required String memberId,
+    required DateTime day,
+    required TrackFormat format,
+    int days = 1,
+  }) async {
+    final DateTime start = DateTime(day.year, day.month, day.day - (days - 1));
+    final DateTime end = DateTime(day.year, day.month, day.day + 1);
+    final Uint8List bytes = await ApiClient.getBytes(
+      '/family/members/$memberId/history/export',
+      query: <String, String>{
+        'from': start.toUtc().toIso8601String(),
+        'to': end.toUtc().toIso8601String(),
+        'format': format.name,
+      },
+    );
+    final String date =
+        '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+    return TrackExport(
+      bytes: bytes,
+      filename: 'openfamily-track-$date${days > 1 ? '-${days}d' : ''}.${format.extension}',
+      mimeType: format.mimeType,
+    );
   }
 
   static MemberHistory _fromBackend(Map<String, dynamic> json) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../models/emergency_contact.dart';
 import '../services/api_client.dart';
 import '../services/contact_picker.dart';
@@ -64,7 +65,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = _errorMessage(e,
-          fallback: 'Couldn\'t load emergency contacts. Please try again.'));
+          fallback: context.l10n.loadContactsFailed));
     }
   }
 
@@ -86,8 +87,8 @@ class _SafetyScreenState extends State<SafetyScreen> {
     } on ContactHasNoPhoneException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('That contact has no phone number.'),
+        SnackBar(
+          content: Text(context.l10n.contactNoPhone),
         ),
       );
     } on SessionExpiredException {
@@ -97,7 +98,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _errorMessage(e, fallback: 'Couldn\'t open your contacts.'),
+            _errorMessage(e, fallback: context.l10n.openContactsFailed),
           ),
         ),
       );
@@ -120,7 +121,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                 child: Text(
-                  'Which number for ${picked.name}?',
+                  context.l10n.whichNumberFor(picked.name),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -173,7 +174,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
           content: Text(
             _errorMessage(
               e,
-              fallback: 'Couldn\'t save that contact. Please try again.',
+              fallback: context.l10n.saveContactFailed,
             ),
           ),
         ),
@@ -191,18 +192,18 @@ class _SafetyScreenState extends State<SafetyScreen> {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: const Text('Remove contact?'),
+        title: Text(context.l10n.removeContactQuestion),
         content: Text(
-          'Stop sending SOS alerts to ${contact.name}?',
+          context.l10n.stopSosAlertsTo(contact.name),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.actionCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Remove'),
+            child: Text(context.l10n.actionRemove),
           ),
         ],
       ),
@@ -225,7 +226,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
           content: Text(
             _errorMessage(
               e,
-              fallback: 'Couldn\'t remove that contact. Please try again.',
+              fallback: context.l10n.removeContactFailed,
             ),
           ),
         ),
@@ -236,21 +237,20 @@ class _SafetyScreenState extends State<SafetyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Safety')),
+      appBar: AppBar(title: Text(context.l10n.safetyTitle)),
       body: _buildBody(),
     );
   }
 
   Widget _buildBody() {
     if (!_smsConfigured) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
-            'Emergency contacts get SOS by text message. This server '
-            'has not set up SMS yet, so those contacts would not be notified.',
+            context.l10n.smsNotConfigured,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 15, color: AppColors.textMuted),
+            style: TextStyle(fontSize: 15, color: BrandTheme.of(context).muted),
           ),
         ),
       );
@@ -264,7 +264,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
             children: [
               Text(_error!, textAlign: TextAlign.center),
               const SizedBox(height: 12),
-              FilledButton(onPressed: _load, child: const Text('Retry')),
+              FilledButton(onPressed: _load, child: Text(context.l10n.actionRetry)),
             ],
           ),
         ),
@@ -278,20 +278,19 @@ class _SafetyScreenState extends State<SafetyScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(20, 8, 20, 8),
           child: Text(
-            'Emergency contacts receive your SOS alerts with your location. '
-            'They do not need the app or to be in your family.',
-            style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+            context.l10n.emergencyContactsExplainer,
+            style: TextStyle(fontSize: 13, color: BrandTheme.of(context).muted),
           ),
         ),
         if (contacts.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(20, 8, 20, 16),
             child: Text(
-              'No emergency contacts yet. Choose someone from your phone.',
-              style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+              context.l10n.noEmergencyContacts,
+              style: TextStyle(fontSize: 13, color: BrandTheme.of(context).muted),
             ),
           ),
         for (final EmergencyContact c in contacts)
@@ -305,10 +304,10 @@ class _SafetyScreenState extends State<SafetyScreen> {
         ),
         ListTile(
           leading:
-              const Icon(Icons.keyboard_outlined, color: AppColors.textMuted),
-          title: const Text(
-            'Type a name and number',
-            style: TextStyle(color: AppColors.textMuted),
+              Icon(Icons.keyboard_outlined, color: BrandTheme.of(context).muted),
+          title: Text(
+            context.l10n.typeNameAndNumber,
+            style: TextStyle(color: BrandTheme.of(context).muted),
           ),
           enabled: !_saving && contacts.length < 10,
           onTap: _addManually,
@@ -337,7 +336,7 @@ class _ContactTile extends StatelessWidget {
           shape: BoxShape.circle,
           color: AppColors.purple.withValues(alpha: 0.12),
         ),
-        child: const Icon(Icons.person, color: AppColors.purple, size: 22),
+        child: Icon(Icons.person, color: BrandTheme.of(context).accentInk, size: 22),
       ),
       title: Text(
         contact.name,
@@ -345,8 +344,8 @@ class _ContactTile extends StatelessWidget {
       ),
       subtitle: Text(subtitle),
       trailing: IconButton(
-        tooltip: 'Remove',
-        icon: const Icon(Icons.delete_outline, color: AppColors.textMuted),
+        tooltip: context.l10n.actionRemove,
+        icon: Icon(Icons.delete_outline, color: BrandTheme.of(context).muted),
         onPressed: onRemove,
       ),
     );
@@ -364,12 +363,12 @@ class _AddContactTile extends StatelessWidget {
     return ListTile(
       leading: Icon(
         Icons.contacts_outlined,
-        color: enabled ? AppColors.purple : AppColors.textMuted,
+        color: enabled ? BrandTheme.of(context).accentInk : BrandTheme.of(context).muted,
       ),
       title: Text(
-        'Choose from contacts',
+        context.l10n.chooseFromContacts,
         style: TextStyle(
-          color: enabled ? AppColors.purple : AppColors.textMuted,
+          color: enabled ? BrandTheme.of(context).accentInk : BrandTheme.of(context).muted,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -410,10 +409,10 @@ class _ManualContactDialogState extends State<_ManualContactDialog> {
     final String name = _name.text.trim();
     final String phone = _phone.text.trim();
     setState(() {
-      _nameError = name.isEmpty ? 'Enter a name' : null;
+      _nameError = name.isEmpty ? context.l10n.enterAName : null;
       _phoneError = EmergencyContact.looksLikePhone(phone)
           ? null
-          : 'Enter a valid phone number';
+          : context.l10n.enterValidPhone;
     });
     if (name.isEmpty || !EmergencyContact.looksLikePhone(phone)) return;
     Navigator.of(context).pop(_DraftContact(name: name, phone: phone));
@@ -422,7 +421,7 @@ class _ManualContactDialogState extends State<_ManualContactDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Add emergency contact'),
+      title: Text(context.l10n.addEmergencyContact),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -431,7 +430,7 @@ class _ManualContactDialogState extends State<_ManualContactDialog> {
             autofocus: true,
             textCapitalization: TextCapitalization.words,
             decoration: InputDecoration(
-              labelText: 'Name',
+              labelText: context.l10n.nameLabel,
               border: const OutlineInputBorder(),
               errorText: _nameError,
             ),
@@ -441,7 +440,7 @@ class _ManualContactDialogState extends State<_ManualContactDialog> {
             controller: _phone,
             keyboardType: TextInputType.phone,
             decoration: InputDecoration(
-              labelText: 'Phone',
+              labelText: context.l10n.phoneLabel,
               border: const OutlineInputBorder(),
               errorText: _phoneError,
             ),
@@ -451,11 +450,11 @@ class _ManualContactDialogState extends State<_ManualContactDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.actionCancel),
         ),
         FilledButton(
           onPressed: _submit,
-          child: const Text('Add'),
+          child: Text(context.l10n.actionAdd),
         ),
       ],
     );

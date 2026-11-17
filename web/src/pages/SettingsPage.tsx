@@ -16,12 +16,16 @@ import {
 import { useMe } from '../lib/me'
 import type { Profile } from '../lib/types'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { LanguageToggle } from '../components/LanguageToggle'
+import { UnitsToggle } from '../components/UnitsToggle'
+import { LanguageSettingsCard } from './LanguageSettingsCard'
 import { Button, Card, CopyButton, Mono, Spinner } from '../components/primitives'
 import { ServerUpdateCard } from './ServerUpdateCard'
 import { TwilioSettingsCard } from './TwilioSettingsCard'
 import { DomainSettingsCard } from './DomainSettingsCard'
 import './pages.css'
 import './SettingsPage.css'
+import { t } from '../lib/i18n'
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 const ACCEPTED_AVATAR_TYPES = new Set(['image/jpeg', 'image/png'])
@@ -72,23 +76,23 @@ function profileInitials(name: string): string {
 function displayRole(role: Profile['role'] | undefined): string {
   switch (role) {
     case 'admin':
-      return 'Administrator'
+      return t("Administrator")
     case 'member':
-      return 'Member'
+      return t("Member")
     case 'child':
-      return 'Child'
+      return t("Child")
     default:
       return '—'
   }
 }
 
 function avatarUpdatedLabel(profile: Profile | null): string {
-  if (!profile?.has_avatar) return 'No profile picture uploaded.'
-  if (!profile.avatar_updated_at) return 'Profile picture uploaded.'
+  if (!profile?.has_avatar) return t("No profile picture uploaded.")
+  if (!profile.avatar_updated_at) return t("Profile picture uploaded.")
 
   const updated = new Date(profile.avatar_updated_at)
-  if (Number.isNaN(updated.getTime())) return 'Profile picture uploaded.'
-  return `Updated ${updated.toLocaleString()}.`
+  if (Number.isNaN(updated.getTime())) return t("Profile picture uploaded.")
+  return t("Updated {time}.", { time: updated.toLocaleString() })
 }
 
 function messageFromError(error: unknown, fallback: string): string {
@@ -107,16 +111,16 @@ function passwordFormIssue(
   confirmPassword: string,
 ): string | null {
   if (!currentPassword || !newPassword || !confirmPassword) {
-    return 'Enter your current password and a new password twice.'
+    return t("Enter your current password and a new password twice.")
   }
   if (newPassword.length < MIN_PASSWORD_LENGTH) {
-    return `New password must be at least ${MIN_PASSWORD_LENGTH} characters.`
+    return t("New password must be at least {min} characters.", { min: MIN_PASSWORD_LENGTH })
   }
   if (newPassword !== confirmPassword) {
-    return 'New password and confirmation do not match.'
+    return t("New password and confirmation do not match.")
   }
   if (currentPassword === newPassword) {
-    return 'Choose a password that is different from your current one.'
+    return t("Choose a password that is different from your current one.")
   }
   return null
 }
@@ -171,7 +175,7 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
       return true
     } catch (error) {
       if (requestVersion === requestVersionRef.current) {
-        setProfileError(messageFromError(error, 'Could not load your account.'))
+        setProfileError(messageFromError(error, t("Could not load your account.")))
       }
       return false
     } finally {
@@ -194,11 +198,11 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
     if (!file || mutation) return
 
     if (!ACCEPTED_AVATAR_TYPES.has(file.type)) {
-      setAvatarMessage({ tone: 'error', text: 'Choose a JPEG or PNG image.' })
+      setAvatarMessage({ tone: 'error', text: t("Choose a JPEG or PNG image.") })
       return
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setAvatarMessage({ tone: 'error', text: 'Choose an image smaller than 5 MB.' })
+      setAvatarMessage({ tone: 'error', text: t("Choose an image smaller than 5 MB.") })
       return
     }
 
@@ -209,14 +213,14 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
       const refreshed = await refreshProfile()
       setAvatarMessage(
         refreshed
-          ? { tone: 'success', text: 'Profile picture updated.' }
+          ? { tone: 'success', text: t("Profile picture updated.") }
           : {
               tone: 'error',
-              text: 'Your picture was uploaded, but the updated profile could not be loaded. Refresh to confirm it.',
+              text: t("Your picture was uploaded, but the updated profile could not be loaded. Refresh to confirm it."),
             },
       )
     } catch (error) {
-      setAvatarMessage({ tone: 'error', text: messageFromError(error, 'Could not upload your profile picture.') })
+      setAvatarMessage({ tone: 'error', text: messageFromError(error, t("Could not upload your profile picture.")) })
     } finally {
       setMutation(null)
     }
@@ -232,14 +236,14 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
       const refreshed = await refreshProfile()
       setAvatarMessage(
         refreshed
-          ? { tone: 'success', text: 'Profile picture removed.' }
+          ? { tone: 'success', text: t("Profile picture removed.") }
           : {
               tone: 'error',
-              text: 'Your picture was removed, but the updated profile could not be loaded. Refresh to confirm it.',
+              text: t("Your picture was removed, but the updated profile could not be loaded. Refresh to confirm it."),
             },
       )
     } catch (error) {
-      setAvatarMessage({ tone: 'error', text: messageFromError(error, 'Could not remove your profile picture.') })
+      setAvatarMessage({ tone: 'error', text: messageFromError(error, t("Could not remove your profile picture.")) })
     } finally {
       setMutation(null)
     }
@@ -251,11 +255,11 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
 
     const name = nameDraft.trim()
     if (!name) {
-      setNameMessage({ tone: 'error', text: 'Name is required.' })
+      setNameMessage({ tone: 'error', text: t("Name is required.") })
       return
     }
     if ([...name].length > MAX_NAME_LENGTH) {
-      setNameMessage({ tone: 'error', text: `Name must be ${MAX_NAME_LENGTH} characters or fewer.` })
+      setNameMessage({ tone: 'error', text: t("Name must be {max} characters or fewer.", { max: MAX_NAME_LENGTH }) })
       return
     }
     if (name === profile.name) return
@@ -266,9 +270,9 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
       const updated = await updateProfile(name)
       setProfile((current) => (current ? { ...current, name: updated.name } : current))
       setNameDraft(updated.name)
-      setNameMessage({ tone: 'success', text: 'Name updated.' })
+      setNameMessage({ tone: 'success', text: t("Name updated.") })
     } catch (error) {
-      setNameMessage({ tone: 'error', text: messageFromError(error, 'Could not update your name.') })
+      setNameMessage({ tone: 'error', text: messageFromError(error, t("Could not update your name.")) })
     } finally {
       setNameSaving(false)
     }
@@ -291,15 +295,15 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
-      setPasswordMessage({ tone: 'success', text: 'Password updated. You are still signed in here.' })
+      setPasswordMessage({ tone: 'success', text: t("Password updated. You are still signed in here.") })
     } catch (error) {
-      setPasswordMessage({ tone: 'error', text: messageFromError(error, 'Could not update your password.') })
+      setPasswordMessage({ tone: 'error', text: messageFromError(error, t("Could not update your password.")) })
     } finally {
       setPasswordSaving(false)
     }
   }
 
-  const displayName = profile?.name.trim() || profile?.email || email || 'Your account'
+  const displayName = profile?.name.trim() || profile?.email || email || t("Your account")
   const displayEmail = profile?.email || email || '—'
   const hasAvatar = Boolean(profile?.has_avatar && avatarUrl)
   const avatarControlsDisabled = !profile || mutation !== null
@@ -310,9 +314,9 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
     <div className="wb-page">
       <div className="wb-page-header">
         <div>
-          <h1 className="wb-page-title">Settings</h1>
+          <h1 className="wb-page-title">{t("Settings")}</h1>
           <p className="wb-page-subtitle">
-            {isPlatformAdmin ? 'Appearance, account, SMS, and this server.' : 'Appearance, account, and this server.'}
+            {isPlatformAdmin ? t("Appearance, account, SMS, and this server.") : t("Appearance, account, and this server.")}
           </p>
         </div>
       </div>
@@ -320,11 +324,29 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
       <div className="wb-settings-grid">
         <div className="wb-settings-col">
           <Card>
-            <h3 className="wb-settings-title">Appearance</h3>
+            <h3 className="wb-settings-title">{t("Appearance")}</h3>
             <p className="wb-settings-section-help">
-              System follows this device. Light is Ice. Dark is Night.
+              {t("System follows this device. Light is Ice. Dark is Night.")}
             </p>
             <ThemeToggle />
+          </Card>
+
+          <Card>
+            <h3 className="wb-settings-title">{t("Language")}</h3>
+            <p className="wb-settings-section-help">
+              {t("Auto uses the server's default language, or this device's.")}
+            </p>
+            <LanguageToggle />
+          </Card>
+
+          {isPlatformAdmin && <LanguageSettingsCard />}
+
+          <Card>
+            <h3 className="wb-settings-title">{t("Units")}</h3>
+            <p className="wb-settings-section-help">
+              {t("Speeds in km/h or mph. Auto follows this device's region.")}
+            </p>
+            <UnitsToggle />
           </Card>
 
           {/* Domain status is a read-only mirror of the deployment's
@@ -342,23 +364,23 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
         </div>
 
         <Card>
-          <h3 className="wb-settings-title">Account</h3>
+          <h3 className="wb-settings-title">{t("Account")}</h3>
 
           <section className="wb-profile-avatar-section" aria-labelledby="wb-profile-picture-title">
             <div className="wb-profile-avatar">
               {avatarUrl ? (
-                <img src={avatarUrl} alt={`${displayName}'s profile picture`} />
+                <img src={avatarUrl} alt={t("{name}'s profile picture", { name: displayName })} />
               ) : profileLoading && !profile ? (
                 <Spinner size={24} />
               ) : (
-                <span role="img" aria-label={`No profile picture for ${displayName}`}>
+                <span role="img" aria-label={t("No profile picture for {name}", { name: displayName })}>
                   {profileInitials(displayName)}
                 </span>
               )}
             </div>
 
             <div className="wb-profile-avatar-content">
-              <h4 id="wb-profile-picture-title" className="wb-profile-avatar-title">Profile picture</h4>
+              <h4 id="wb-profile-picture-title" className="wb-profile-avatar-title">{t("Profile picture")}</h4>
               <p id="wb-profile-picture-help" className="wb-profile-avatar-help">
                 JPEG or PNG, up to 5 MB. {avatarUpdatedLabel(profile)}
               </p>
@@ -368,7 +390,7 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
                 className="wb-profile-visually-hidden"
                 type="file"
                 accept="image/jpeg,image/png,.jpg,.jpeg,.png"
-                aria-label="Choose a profile picture"
+                aria-label={t("Choose a profile picture")}
                 aria-describedby="wb-profile-picture-help"
                 disabled={avatarControlsDisabled}
                 onChange={onFileChange}
@@ -381,7 +403,7 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
                   disabled={avatarControlsDisabled}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  {hasAvatar ? 'Change picture' : 'Upload picture'}
+                  {hasAvatar ? t("Change picture") : t("Upload picture")}
                 </Button>
                 {profile?.has_avatar && (
                   <Button
@@ -391,7 +413,7 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
                     disabled={avatarControlsDisabled}
                     onClick={() => void removeAvatar()}
                   >
-                    Remove
+                    {t("Remove")}
                   </Button>
                 )}
               </div>
@@ -411,15 +433,15 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
             <div className="wb-profile-load-error" role="alert">
               <span>{profileError}</span>
               <Button type="button" variant="secondary" size="sm" onClick={() => void refreshProfile()}>
-                Try again
+                {t("Try again")}
               </Button>
             </div>
           )}
 
           <form className="wb-settings-section" onSubmit={(event) => void saveName(event)}>
-            <h4 className="wb-settings-section-title">Profile</h4>
+            <h4 className="wb-settings-section-title">{t("Profile")}</h4>
             <label className="wb-field" htmlFor="wb-settings-name">
-              <span className="wb-label">Name</span>
+              <span className="wb-label">{t("Name")}</span>
               <input
                 id="wb-settings-name"
                 className="wb-input"
@@ -432,24 +454,24 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
               />
             </label>
             <label className="wb-field" htmlFor="wb-settings-email">
-              <span className="wb-label">Email</span>
+              <span className="wb-label">{t("Email")}</span>
               <input
                 id="wb-settings-email"
                 className="wb-input"
-                value={profileLoading && !profile ? 'Loading…' : displayEmail}
+                value={profileLoading && !profile ? t("Loading…") : displayEmail}
                 readOnly
                 autoComplete="username"
               />
             </label>
             <div className="wb-field">
-              <span className="wb-label">Role</span>
+              <span className="wb-label">{t("Role")}</span>
               <p className="wb-settings-readonly">
-                {profileLoading && !profile ? 'Loading…' : displayRole(profile?.role)}
+                {profileLoading && !profile ? t("Loading…") : displayRole(profile?.role)}
               </p>
             </div>
             <div className="wb-settings-form-actions">
               <Button type="submit" loading={nameSaving} disabled={!profile || nameSaving || nameUnchanged}>
-                Save name
+                {t("Save name")}
               </Button>
             </div>
             {nameMessage && (
@@ -464,12 +486,12 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
           </form>
 
           <form className="wb-settings-section" onSubmit={(event) => void savePassword(event)}>
-            <h4 className="wb-settings-section-title">Password</h4>
+            <h4 className="wb-settings-section-title">{t("Password")}</h4>
             <p className="wb-settings-section-help">
               At least {MIN_PASSWORD_LENGTH} characters. You stay signed in on this browser.
             </p>
             <label className="wb-field" htmlFor="wb-settings-current-password">
-              <span className="wb-label">Current password</span>
+              <span className="wb-label">{t("Current password")}</span>
               <input
                 id="wb-settings-current-password"
                 className="wb-input"
@@ -482,7 +504,7 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
               />
             </label>
             <label className="wb-field" htmlFor="wb-settings-new-password">
-              <span className="wb-label">New password</span>
+              <span className="wb-label">{t("New password")}</span>
               <input
                 id="wb-settings-new-password"
                 className="wb-input"
@@ -496,7 +518,7 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
               />
             </label>
             <label className="wb-field" htmlFor="wb-settings-confirm-password">
-              <span className="wb-label">Confirm new password</span>
+              <span className="wb-label">{t("Confirm new password")}</span>
               <input
                 id="wb-settings-confirm-password"
                 className="wb-input"
@@ -511,7 +533,7 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
             </label>
             <div className="wb-settings-form-actions">
               <Button type="submit" loading={passwordSaving} disabled={passwordSaving}>
-                Change password
+                {t("Change password")}
               </Button>
             </div>
             {passwordMessage && (
@@ -527,27 +549,27 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
 
           <div className="wb-settings-actions">
             <Button variant="danger" onClick={onLogout}>
-              Sign out
+              {t("Sign out")}
             </Button>
           </div>
         </Card>
 
         <Card className="wb-settings-wide">
-          <h3 className="wb-settings-title">About</h3>
+          <h3 className="wb-settings-title">{t("About")}</h3>
           <dl className="wb-settings-list wb-settings-list-row">
             <div>
-              <dt>App</dt>
+              <dt>{t("App")}</dt>
               <dd>OpenFamily</dd>
             </div>
             <div>
-              <dt>Version</dt>
+              <dt>{t("Version")}</dt>
               <dd>{APP_VERSION}</dd>
             </div>
             <div>
-              <dt>Server</dt>
+              <dt>{t("Server")}</dt>
               <dd className="wb-settings-mono">
                 <Mono>{serverUrl}</Mono>
-                <CopyButton value={serverUrl} label="Copy server URL" />
+                <CopyButton value={serverUrl} label={t("Copy server URL")} />
               </dd>
             </div>
           </dl>

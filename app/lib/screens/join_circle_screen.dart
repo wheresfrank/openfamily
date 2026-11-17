@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/l10n.dart';
 import '../services/api_client.dart';
 import '../services/join_service.dart';
 import '../theme/app_theme.dart';
@@ -49,7 +50,7 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
   Future<void> _join() async {
     final String code = _code.text.trim();
     if (code.isEmpty) {
-      setState(() => _error = 'Enter your invite code');
+      setState(() => _error = context.l10n.enterInviteCodeTitle);
       return;
     }
     setState(() {
@@ -64,7 +65,7 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
         if (ok) {
           _joined = true;
         } else {
-          _error = 'That code isn\'t valid. Check it and try again.';
+          _error = context.l10n.inviteCodeInvalid;
         }
       });
     } on SessionExpiredException {
@@ -73,7 +74,7 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
       if (!mounted) return;
       setState(() {
         _submitting = false;
-        _error = 'Could not join. Check your connection and try again.';
+        _error = context.l10n.joinFailed;
       });
     }
   }
@@ -82,7 +83,7 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Join a family'),
+        title: Text(context.l10n.joinFamilyTitle),
         bottom: widget.step == null
             ? null
             : OnboardingStepIndicator(
@@ -103,14 +104,14 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Enter your invite code',
+        Text(
+          context.l10n.enterInviteCodeTitle,
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Ask a family member for the invite code to join their family.',
-          style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+        Text(
+          context.l10n.enterInviteCodeBody,
+          style: TextStyle(fontSize: 14, color: BrandTheme.of(context).muted),
         ),
         const SizedBox(height: 20),
         TextField(
@@ -122,8 +123,8 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
             if (_error != null) setState(() => _error = null);
           },
           decoration: InputDecoration(
-            labelText: 'Invite code',
-            hintText: 'e.g. AB12CD34',
+            labelText: context.l10n.inviteCodeLabel,
+            hintText: context.l10n.inviteCodeExample,
             border: const OutlineInputBorder(),
             errorText: _error,
           ),
@@ -141,10 +142,10 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: AppColors.onAccent,
                       ),
                     )
-                  : const Text('Join'),
+                  : Text(context.l10n.actionJoin),
             ),
           ),
         ),
@@ -158,15 +159,15 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
       children: [
         const Icon(Icons.check_circle, size: 72, color: AppColors.statusGreen),
         const SizedBox(height: 16),
-        const Text(
-          'Family joined',
+        Text(
+          context.l10n.familyJoinedTitle,
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'You are now a member of the family.',
+        Text(
+          context.l10n.familyJoinedBody,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 15, color: AppColors.textMuted),
+          style: TextStyle(fontSize: 15, color: BrandTheme.of(context).muted),
         ),
         const SizedBox(height: 24),
         FilledButton(
@@ -177,7 +178,7 @@ class _JoinCircleScreenState extends State<JoinCircleScreen> {
               Navigator.of(context).pop(true);
             }
           },
-          child: const Text('Done'),
+          child: Text(context.l10n.actionDone),
         ),
       ],
     );

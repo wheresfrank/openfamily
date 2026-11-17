@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 // Group/circle switcher — a control to filter the map to one group (family)
 // or show all groups, with each group visually distinct via a colored dot.
 // Mirrors the app's circle switcher intent, adapted for the multi-family admin
@@ -51,8 +52,8 @@ export function GroupSwitcher({
 
   const selectedName =
     selectedId == null
-      ? "All families"
-      : groups.find((g) => g.id === selectedId)?.name ?? "All families";
+      ? t("All families")
+      : groups.find((g) => g.id === selectedId)?.name ?? t("All families");
   const total = groups.reduce((sum, g) => sum + (countsById.get(g.id) ?? 0), 0);
   const chip = selectedId == null ? total : countsById.get(selectedId) ?? 0;
 
@@ -67,7 +68,7 @@ export function GroupSwitcher({
           onClick={() => onSelect(null)}
         >
           <GroupsIcon />
-          <span>All</span>
+          <span>{t("All")}</span>
           <span className="wb-switcher-count">{total}</span>
         </button>
         {groups.map((g) => (
@@ -124,7 +125,7 @@ export function GroupSwitcher({
             }}
           >
             <GroupsIcon />
-            <span>All families</span>
+            <span>{t("All families")}</span>
             <span className="wb-switcher-count">{total}</span>
           </button>
           {groups.map((g) => (

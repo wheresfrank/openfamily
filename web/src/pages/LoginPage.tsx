@@ -6,6 +6,7 @@ import { login } from '../lib/api'
 import { setTokens, setEmail as setSessionEmail } from '../lib/auth'
 import { Button, Spinner } from '../components/primitives'
 import './LoginPage.css'
+import { t } from '../lib/i18n'
 
 interface LoginPageProps {
   onLoggedIn: () => void
@@ -29,7 +30,7 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
       setSessionEmail(email.trim())
       onLoggedIn()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign in failed')
+      setError(err instanceof Error ? err.message : t("Sign in failed"))
     } finally {
       setSubmitting(false)
     }
@@ -49,11 +50,9 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
           <span className="wb-login-wordmark">OpenFamily</span>
         </div>
         <div className="wb-login-aside-body">
-          <h2 className="wb-login-aside-title">Self-hosted family location, in your control.</h2>
+          <h2 className="wb-login-aside-title">{t("Self-hosted family location, in your control.")}</h2>
           <p className="wb-login-aside-text">
-            See your family on the live map, revisit their day, and manage your
-            circle — the same things you can do in the mobile apps. Server
-            administrators also get user, build, and server-wide tools.
+            {t("See your family on the live map, revisit their day, and manage your circle — the same things you can do in the mobile apps. Server administrators also get user, build, and server-wide tools.")}
           </p>
         </div>
         <div className="wb-login-aside-foot">OpenFamily · v0.1</div>
@@ -61,13 +60,13 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
 
       <main className="wb-login-main">
         <div className="wb-login-card">
-          <h1 className="wb-login-h1">Sign in</h1>
-          <p className="wb-login-sub">Use your OpenFamily account to continue.</p>
+          <h1 className="wb-login-h1">{t("Sign in")}</h1>
+          <p className="wb-login-sub">{t("Use your OpenFamily account to continue.")}</p>
 
           <form ref={formRef} onSubmit={submit} className="wb-login-form" noValidate>
             <div className="wb-field">
               <label className="wb-label" htmlFor="wb-email">
-                Email
+                {t("Email")}
               </label>
               <input
                 id="wb-email"
@@ -84,7 +83,7 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
 
             <div className="wb-field">
               <label className="wb-label" htmlFor="wb-password">
-                Password
+                {t("Password")}
               </label>
               <input
                 id="wb-password"
@@ -116,16 +115,16 @@ export function LoginPage({ onLoggedIn }: LoginPageProps) {
             <Button type="submit" disabled={submitting} className="wb-login-submit">
               {submitting ? (
                 <>
-                  <Spinner size={16} /> Signing in…
+                  <Spinner size={16} /> {t("Signing in…")}
                 </>
               ) : (
-                'Sign in'
+                t("Sign in")
               )}
             </Button>
           </form>
 
           <p className="wb-login-footnote">
-            Don’t have an account? Ask your server administrator to provision one.
+            {t("Don’t have an account? Ask your server administrator to provision one.")}
           </p>
         </div>
       </main>

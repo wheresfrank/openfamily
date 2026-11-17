@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart' show BiometricType;
 
+import '../l10n/l10n.dart';
+import '../services/locale_preference.dart';
+import '../services/unit_preference.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/battery_optimization_service.dart';
@@ -44,29 +47,24 @@ String pushNotificationsSubtitle({
   // Device-preview override: present copy as the rehearsed platform even
   // though the rendering engine is the web.
   if (previewPlatform == 'android') {
-    return 'Android needs the ntfy app (UnifiedPush) so alerts arrive when '
-        'OpenFamily is closed. Off unregisters this device.';
+    return CurrentL10n.value.pushHelpAndroid;
   }
   if (previewPlatform == 'ios') {
-    return 'Delivered through your server via APNs. Off unregisters this '
-        'device.';
+    return CurrentL10n.value.pushHelpIos;
   }
   if (isWeb) {
-    return 'Push delivery is not available in the browser preview. This '
-        'preference is remembered for the installed apps.';
+    return CurrentL10n.value.pushHelpWeb;
   }
   switch (platform ?? defaultTargetPlatform) {
     case TargetPlatform.android:
-      return 'Android needs the ntfy app (UnifiedPush) so alerts arrive when '
-          'OpenFamily is closed. Off unregisters this device.';
+      return CurrentL10n.value.pushHelpAndroid;
     case TargetPlatform.iOS:
-      return 'Delivered through your server via APNs. Off unregisters this '
-          'device.';
+      return CurrentL10n.value.pushHelpIos;
     case TargetPlatform.fuchsia:
     case TargetPlatform.linux:
     case TargetPlatform.macOS:
     case TargetPlatform.windows:
-      return 'Off unregisters this device from push notifications.';
+      return CurrentL10n.value.pushHelpDefault;
   }
 }
 
@@ -148,7 +146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _biometricLoading = false;
         _biometricError =
-            'Could not read biometric settings. Please reopen Settings.';
+            context.l10n.biometricReadFailedReopen;
       });
     }
   }
@@ -177,15 +175,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final BiometricAuthenticationResult result =
           await _biometricService.authenticate(
         localizedReason: enabled
-            ? 'Confirm your identity to enable biometric unlock.'
-            : 'Confirm your identity to disable biometric unlock.',
+            ? context.l10n.biometricConfirmEnable
+            : context.l10n.biometricConfirmDisable,
         requireEnabled: !enabled,
       );
       if (!mounted) return;
       if (!result.authenticated) {
         _finishBiometricUpdateWithError(
           result.error?.message ??
-              'Biometric authentication was not completed.',
+              context.l10n.biometricNotCompleted,
         );
         return;
       }
@@ -195,7 +193,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     if (!saved) {
       _finishBiometricUpdateWithError(
-        'Could not save the biometric setting. Please try again.',
+        context.l10n.biometricSaveFailed,
       );
       return;
     }
@@ -208,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          enabled ? 'Biometric unlock enabled.' : 'Biometric unlock disabled.',
+          enabled ? context.l10n.biometricEnabled : context.l10n.biometricDisabled,
         ),
       ),
     );
@@ -220,7 +218,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     if (!saved) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not save the lock delay.')),
+        SnackBar(content: Text(context.l10n.lockDelaySaveFailed)),
       );
       return;
     }
@@ -239,28 +237,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   String get _biometricSubtitle {
-    if (_biometricLoading) return 'Checking this device…';
-    if (_biometricUpdating) return 'Waiting for confirmation…';
+    if (_biometricLoading) return context.l10n.checkingDevice;
+    if (_biometricUpdating) return context.l10n.waitingConfirmation;
     if (_biometricError != null) return _biometricError!;
     final BiometricAvailability? availability = _biometricAvailability;
     if (availability == null || !availability.isAvailable) {
       return availability?.message ??
-          'Biometric authentication is unavailable.';
+          context.l10n.biometricUnavailable;
     }
 
     final List<BiometricType> enrolled = availability.enrolledBiometrics;
     final bool hasFace = enrolled.contains(BiometricType.face);
     final bool hasFingerprint = enrolled.contains(BiometricType.fingerprint);
     final String method = hasFace && hasFingerprint
-        ? 'face or fingerprint recognition'
+        ? context.l10n.biometricMethodBoth
         : hasFace
-            ? 'face recognition'
+            ? context.l10n.biometricMethodFace
             : hasFingerprint
-                ? 'your fingerprint'
-                : 'your biometrics';
+                ? context.l10n.biometricMethodFingerprint
+                : context.l10n.biometricMethodGeneric;
     return _biometricEnabled
-        ? 'Require $method when opening or returning to the app.'
-        : 'Use $method to protect your private family map.';
+        ? context.l10n.biometricRequire(method)
+        : context.l10n.biometricUse(method);
   }
 
   Future<void> _logout() async {
@@ -272,8 +270,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       setState(() => _loggingOut = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not log out safely. Please try again.'),
+        SnackBar(
+          content: Text(context.l10n.logOutFailed),
         ),
       );
       return;
@@ -292,18 +290,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Change server?'),
-          content: const Text(
-            'You will be signed out. Enter the new server address on the next screen.',
+          title: Text(context.l10n.changeServerQuestion),
+          content: Text(context.l10n.changeServerBody,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(context.l10n.actionCancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Continue'),
+              child: Text(context.l10n.actionContinue),
             ),
           ],
         );
@@ -315,8 +312,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not sign out safely. Please try again.'),
+        SnackBar(
+          content: Text(context.l10n.signOutFailed),
         ),
       );
       return;
@@ -336,21 +333,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Delete account?'),
-          content: const Text(
-            'This permanently deletes your account, devices, and location '
-            'history on this server. If you are the last admin of a family '
-            'that still has other people, promote someone else first.',
+          title: Text(context.l10n.deleteAccountQuestion),
+          content: Text(
+            context.l10n.deleteAccountBody,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(context.l10n.actionCancel),
             ),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: AppColors.sosRed),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Delete'),
+              child: Text(context.l10n.actionDelete),
             ),
           ],
         );
@@ -370,7 +365,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             e.status == 409
                 ? e.message
                 : e.status == 404
-                    ? 'This server cannot delete accounts yet. Ask the operator to update it.'
+                    ? context.l10n.serverCannotDeleteAccounts
                     : e.message,
           ),
         ),
@@ -380,7 +375,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       setState(() => _deletingAccount = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not delete the account. Try again.')),
+        SnackBar(content: Text(context.l10n.deleteAccountFailed)),
       );
       return;
     }
@@ -394,52 +389,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(context.l10n.settingsTitle)),
       body: DotGridBackground(
         child: ListView(
           children: [
-            const _SectionHeader('Account'),
+            _SectionHeader(context.l10n.sectionAccount),
           ListTile(
-            leading: const Icon(Icons.person_outline, color: AppColors.purple),
-            title: const Text('Profile'),
+            leading: Icon(Icons.person_outline, color: BrandTheme.of(context).accentInk),
+            title: Text(context.l10n.profileTitle),
             trailing:
-                const Icon(Icons.chevron_right, color: AppColors.textMuted),
+                Icon(Icons.chevron_right, color: BrandTheme.of(context).muted),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.group_outlined, color: AppColors.purple),
-            title: const Text('Family'),
+            leading: Icon(Icons.group_outlined, color: BrandTheme.of(context).accentInk),
+            title: Text(context.l10n.familyLabel),
             trailing:
-                const Icon(Icons.chevron_right, color: AppColors.textMuted),
+                Icon(Icons.chevron_right, color: BrandTheme.of(context).muted),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const FamiliesScreen()),
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.dns_outlined, color: AppColors.purple),
-            title: const Text('Server'),
+            leading: Icon(Icons.dns_outlined, color: BrandTheme.of(context).accentInk),
+            title: Text(context.l10n.serverLabel),
             subtitle: Text(
               ServerConfig.instance.apiBaseUrl.isEmpty
-                  ? 'Not set'
+                  ? context.l10n.notSet
                   : ServerConfig.instance.apiBaseUrl,
             ),
             trailing:
-                const Icon(Icons.chevron_right, color: AppColors.textMuted),
+                Icon(Icons.chevron_right, color: BrandTheme.of(context).muted),
             onTap: _changeServer,
           ),
             const Divider(height: 1),
-            const _SectionHeader('Appearance'),
+            _SectionHeader(context.l10n.sectionAppearance),
             const _AppearanceTile(),
+            const _UnitsTile(),
+            const _LanguageTile(),
             const Divider(height: 1),
-            const _SectionHeader('Privacy & Security'),
+            _SectionHeader(context.l10n.privacySecurityHeader),
           SwitchListTile(
-            secondary: const Icon(
+            secondary: Icon(
               Icons.fingerprint,
-              color: AppColors.purple,
+              color: BrandTheme.of(context).accentInk,
             ),
-            title: const Text('Biometric unlock'),
+            title: Text(context.l10n.biometricUnlock),
             subtitle: Text(
               _biometricSubtitle,
               style: _biometricError == null
@@ -457,102 +454,98 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (_biometricEnabled) ...[
             const Divider(height: 1),
             ListTile(
-              leading: const Icon(
+              leading: Icon(
                 Icons.lock_clock_outlined,
-                color: AppColors.purple,
+                color: BrandTheme.of(context).accentInk,
               ),
-              title: const Text('Lock delay'),
-              subtitle: const Text(
-                'How long the app can stay in the background before it '
-                'locks. Longer delays are convenient but let the recents '
-                'screen show your family map.',
+              title: Text(context.l10n.lockDelay),
+              subtitle: Text(
+                context.l10n.lockDelayHelp,
               ),
               trailing: DropdownButton<Duration>(
                 value: _lockGrace,
                 underline: const SizedBox.shrink(),
                 onChanged: _biometricUpdating ? null : _setLockGrace,
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: Duration.zero,
-                    child: Text('Immediately'),
+                    child: Text(context.l10n.lockImmediately),
                   ),
                   DropdownMenuItem(
                     value: Duration(seconds: 30),
-                    child: Text('30 seconds'),
+                    child: Text(context.l10n.lock30Seconds),
                   ),
                   DropdownMenuItem(
                     value: Duration(minutes: 1),
-                    child: Text('1 minute'),
+                    child: Text(context.l10n.lock1Minute),
                   ),
                   DropdownMenuItem(
                     value: Duration(minutes: 5),
-                    child: Text('5 minutes'),
+                    child: Text(context.l10n.lock5Minutes),
                   ),
                   DropdownMenuItem(
                     value: Duration(minutes: 15),
-                    child: Text('15 minutes'),
+                    child: Text(context.l10n.lock15Minutes),
                   ),
                 ],
               ),
             ),
           ],
           const Divider(height: 1),
-          const _SectionHeader('Location'),
+          _SectionHeader(context.l10n.sectionLocation),
           SwitchListTile(
             secondary:
-                const Icon(Icons.location_on_outlined, color: AppColors.purple),
-            title: const Text('Location sharing'),
-            subtitle: const Text(
-              'When off, this device stops reporting your position.',
+                Icon(Icons.location_on_outlined, color: BrandTheme.of(context).accentInk),
+            title: Text(context.l10n.locationSharing),
+            subtitle: Text(context.l10n.locationSharingHelp,
             ),
             value: _locationSharing,
             onChanged: _locationSharingLoading ? null : _setLocationSharing,
           ),
           if (BatteryOptimizationService.isSupported)
             ListTile(
-              leading: const Icon(
+              leading: Icon(
                 Icons.battery_alert_outlined,
-                color: AppColors.purple,
+                color: BrandTheme.of(context).accentInk,
               ),
-              title: const Text('Background updates'),
-              subtitle: const Text(
-                'Let OpenFamily run freely so your location stays fresh '
-                'when the app is closed.',
+              title: Text(context.l10n.backgroundUpdates),
+              subtitle: Text(
+                context.l10n.backgroundUpdatesHelp,
               ),
               trailing:
-                  const Icon(Icons.chevron_right, color: AppColors.textMuted),
+                  Icon(Icons.chevron_right, color: BrandTheme.of(context).muted),
                   onTap: BatteryOptimizationService.openSettings,
             ),
           const Divider(height: 1),
-          const _SectionHeader('Notifications'),
+          _SectionHeader(context.l10n.notificationsTitle),
           SwitchListTile(
-            secondary: const Icon(Icons.notifications_outlined,
-                color: AppColors.purple),
-            title: const Text('Push notifications'),
+            secondary: Icon(Icons.notifications_outlined,
+                color: BrandTheme.of(context).accentInk),
+            title: Text(context.l10n.pushNotifications),
             subtitle: Text(pushNotificationsSubtitle(isWeb: kIsWeb)),
             value: _notifications,
             onChanged: _notificationsLoading ? null : _setPushNotifications,
           ),
           const Divider(height: 1),
-          const _SectionHeader('About'),
+          _SectionHeader(context.l10n.sectionAbout),
           ListTile(
-            leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.purple),
-            title: const Text('Privacy policy'),
-            trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+            leading: Icon(Icons.privacy_tip_outlined, color: BrandTheme.of(context).accentInk),
+            title: Text(context.l10n.privacyPolicy),
+            trailing: Icon(Icons.chevron_right, color: BrandTheme.of(context).muted),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const PrivacyPolicyScreen()),
             ),
           ),
-          const ListTile(
-            leading: Icon(Icons.info_outline, color: AppColors.purple),
+          ListTile(
+            leading: Icon(Icons.info_outline, color: BrandTheme.of(context).accentInk),
             title: Text('OpenFamily'),
             subtitle: Text('Version 0.1.0'),
           ),
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.logout, color: AppColors.sosRed),
-            title: const Text(
-              'Log Out',
+            title: Text(
+              context.l10n.actionLogOut,
               style: TextStyle(color: AppColors.sosRed),
             ),
             enabled: !_loggingOut && !_deletingAccount,
@@ -560,8 +553,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
             ListTile(
               leading: const Icon(Icons.delete_forever, color: AppColors.sosRed),
-              title: const Text(
-                'Delete account',
+              title: Text(
+                context.l10n.deleteAccount,
                 style: TextStyle(color: AppColors.sosRed),
               ),
               enabled: !_loggingOut && !_deletingAccount,
@@ -610,16 +603,16 @@ class _AppearanceTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Theme',
+                context.l10n.themeTitle,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
               Text(
                 preference == ThemePreference.system
-                    ? 'Following this device. Light is Ice, dark is Night.'
+                    ? context.l10n.themeHelpSystem
                     : preference == ThemePreference.light
-                        ? 'Ice. This device setting is ignored.'
-                        : 'Night. This device setting is ignored.',
+                        ? context.l10n.themeHelpLight
+                        : context.l10n.themeHelpDark,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -627,20 +620,20 @@ class _AppearanceTile extends StatelessWidget {
               const SizedBox(height: 12),
               SegmentedButton<ThemePreference>(
                 showSelectedIcon: false,
-                segments: const [
+                segments: [
                   ButtonSegment<ThemePreference>(
                     value: ThemePreference.system,
-                    label: Text('System'),
+                    label: Text(context.l10n.themeSystem),
                     icon: Icon(Icons.brightness_auto, size: 18),
                   ),
                   ButtonSegment<ThemePreference>(
                     value: ThemePreference.light,
-                    label: Text('Light'),
+                    label: Text(context.l10n.themeLight),
                     icon: Icon(Icons.light_mode_outlined, size: 18),
                   ),
                   ButtonSegment<ThemePreference>(
                     value: ThemePreference.dark,
-                    label: Text('Dark'),
+                    label: Text(context.l10n.themeDark),
                     icon: Icon(Icons.dark_mode_outlined, size: 18),
                   ),
                 ],
@@ -648,6 +641,116 @@ class _AppearanceTile extends StatelessWidget {
                 onSelectionChanged: (Set<ThemePreference> next) {
                   if (next.isEmpty) return;
                   ThemePreferenceService.setPreference(next.first);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _UnitsTile extends StatelessWidget {
+  const _UnitsTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<UnitPreference>(
+      valueListenable: UnitPreferenceService.preference,
+      builder: (context, preference, _) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                context.l10n.unitsSetting,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                context.l10n.unitsSettingHelp,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<UnitPreference>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment<UnitPreference>(
+                    value: UnitPreference.system,
+                    label: Text(context.l10n.unitsAuto),
+                  ),
+                  ButtonSegment<UnitPreference>(
+                    value: UnitPreference.metric,
+                    label: Text(context.l10n.unitsMetric),
+                  ),
+                  ButtonSegment<UnitPreference>(
+                    value: UnitPreference.imperial,
+                    label: Text(context.l10n.unitsImperial),
+                  ),
+                ],
+                selected: <UnitPreference>{preference},
+                onSelectionChanged: (Set<UnitPreference> next) {
+                  if (next.isEmpty) return;
+                  UnitPreferenceService.setPreference(next.first);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _LanguageTile extends StatelessWidget {
+  const _LanguageTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<LanguagePreference>(
+      valueListenable: LocalePreferenceService.preference,
+      builder: (context, preference, _) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                context.l10n.languageSetting,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                context.l10n.languageSettingHelp,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<LanguagePreference>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment<LanguagePreference>(
+                    value: LanguagePreference.system,
+                    label: Text(context.l10n.languageAuto),
+                  ),
+                  ButtonSegment<LanguagePreference>(
+                    value: LanguagePreference.english,
+                    label: Text(context.l10n.languageEnglish),
+                  ),
+                  ButtonSegment<LanguagePreference>(
+                    value: LanguagePreference.spanish,
+                    label: Text(context.l10n.languageSpanish),
+                  ),
+                ],
+                selected: <LanguagePreference>{preference},
+                onSelectionChanged: (Set<LanguagePreference> next) {
+                  if (next.isEmpty) return;
+                  LocalePreferenceService.setPreference(next.first);
                 },
               ),
             ],

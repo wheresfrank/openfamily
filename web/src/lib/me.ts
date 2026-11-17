@@ -9,6 +9,7 @@ import React from 'react'
 import { whoAmI } from './api'
 import { getAccessToken, subscribeAuth } from './auth'
 import type { Me } from './types'
+import { t } from './i18n'
 
 let cache: Me | null = null
 let inflight: Promise<Me> | null = null
@@ -107,7 +108,7 @@ export function useMe(): UseMeResult {
       })
       .catch((e) => {
         if (cancelled || !getAccessToken()) return
-        setError(e instanceof Error ? e.message : 'Could not load your account')
+        setError(e instanceof Error ? e.message : t("Could not load your account"))
         setLoading(false)
       })
     return () => {
