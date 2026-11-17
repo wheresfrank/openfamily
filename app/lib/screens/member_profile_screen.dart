@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../utils/units.dart';
 import '../models/member.dart';
 import '../services/app_config.dart';
 import '../services/api_client.dart';
@@ -133,8 +134,9 @@ class MemberProfileScreen extends StatelessWidget {
   }
 
   String _drivingStatus() {
-    if (member.movement == MovementType.car && member.speedMph != null) {
-      final String speed = '${member.speedMph} mph';
+    if (member.hasDrivingSpeed) {
+      final String speed =
+          Units.speed(member.speedMps!, metric: Units.current);
       return member.isSpeeding ? 'Speeding · $speed' : 'Driving · $speed';
     }
     if (member.movement == MovementType.none) return 'Not moving';

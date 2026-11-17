@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart' show BiometricType;
 
+import '../services/unit_preference.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/battery_optimization_service.dart';
@@ -432,6 +433,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(height: 1),
             const _SectionHeader('Appearance'),
             const _AppearanceTile(),
+            const _UnitsTile(),
             const Divider(height: 1),
             const _SectionHeader('Privacy & Security'),
           SwitchListTile(
@@ -648,6 +650,61 @@ class _AppearanceTile extends StatelessWidget {
                 onSelectionChanged: (Set<ThemePreference> next) {
                   if (next.isEmpty) return;
                   ThemePreferenceService.setPreference(next.first);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _UnitsTile extends StatelessWidget {
+  const _UnitsTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<UnitPreference>(
+      valueListenable: UnitPreferenceService.preference,
+      builder: (context, preference, _) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Units',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Distances and speeds: kilometers and km/h, or miles and mph.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<UnitPreference>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment<UnitPreference>(
+                    value: UnitPreference.system,
+                    label: Text('Auto'),
+                  ),
+                  ButtonSegment<UnitPreference>(
+                    value: UnitPreference.metric,
+                    label: Text('Metric'),
+                  ),
+                  ButtonSegment<UnitPreference>(
+                    value: UnitPreference.imperial,
+                    label: Text('Imperial'),
+                  ),
+                ],
+                selected: <UnitPreference>{preference},
+                onSelectionChanged: (Set<UnitPreference> next) {
+                  if (next.isEmpty) return;
+                  UnitPreferenceService.setPreference(next.first);
                 },
               ),
             ],

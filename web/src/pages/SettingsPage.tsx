@@ -16,6 +16,7 @@ import {
 import { useMe } from '../lib/me'
 import type { Profile } from '../lib/types'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { UnitsToggle } from '../components/UnitsToggle'
 import { Button, Card, CopyButton, Mono, Spinner } from '../components/primitives'
 import { ServerUpdateCard } from './ServerUpdateCard'
 import { TwilioSettingsCard } from './TwilioSettingsCard'
@@ -325,6 +326,14 @@ export function SettingsPage({ email, onLogout }: SettingsPageProps) {
               System follows this device. Light is Ice. Dark is Night.
             </p>
             <ThemeToggle />
+          </Card>
+
+          <Card>
+            <h3 className="wb-settings-title">Units</h3>
+            <p className="wb-settings-section-help">
+              Speeds in km/h or mph. Auto follows this device's region.
+            </p>
+            <UnitsToggle />
           </Card>
 
           {/* Domain status is a read-only mirror of the deployment's

@@ -10,8 +10,11 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      # Host ports are configurable so the stack can coexist with other
+      # services (Tailscale on 443, a Cloudflare Tunnel, another proxy, ...).
+      # Bind to loopback only with e.g. CADDY_BIND=127.0.0.1.
+      - "${CADDY_BIND:-0.0.0.0}:${CADDY_HTTP_PORT:-80}:80"
+      - "${CADDY_BIND:-0.0.0.0}:${CADDY_HTTPS_PORT:-443}:443"
     environment:
       # Local dev: ":80" (HTTP only). Production: your domain, e.g.
       # "openfamily.example.com" (Caddy provisions Let's Encrypt automatically).
@@ -45,6 +48,9 @@ services:
       # Read-only passthrough so the admin panel can show domain status.
       SITE_ADDRESS: ${SITE_ADDRESS:-}
       APP_ENV: ${APP_ENV:-development}
+      # Bootstraps the first platform admin on startup (see .env.example).
+      PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:-}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
       # Caddy terminates TLS in front of the API.
       TLS_BEHIND_PROXY: ${TLS_BEHIND_PROXY:-true}
       VERBOSE_PUSH: ${VERBOSE_PUSH:-false}
@@ -149,7 +155,10 @@ services:
   # (openssl rand -hex 32), or leave UPDATER_TOKEN empty to disable updates.
   updater:
     build: ./updater
-    restart: unless-stopped
+    # "on-failure" (not "unless-stopped"): with an empty UPDATER_TOKEN the
+    # sidecar exits 0 immediately and must stay down, because it mounts the
+    # Docker socket and self-update is documented as disabled in that case.
+    restart: on-failure
     environment:
       UPDATER_TOKEN: ${UPDATER_TOKEN:-}
       REPO_DIR: /repo

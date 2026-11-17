@@ -4,6 +4,7 @@ import 'screens/login_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/server_config_screen.dart';
 import 'screens/welcome_screen.dart';
+import 'services/unit_preference.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/background_location_service.dart';
@@ -28,6 +29,7 @@ Future<void> main() async {
   // UnifiedPush/APNs token arriving at launch is not dropped.
   PushService.initialize();
   await ThemePreferenceService.load();
+  await UnitPreferenceService.load();
   runApp(const OpenFamilyApp());
 }
 

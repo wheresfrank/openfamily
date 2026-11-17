@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../utils/units.dart';
 import '../models/place.dart';
 import '../services/app_config.dart';
 import '../services/geocoding_service.dart';
@@ -12,7 +13,7 @@ import '../theme/app_theme.dart';
 
 /// A map-first place picker: a full-bleed map with a drop-pin fixed at the
 /// center (drag the map to move the pin), an optional address label, and a
-/// radius control (250 ft – 2 mi).
+/// radius control (250 ft – 2 mi, or 76 m – 3.2 km).
 ///
 /// The map defaults to the user's CURRENT location (via [LocationService]),
 /// falling back to a neutral world view when location is unavailable. Address
@@ -62,13 +63,24 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
   bool _searching = false;
   Timer? _reverseTimer;
 
-  /// Radius presets in meters (250 ft, 500 ft, 1000 ft, 1 mi, 2 mi).
-  static const List<double> _radiusPresets = <double>[
+  /// Radius presets in meters for imperial users (250 ft, 500 ft, 1000 ft,
+  /// 1 mi, 2 mi).
+  static const List<double> _imperialRadiusPresets = <double>[
     76.2,
     152.4,
     304.8,
     1609.344,
     3218.69,
+  ];
+
+  /// Radius presets in meters for metric users (100 m, 250 m, 500 m, 1 km,
+  /// 2 km).
+  static const List<double> _metricRadiusPresets = <double>[
+    100,
+    250,
+    500,
+    1000,
+    2000,
   ];
 
   @override
@@ -162,16 +174,8 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
         '${position.longitude.toStringAsFixed(5)}';
   }
 
-  String _formatRadius(double meters) {
-    if (meters >= 1609.344) {
-      final double miles = meters / 1609.344;
-      final String text = miles == miles.roundToDouble()
-          ? miles.round().toString()
-          : miles.toStringAsFixed(1);
-      return '$text mi';
-    }
-    return '${(meters * 3.28084).round()} ft';
-  }
+  String _formatRadius(double meters) =>
+      Units.distance(meters, metric: Units.current);
 
   void _save() {
     final String name = _name.text.trim();
@@ -418,7 +422,9 @@ class _PlacePickerScreenState extends State<PlacePickerScreen> {
                   Wrap(
                     spacing: 8,
                     children: [
-                      for (final double preset in _radiusPresets)
+                      for (final double preset in Units.current
+                          ? _metricRadiusPresets
+                          : _imperialRadiusPresets)
                         ChoiceChip(
                           label: Text(_formatRadius(preset)),
                           selected: (_radiusMeters - preset).abs() < 1,

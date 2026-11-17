@@ -3,9 +3,9 @@ import 'package:latlong2/latlong.dart';
 
 import '../theme/app_theme.dart';
 
-/// Speed (mph) at or above which a driving member is shown as a
-/// "race car with flames".
-const int kSpeedingMph = 70;
+/// Speed (m/s) at or above which a driving member is shown as a
+/// "race car with flames" (70 mph, about 113 km/h).
+const double kSpeedingMps = 31.2928;
 
 /// Health/accuracy state of a member's location, mapped to the colored
 /// status circle shown on their avatar bubble and list row.
@@ -94,7 +94,7 @@ class Member {
     this.avatarVersion = 0,
     this.avatarColor = AppColors.purple,
     this.movement = MovementType.none,
-    this.speedMph,
+    this.speedMps,
     this.eta,
     this.waypoints,
     this.history = const [],
@@ -141,8 +141,9 @@ class Member {
 
   final MovementType movement;
 
-  /// Speed in mph, only meaningful when [movement] is [MovementType.car].
-  final int? speedMph;
+  /// Speed in meters per second, only meaningful when [movement] is
+  /// [MovementType.car]. Formatted for display with `Units`.
+  final double? speedMps;
 
   /// Estimated time of arrival, e.g. "12m" or "6:42 PM".
   final String? eta;
@@ -168,12 +169,12 @@ class Member {
   /// Whether this member is driving fast enough to show as "speeding".
   bool get isSpeeding =>
       movement == MovementType.car &&
-      speedMph != null &&
-      speedMph! >= kSpeedingMph;
+      speedMps != null &&
+      speedMps! >= kSpeedingMps;
 
   /// Whether the map pin should render a numeric speed caption.
   bool get hasDrivingSpeed =>
-      movement == MovementType.car && speedMph != null;
+      movement == MovementType.car && speedMps != null;
 
   /// Initials used while no avatar is available.
   String get initials {
@@ -197,7 +198,7 @@ class Member {
     String? address,
     String? name,
     MovementType? movement,
-    int? speedMph,
+    double? speedMps,
     String? eta,
     DateTime? lastSeen,
     double? accuracyMeters,
@@ -214,7 +215,7 @@ class Member {
       avatarVersion: avatarVersion,
       avatarColor: avatarColor,
       movement: movement ?? this.movement,
-      speedMph: speedMph ?? this.speedMph,
+      speedMps: speedMps ?? this.speedMps,
       eta: eta ?? this.eta,
       waypoints: waypoints,
       history: history,
@@ -244,7 +245,7 @@ class Member {
       avatarVersion: avatarVersion,
       avatarColor: avatarColor,
       movement: movement,
-      speedMph: speedMph,
+      speedMps: speedMps,
       eta: eta,
       waypoints: waypoints,
       history: history,

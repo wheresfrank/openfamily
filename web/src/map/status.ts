@@ -6,7 +6,7 @@
 //   - low battery warning below 15% (kLowBatteryThreshold)
 //   - GPS accuracy issue at/above 100m (kGpsIssueAccuracyMeters)
 //   - movement from `motion_state`: driving→car, cycling→bike, else none
-//   - speed_mps (m/s) → mph (× 2.23694)
+//   - speed_mps (m/s) is kept as-is; display conversion lives in lib/units.ts
 // A `location` frame is applied on top of an existing member, falling back to
 // the prior value when a field is omitted, so a position-only frame does not
 // spuriously flip a low-battery / driving member back to normal / still.
@@ -29,10 +29,8 @@ export const LOW_BATTERY_THRESHOLD = 15;
 /** Accuracy (meters) at/above which a member is flagged as a GPS issue. */
 export const GPS_ISSUE_ACCURACY_METERS = 100;
 
-/** Speed (mph) at/above which a driving member is shown as "speeding". */
-export const SPEEDING_MPH = 70;
-
-const MPS_TO_MPH = 2.23694;
+/** Speed (m/s) at/above which a driving member is shown as "speeding" (70 mph). */
+export const SPEEDING_MPS = 31.2928;
 
 /**
  * Parses the backend `ts` field, which may be an ISO-8601 string or a Unix
@@ -90,13 +88,13 @@ export function movementFrom(motion: string | null | undefined): MovementType {
 }
 
 /** Whether a driving member is fast enough to flag as "speeding". */
-export function isSpeeding(movement: MovementType, speedMph: number | null): boolean {
-  return movement === "car" && speedMph != null && speedMph >= SPEEDING_MPH;
+export function isSpeeding(movement: MovementType, speedMps: number | null): boolean {
+  return movement === "car" && speedMps != null && speedMps >= SPEEDING_MPS;
 }
 
 /** Whether the map pin should render a numeric speed caption (driving + speed). */
-export function showsDrivingSpeed(movement: MovementType, speedMph: number | null): boolean {
-  return movement === "car" && speedMph != null;
+export function showsDrivingSpeed(movement: MovementType, speedMps: number | null): boolean {
+  return movement === "car" && speedMps != null;
 }
 
 /**
@@ -268,7 +266,7 @@ export function deriveMember(
     status: statusFrom(position, effectiveTs, batteryPct, raw.accuracy_meters, nowMs),
     batteryPercent: batteryPct != null ? Math.round(batteryPct) : 0,
     movement,
-    speedMph: speedMps != null ? Math.round(speedMps * MPS_TO_MPH) : null,
+    speedMps: speedMps ?? null,
     lastSeen: effectiveTs,
     address: addressFrom(position, effectiveTs, movement, nowMs),
     hasAvatar: raw.has_avatar === true,
@@ -359,7 +357,7 @@ export function applyLocationUpdate(
     batteryPercent: batteryPct != null ? Math.round(batteryPct) : existing.batteryPercent,
     address: addressFrom(position, ts, movement, nowMs),
     movement,
-    speedMph: speedMps != null ? Math.round(speedMps * MPS_TO_MPH) : existing.speedMph,
+    speedMps: speedMps ?? existing.speedMps,
     lastSeen: ts,
   };
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/units.dart';
 import '../models/member.dart';
 import '../theme/app_theme.dart';
 import 'member_avatar_bubble.dart';
@@ -120,12 +121,12 @@ class MemberTile extends StatelessWidget {
       );
     }
 
-    if (member.movement == MovementType.car && member.speedMph != null) {
+    if (member.hasDrivingSpeed) {
       chips.add(
         _StatusChip(
           icon: Icons.directions_car,
           color: member.isSpeeding ? const Color(0xFFE65100) : AppColors.purple,
-          label: '${member.speedMph} mph',
+          label: Units.speed(member.speedMps!, metric: Units.current),
         ),
       );
     }

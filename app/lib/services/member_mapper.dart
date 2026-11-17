@@ -8,7 +8,7 @@ import '../models/place.dart';
 ///
 /// The backend's location fields are all nullable: a member who has never
 /// reported a location has null `lat`/`lon`/`ts`. `speed_mps` is meters/second
-/// and is converted to mph for display. `motion_state` is a free string.
+/// and is kept as-is; display conversion lives in `Units`. `motion_state` is a free string.
 Member memberFromJson(Map<String, dynamic> json) {
   final num? lat = json['lat'] as num?;
   final num? lon = json['lon'] as num?;
@@ -57,7 +57,7 @@ Member memberFromJson(Map<String, dynamic> json) {
     avatarUpdatedAt: avatarUpdatedAt,
     avatarVersion: avatarVersion,
     movement: movement,
-    speedMph: speedMps != null ? (speedMps * 2.23694).round() : null,
+    speedMps: speedMps?.toDouble(),
     lastSeen: effectiveLastSeen,
     accuracyMeters: accuracy?.toDouble(),
   );
@@ -142,8 +142,7 @@ Member memberFromLocationUpdate(Member existing, Map<String, dynamic> json) {
       movement: movement,
     ),
     movement: movement,
-    speedMph:
-        speedMps != null ? (speedMps * 2.23694).round() : existing.speedMph,
+    speedMps: speedMps?.toDouble() ?? existing.speedMps,
     lastSeen: timestamp,
     accuracyMeters: accuracy?.toDouble() ?? existing.accuracyMeters,
   );

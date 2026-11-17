@@ -9,6 +9,18 @@ import 'server_config.dart';
 import 'session_gate.dart';
 import 'token_storage.dart';
 
+/// Outcome of a token refresh attempt.
+enum _RefreshResult {
+  /// A usable (new or recovered) token pair is stored.
+  ok,
+
+  /// The server refused the refresh token; the session was cleared.
+  rejected,
+
+  /// The server could not be asked; the session is untouched.
+  unavailable,
+}
+
 /// Thrown when the backend returns a non-2xx response.
 ///
 /// [status] is the HTTP status code and [message] is the backend's
@@ -73,7 +85,7 @@ class ApiClient {
 
   /// Single-flight guard for token refresh: concurrent 401s share one refresh
   /// call instead of each issuing their own.
-  static Future<bool>? _refreshInFlight;
+  static Future<_RefreshResult>? _refreshInFlight;
 
   // ---------------------------------------------------------------------------
   // Typed helpers
@@ -460,8 +472,17 @@ class ApiClient {
     );
 
     if (response.statusCode == 401 && auth) {
-      final bool refreshed = await _tryRefresh();
-      if (refreshed) {
+      final _RefreshResult refreshed = await _tryRefresh();
+      if (refreshed == _RefreshResult.unavailable) {
+        // The server could not be asked (offline, timeout, 5xx, rate limit).
+        // That says nothing about the session, so keep the tokens and let the
+        // caller retry later instead of signing the user out.
+        throw const ApiException(
+          503,
+          'Could not reach the server. Please try again.',
+        );
+      }
+      if (refreshed == _RefreshResult.ok) {
         final http.Response retry = await _rawSend(
           method,
           uri,
@@ -557,13 +578,14 @@ class ApiClient {
   }
 
   /// Attempts a single token refresh, single-flighted so concurrent 401s share
-  /// one refresh call. Returns true and persists the new pair on success;
-  /// otherwise clears tokens (and the device id) and returns false.
-  static Future<bool> _tryRefresh() {
-    final Future<bool>? inFlight = _refreshInFlight;
+  /// one refresh call. Persists the new pair on [_RefreshResult.ok]. Tokens
+  /// (and the device id) are cleared only on [_RefreshResult.rejected], i.e.
+  /// when the server definitively refused the refresh token.
+  static Future<_RefreshResult> _tryRefresh() {
+    final Future<_RefreshResult>? inFlight = _refreshInFlight;
     if (inFlight != null) return inFlight;
 
-    final Future<bool> future = _performRefresh();
+    final Future<_RefreshResult> future = _performRefresh();
     _refreshInFlight = future;
     future.whenComplete(() {
       if (identical(_refreshInFlight, future)) {
@@ -573,55 +595,73 @@ class ApiClient {
     return future;
   }
 
-  static Future<bool> _performRefresh() async {
+  static Future<_RefreshResult> _performRefresh() async {
+    final String? failedAccess;
+    final String? refreshToken;
     try {
-      final String? refreshToken = await TokenStorage.readRefreshToken();
-      if (refreshToken == null) {
-        return await _recoverOrClear();
-      }
-      final http.Response response = await _rawSend(
+      failedAccess = await TokenStorage.readAccessToken();
+      refreshToken = await TokenStorage.readRefreshToken();
+    } catch (_) {
+      // Secure storage hiccup (e.g. Keystore not ready): not a verdict on the
+      // session, so do not destroy it.
+      return _RefreshResult.unavailable;
+    }
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return _recoverOrClear(failedAccess);
+    }
+    final http.Response response;
+    try {
+      response = await _rawSend(
         'POST',
         _uri('/auth/refresh'),
         body: <String, dynamic>{'refresh_token': refreshToken},
         auth: false,
       );
-      if (response.statusCode == 200) {
+    } catch (_) {
+      // Offline or timed out.
+      return _RefreshResult.unavailable;
+    }
+    if (response.statusCode == 200) {
+      try {
         final Map<String, dynamic> data =
             jsonDecode(response.body) as Map<String, dynamic>;
         await TokenStorage.saveTokens(
           access: data['access_token'] as String,
           refresh: data['refresh_token'] as String,
         );
-        return true;
+        return _RefreshResult.ok;
+      } catch (_) {
+        return _RefreshResult.unavailable;
       }
-    } catch (_) {
-      // Fall through to recovery below.
     }
-    return _recoverOrClear();
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      return _recoverOrClear(failedAccess);
+    }
+    // 5xx, 429, proxy/tunnel errors: the server did not rule on the token.
+    return _RefreshResult.unavailable;
   }
 
-  /// Handles a failed foreground refresh.
+  /// Handles a refresh the server definitively rejected (or that had no
+  /// refresh token to send).
   ///
-  /// The backend rotates refresh tokens, so a foreground refresh can fail with
-  /// 401 because the background isolate already used (and rotated) the refresh
-  /// token. Before destroying everything, try to recover the tokens the
-  /// background wrote to shared_preferences. If found, return true so the
-  /// caller retries with the recovered token; otherwise clear and return false.
-  static Future<bool> _recoverOrClear() async {
+  /// The background isolate may already have refreshed and rotated the token.
+  /// If it stored an access token different from the one that just failed,
+  /// use it; otherwise the session is dead, so clear it.
+  static Future<_RefreshResult> _recoverOrClear(String? failedAccess) async {
     try {
       await TokenStorage.syncFromBackgroundStore();
-      final String? recoveredAccess = await TokenStorage.readAccessToken();
-      if (recoveredAccess != null && recoveredAccess.isNotEmpty) {
-        // The background isolate refreshed; use its tokens.
-        return true;
+      final String? recovered = await TokenStorage.readAccessToken();
+      if (recovered != null &&
+          recovered.isNotEmpty &&
+          recovered != failedAccess) {
+        return _RefreshResult.ok;
       }
     } catch (_) {
-      // syncFromBackgroundStore or readAccessToken threw (platform-channel
-      // failure). Fall through to clear so the session is torn down safely
-      // rather than leaving a dead session with no redirect.
+      // Fall through to clear so a dead session is torn down rather than
+      // left with no redirect.
     }
     await TokenStorage.clear();
-    return false;
+    return _RefreshResult.rejected;
   }
 
   /// Notifies the app root that the session expired so it can redirect to

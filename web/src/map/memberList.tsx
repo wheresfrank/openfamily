@@ -10,6 +10,7 @@ import {
   StatusAvatar,
   statusLabel,
 } from "./memberBubble";
+import { formatSpeed } from "../lib/units";
 import { isSpeeding, lastSeenLabel, STALE_AFTER_MS } from "./status";
 import type { Member } from "./types";
 import { EmptyState } from "../components/primitives";
@@ -148,12 +149,12 @@ export function MemberList({
                       Offline
                     </span>
                   ) : null}
-                  {m.movement === "car" && m.speedMph != null ? (
+                  {m.movement === "car" && m.speedMps != null ? (
                     <span
-                      className={`wb-chip ${isSpeeding(m.movement, m.speedMph) ? "wb-chip-speeding" : "wb-chip-car"}`}
+                      className={`wb-chip ${isSpeeding(m.movement, m.speedMps) ? "wb-chip-speeding" : "wb-chip-car"}`}
                     >
                       <MovementGlyph movement="car" size={12} />
-                      {m.speedMph} mph
+                      {formatSpeed(m.speedMps)}
                     </span>
                   ) : null}
                   <span className="wb-chip wb-chip-meta">

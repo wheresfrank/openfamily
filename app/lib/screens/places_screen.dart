@@ -115,6 +115,44 @@ class _PlacesScreenState extends State<PlacesScreen> {
     }
   }
 
+  Future<void> _editPlace(int index) async {
+    final Place place = _places![index];
+    final Place? picked = await Navigator.of(context).push<Place>(
+      MaterialPageRoute<Place>(
+        builder: (_) => PlacePickerScreen(
+          placeName: place.name,
+          icon: place.icon,
+          type: place.type,
+          initial: place,
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    try {
+      final Place saved = await PlaceService.updatePlace(
+        id: place.id,
+        name: picked.name,
+        lat: picked.position.latitude,
+        lon: picked.position.longitude,
+        radiusMeters: picked.radiusMeters,
+        address: picked.address,
+      );
+      if (!mounted) return;
+      setState(() {
+        // Keep the client-side alert state; it is not part of the place.
+        _places![index] = saved.copyWith(
+          alertsOn: place.alertsOn,
+          geofenceId: place.geofenceId,
+        );
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_errorMessage(e))),
+      );
+    }
+  }
+
   Future<void> _deletePlace(Place place) async {
     final bool? confirmed = await showDialog<bool>(
       context: context,
@@ -249,6 +287,7 @@ class _PlacesScreenState extends State<PlacesScreen> {
             place: places[i],
             onToggleAlerts: _canManage ? () => _toggleAlerts(i) : null,
             toggling: _toggling,
+            onEdit: _canManage ? () => _editPlace(i) : null,
             onDelete: _canManage ? () => _deletePlace(places[i]) : null,
           ),
         if (_canManage) _AddPlaceTile(onTap: _addPlace),
@@ -262,12 +301,14 @@ class _PlaceTile extends StatelessWidget {
     required this.place,
     required this.onToggleAlerts,
     required this.toggling,
+    required this.onEdit,
     required this.onDelete,
   });
 
   final Place place;
   final VoidCallback? onToggleAlerts;
   final bool toggling;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   @override
@@ -303,6 +344,12 @@ class _PlaceTile extends StatelessWidget {
                 color: place.alertsOn ? AppColors.purple : AppColors.textMuted,
               ),
               onPressed: toggling ? null : onToggleAlerts,
+            ),
+          if (onEdit != null)
+            IconButton(
+              tooltip: 'Edit place',
+              icon: const Icon(Icons.edit_outlined, color: AppColors.textMuted),
+              onPressed: onEdit,
             ),
           if (onDelete != null)
             IconButton(

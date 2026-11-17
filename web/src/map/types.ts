@@ -55,7 +55,7 @@ export interface LocationFields {
   /** ISO-8601 string, or Unix seconds/milliseconds. */
   ts?: number | string | null;
   battery_pct?: number | null;
-  /** Meters per second; converted to mph for display. */
+  /** Meters per second; converted for display by lib/units.ts. */
   speed_mps?: number | null;
   /** Free-form movement string from the device. */
   motion_state?: string | null;
@@ -132,8 +132,8 @@ export interface Member {
   /** Battery percentage 0–100 (0 = unknown). */
   batteryPercent: number;
   movement: MovementType;
-  /** Speed in mph, only meaningful when movement is "car". */
-  speedMph: number | null;
+  /** Speed in meters per second, only meaningful when movement is "car". */
+  speedMps: number | null;
   /** Epoch milliseconds (UTC) of the last report, or null if never. */
   lastSeen: number | null;
   /** Human-readable current place / activity label. */

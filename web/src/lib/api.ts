@@ -275,6 +275,25 @@ export function getFamilyMemberHistory(
   )
 }
 
+/**
+ * Downloads a member's track as a GPX or GeoJSON file. Platform admins use the
+ * server-wide endpoint; everyone else the family-scoped one.
+ */
+export function exportMemberHistory(
+  memberId: string,
+  from: string,
+  to: string,
+  format: 'gpx' | 'geojson',
+  asAdmin: boolean,
+): Promise<Blob> {
+  const q = new URLSearchParams({ from, to, format })
+  const base = asAdmin ? '/api/admin/members' : '/family/members'
+  return request<Blob>(
+    `${base}/${encodeURIComponent(memberId)}/history/export?${q.toString()}`,
+    { binary: true },
+  )
+}
+
 /** Returns saved places shared with the caller's family. 404 when familyless. */
 export function listMyPlaces(): Promise<FamilyPlace[]> {
   return request<FamilyPlace[]>('/family/places')

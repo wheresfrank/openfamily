@@ -9,6 +9,7 @@
 import React from 'react'
 import { CircleMarker, MapContainer, Polyline, TileLayer, useMap } from 'react-leaflet'
 import {
+  exportMemberHistory,
   getFamilyMemberHistory,
   getMemberHistory,
   listAllMembers,
@@ -67,6 +68,25 @@ function dayBounds(dateISO: string): { from: string; to: string } {
   return { from: from.toISOString(), to: to.toISOString() }
 }
 
+/** Start/end of an export covering `days` days that end with `dateISO`. */
+function exportBounds(dateISO: string, days: number): { from: string; to: string } {
+  const end = dayBounds(dateISO).to
+  const from = new Date(`${dateISO}T00:00:00`)
+  from.setDate(from.getDate() - (days - 1))
+  return { from: from.toISOString(), to: end }
+}
+
+function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
 function formatTime(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return '—'
@@ -103,6 +123,9 @@ export function HistoryPage() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [reload, setReload] = React.useState(0)
+  const [exportDays, setExportDays] = React.useState(1)
+  const [exporting, setExporting] = React.useState(false)
+  const [exportError, setExportError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     const onHash = () => {
@@ -194,6 +217,22 @@ export function HistoryPage() {
   }
 
   const selected = memberList.find((m) => m.id === memberId) ?? null
+
+  const runExport = async (format: 'gpx' | 'geojson') => {
+    if (!memberId) return
+    setExporting(true)
+    setExportError(null)
+    try {
+      const { from, to } = exportBounds(date, exportDays)
+      const blob = await exportMemberHistory(memberId, from, to, format, isPlatformAdmin)
+      const ext = format === 'gpx' ? 'gpx' : 'geojson'
+      saveBlob(blob, `openfamily-track-${date}${exportDays > 1 ? `-${exportDays}d` : ''}.${ext}`)
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : 'Couldn’t export the track')
+    } finally {
+      setExporting(false)
+    }
+  }
   const empty = !loading && !error && history && history.trail.length === 0 && history.visits.length === 0
 
   return (
@@ -255,6 +294,38 @@ export function HistoryPage() {
             onChange={(e) => setDate(e.target.value || todayISO())}
           />
         </label>
+        <div className="wb-field">
+          <span className="wb-label">Export track</span>
+          <div className="wb-history-export">
+            <select
+              aria-label="Export range"
+              className="wb-select"
+              value={exportDays}
+              onChange={(e) => setExportDays(Number(e.target.value))}
+            >
+              <option value={1}>This day</option>
+              <option value={7}>Last 7 days</option>
+              <option value={31}>Last 31 days</option>
+            </select>
+            <button
+              type="button"
+              className="wb-btn"
+              disabled={!memberId || exporting}
+              onClick={() => runExport('gpx')}
+            >
+              GPX
+            </button>
+            <button
+              type="button"
+              className="wb-btn"
+              disabled={!memberId || exporting}
+              onClick={() => runExport('geojson')}
+            >
+              GeoJSON
+            </button>
+          </div>
+          {exportError ? <p className="wb-history-muted">{exportError}</p> : null}
+        </div>
       </div>
 
       <div className="wb-history-body">
